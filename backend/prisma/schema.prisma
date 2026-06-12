@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  previewFeatures = ["pgvector"]
 }
 
 datasource db {
@@ -34,11 +33,12 @@ model Resume {
   updated_at  DateTime @updatedAt
   is_deleted  Boolean  @default(false)
   
-  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  chat_sessions ChatSession[]
+  user              User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  chat_sessions     ChatSession[]
   interview_results InterviewResult[]
   
   @@map("resumes")
+  @@index([user_id])
 }
 
 model Template {
@@ -67,85 +67,50 @@ model ChatSession {
   updated_at  DateTime @updatedAt
   is_deleted  Boolean  @default(false)
   
-  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  resume      Resume?  @relation(fields: [resume_id], references: [id], onDelete: SetNull)
+  user        User           @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  resume      Resume?        @relation(fields: [resume_id], references: [id], onDelete: SetNull)
   messages    ChatMessage[]
+  interviews  InterviewResult[]
   
   @@map("chat_sessions")
+  @@index([user_id])
+  @@index([resume_id])
 }
 
 model ChatMessage {
-  id          String   @id @default(uuid())
-  session_id  String
-  role        String
-  content     Json
-  token       Int?
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
-  is_deleted  Boolean  @default(false)
+  id         String   @id @default(uuid())
+  session_id String
+  role       String
+  content    Json
+  token      Int?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  is_deleted Boolean  @default(false)
   
-  session     ChatSession @relation(fields: [session_id], references: [id], onDelete: Cascade)
+  session    ChatSession @relation(fields: [session_id], references: [id], onDelete: Cascade)
   
   @@map("chat_messages")
+  @@index([session_id])
 }
 
 model InterviewResult {
-  id          String   @id @default(uuid())
-  user_id     String
-  session_id  String?
-  resume_id   String?
-  position    String
-  score       Int
-  report      Json
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
-  is_deleted  Boolean  @default(false)
+  id         String   @id @default(uuid())
+  user_id    String
+  session_id String?
+  resume_id  String?
+  position   String
+  score      Int
+  report     Json
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  is_deleted Boolean  @default(false)
   
-  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  session     ChatSession? @relation(fields: [session_id], references: [id], onDelete: SetNull)
-  resume      Resume?  @relation(fields: [resume_id], references: [id], onDelete: SetNull)
+  user     User        @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  session  ChatSession? @relation(fields: [session_id], references: [id], onDelete: SetNull)
+  resume   Resume?     @relation(fields: [resume_id], references: [id], onDelete: SetNull)
   
   @@map("interview_results")
-}
-
-model AIUsageLog {
-  id               String   @id @default(uuid())
-  user_id          String?
-  model_name       String
-  feature_type     String
-  prompt_tokens    Int
-  completion_tokens Int
-  total_tokens     Int
-  cost             Decimal?
-  created_at       DateTime @default(now())
-  updated_at       DateTime @updatedAt
-  is_deleted       Boolean  @default(false)
-  
-  user             User?    @relation(fields: [user_id], references: [id], onDelete: SetNull)
-  
-  @@map("ai_usage_logs")
-}
-
-model AIQuota {
-  id                  String   @id @default(uuid())
-  user_id             String   @unique
-  daily_request_limit Int      @default(100)
-  daily_request_used  Int      @default(0)
-  monthly_request_limit Int    @default(1000)
-  monthly_request_used Int     @default(0)
-  daily_token_limit   Int      @default(10000)
-  daily_token_used    Int      @default(0)
-  monthly_token_limit Int      @default(100000)
-  monthly_token_used  Int      @default(0)
-  is_blocked          Boolean  @default(false)
-  blocked_reason      String?
-  last_reset_daily_at DateTime @default(now())
-  last_reset_monthly_at DateTime @default(now())
-  created_at          DateTime @default(now())
-  updated_at          DateTime @updatedAt
-  is_deleted          Boolean  @default(false)
-  
-  user                User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  
-  @@map("ai_quotas")
+  @@index([user_id])
+  @@index([session_id])
+  @@index([resume_id])
 }
