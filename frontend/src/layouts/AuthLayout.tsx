@@ -1,5 +1,8 @@
-import { Outlet } from 'react-router-dom'
-
+import { Outlet } from 'react-router-dom';
 export default function AuthLayout() {
-  return <Outlet />
+  return (
+    <main className="min-h-[calc(100vh-65px)]">
+      <Outlet />
+    </main>
+  );
 }

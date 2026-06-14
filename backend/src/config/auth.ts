@@ -1,13 +1,16 @@
-import { env } from './env'
+import type { StringValue } from 'ms';
+import 'dotenv/config';
 
 export const authConfig = {
   jwt: {
-    secret: env.JWT_SECRET,
-    expiresIn: env.JWT_EXPIRES_IN,
+    secret: process.env.JWT_SECRET!,
+    expiresIn: process.env.JWT_EXPIRES_IN! as StringValue,
   },
   github: {
-    clientId: env.GITHUB_CLIENT_ID,
-    clientSecret: env.GITHUB_CLIENT_SECRET,
-    redirectUri: `${env.CORS_ORIGIN}/api/auth/github/callback`,
+    clientId: process.env.GITHUB_CLIENT_ID!,
+    clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+    redirectUri: process.env.GITHUB_REDIRECT_URI!,
   },
-}
+
+  frontendUrl: process.env.FRONTEND_URL!, 
+};
