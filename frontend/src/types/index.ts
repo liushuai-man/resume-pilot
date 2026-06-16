@@ -1,2 +1,3 @@
-export * from './api/response';
-export * from './api/auth';
+export * from './response';
+export * from './auth';
+export * from './resume';

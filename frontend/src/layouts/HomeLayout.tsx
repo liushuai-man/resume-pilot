@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { getCurrentUser } from '@/api/auth.api';
 import { Avatar, Text } from '@mantine/core';
@@ -10,7 +10,6 @@ import { notification } from '@/components/common/Notification';
 export default function HomeLayout() {
   const { user, clearUser, isLoggedIn, setUser } = useUserStore();
   const navigate = useNavigate();
-  const hasShownWelcome = useRef(false);
   useEffect(() => {
     // 检查登录状态
     const checkAuth = async () => {
@@ -18,13 +17,13 @@ export default function HomeLayout() {
         const res = await getCurrentUser();
         if (res.code === 200 && res.data) {
           setUser(res.data);
-          // 登录成功后显示欢迎通知（只显示一次）
-          if (!hasShownWelcome.current) {
-            hasShownWelcome.current = true;
+          const urlParams = new URLSearchParams(window.location.search);
+          if (urlParams.get('login') === 'success') {
             notification.success(
               `欢迎回来，${res.data.github_login}！`,
               '登录成功'
             );
+            window.history.replaceState({}, '', window.location.pathname);
           }
         }
       } catch (error) {
@@ -34,7 +33,6 @@ export default function HomeLayout() {
 
     checkAuth();
   }, []);
-
 
   const handleLogin = () => {
     navigate('/auth/login');
@@ -53,14 +51,12 @@ export default function HomeLayout() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className=" flex flex-col">
       {/* 顶部导航栏 */}
       <header className="border-b border-gray-200 px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-            <Text  fw="bold">
-              RA
-            </Text>
+            <Text fw="bold">RA</Text>
           </div>
           <Text size="lg" fw="bold">
             ResumePilot
@@ -97,7 +93,7 @@ export default function HomeLayout() {
       </header>
 
       {/* 主内容区 */}
-      <main className="flex-1 px-6 py-6 bg-gray-50 rounded-lg">
+      <main className="flex-1 py-6 bg-gray-50 rounded-lg">
         <Outlet />
       </main>
 

@@ -46,3 +46,5 @@ backend/prisma/*.db-journal
 /node_modules
 /dist/
 
+frontend/src/mock/
+frontend/dist/

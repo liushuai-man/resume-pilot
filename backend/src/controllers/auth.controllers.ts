@@ -57,8 +57,8 @@ export const authController = {
         sameSite: 'lax',
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 天
       });
-      // 登录成功，重定向回前端首页
-      return res.redirect(authConfig.frontendUrl);
+      // 登录成功，重定向回前端首页（带登录成功标记）
+      return res.redirect(`${authConfig.frontendUrl}?login=success`);
     } catch (err) {
       return res.redirect(
         `${authConfig.frontendUrl}/auth/login?error=auth_failed`
