@@ -1,73 +1,146 @@
-import { Container, Input, Button } from '@mantine/core';
-import { ArrowRight, Search } from 'lucide-react';
-import EmptyResume from '@/components/resume/EmptyResume';
-import HistoryResume from '@/components/resume/HistoryResume';
-import ResumeTemplate from '@/components/resume/ResumeTemplate';
-
-import { resumeTemplates, userResumeList } from '@/mock/index';
+import { Button, Text, Container, Input, Select } from '@mantine/core';
+import { FileText, ArrowRight, Search } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import EmptyResume from '@/components/home/EmptyResume';
+import HistoryResume from '@/components/home/HistoryResume';
+import ResumeTemplate from '@/components/home/ResumeTemplate';
+import { userResumeList, resumeTemplates } from '@/mock/index';
+import { defaultResumeContent } from '@/mock/resumeTemplateData';
+import type { Template, Resume } from '@/types/resume';
 
 export default function HomePage() {
-  // 操作方法
-  const handleSelectTemplate = (id: string) => console.log('选择模板:', id);
-  const handleCreateEmpty = () => console.log('创建空白简历');
+  const templates: Template[] = resumeTemplates;
+  const resumes: Resume[] = userResumeList;
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [sortBy, setSortBy] = useState<'created' | 'updated'>('updated');
+
+  const getTemplateThumbnail = (templateId?: string) => {
+    if (!templateId) return undefined;
+    const template = templates.find((t) => t.id === templateId);
+    return template?.thumbnail;
+  };
+
+  const filteredResumes = useMemo(() => {
+    let result = [...resumes];
+
+    // 按名称筛选
+    if (searchKeyword.trim()) {
+      result = result.filter((resume) =>
+        resume.title.toLowerCase().includes(searchKeyword.toLowerCase())
+      );
+    }
+
+    // 排序
+    result.sort((a, b) => {
+      const field = sortBy === 'created' ? 'created_at' : 'updated_at';
+      return new Date(b[field]).getTime() - new Date(a[field]).getTime();
+    });
+
+    return result;
+  }, [resumes, searchKeyword, sortBy]);
+
+  const handleSelectTemplate = (id: string) => {
+    console.log('选择模板:', id);
+    const template = templates.find((t) => t.id === id);
+    if (template) {
+      const resumeData = {
+        template_id: id,
+        title: '新建简历',
+        content: defaultResumeContent,
+      };
+      console.log('创建简历数据:', resumeData);
+    }
+  };
+
+  const handleCreateEmpty = () => {
+    const defaultTemplate = templates.find((t) => t.id === 'default');
+    if (defaultTemplate) {
+      const resumeData = {
+        template_id: 'default',
+        title: '空白简历',
+        content: defaultResumeContent,
+      };
+      console.log('创建空白简历:', resumeData);
+    }
+  };
 
   return (
-    <Container size="xl" className="">
-      <div className="flex items-center justify-between gap-6">
-        {/* 页面标题 */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">我的简历</h1>
-          <p className="text-gray-500">管理和编辑你的简历，助力求职之路</p>
+    <Container className="max-w-6xl mx-auto px-4 py-8">
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">我的简历</h1>
+          <p className="text-gray-500 mt-1">管理您的个人简历</p>
         </div>
-
-        {/* 搜索和筛选栏 */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
           <Input
-            placeholder="搜索简历名称"
-            className="w-80"
-            leftSection={<Search className="text-gray-400" size={18} />}
+            placeholder="搜索简历名称..."
+            value={searchKeyword}
+            onChange={(e) => setSearchKeyword(e.target.value)}
+            leftSection={<Search size={16} className="text-gray-400" />}
+            className="w-64"
+            size="sm"
           />
-          <div className="flex items-center gap-4">
-            <Button variant="outline" size="sm">
-              最新更新时间
-            </Button>
-          </div>
+          <Select
+            value={sortBy}
+            onChange={(value) => setSortBy(value as 'created' | 'updated')}
+            data={[
+              { value: 'updated', label: '最新修改' },
+              { value: 'created', label: '最近创建' },
+            ]}
+            size="sm"
+            className="w-32"
+          />
         </div>
       </div>
-      {/* 简历列表区域 */}
-      <div className="mb-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+
+      {/* 历史简历区域 */}
+      <div className="mb-10">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-800">我的简历</h2>
+          <Button
+            variant="ghost"
+            onClick={() => console.log('查看全部')}
+            className="text-gray-500 hover:text-blue-600 p-2 bg-white"
+          >
+            查看全部 <ArrowRight size={14} />
+          </Button>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           <EmptyResume onClick={handleCreateEmpty} />
-          {userResumeList.map((resume) => (
+          {filteredResumes.map((resume) => (
             <HistoryResume
               key={resume.id}
               resume={resume}
+              thumbnail={getTemplateThumbnail(resume.template_id)}
             />
           ))}
         </div>
       </div>
 
       {/* 精选模板区域 */}
-      <div>
+      <div className="bg-gray-50 rounded-xl ">
         <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-800">精选模板</h2>
-            <p className="text-sm text-gray-500">
-              选择合适的模板，快速创建专业简历
-            </p>
-          </div>
+          <h2 className="text-lg font-semibold text-gray-800">精选模板</h2>
           <Button
             variant="ghost"
-            size="sm"
-            className="text-blue-500 hover:text-blue-600"
+            onClick={() => console.log('查看更多模板')}
+            className="text-gray-500 bg-white border-2 border-gray-500 hover:text-blue-600 p-0 h-auto"
           >
-            查看全部模板 <ArrowRight size={14} />
+            查看更多
           </Button>
         </div>
-        <ResumeTemplate
-          templates={resumeTemplates}
-          onSelect={handleSelectTemplate}
-        />
+
+        {templates.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <FileText size={48} className="text-gray-300 mb-4" />
+            <Text className="text-gray-400">暂无可用模板</Text>
+          </div>
+        ) : (
+          <ResumeTemplate
+            templates={templates}
+            onSelect={handleSelectTemplate}
+          />
+        )}
       </div>
     </Container>
   );

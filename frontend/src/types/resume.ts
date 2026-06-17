@@ -1,7 +1,60 @@
+export interface BasicInfo {
+  name: string;
+  email: string;
+  phone: string;
+  location: string;
+  bio?: string;
+  avatar?: string;
+  title?: string;
+}
+
+export interface EducationItem {
+  id: string;
+  school: string;
+  major: string;
+  degree: string;
+  startDate: string;
+  endDate: string;
+  description?: string;
+}
+
+export interface ExperienceItem {
+  id: string;
+  company: string;
+  position: string;
+  startDate: string;
+  endDate: string;
+  description?: string;
+}
+
+export interface ProjectItem {
+  id: string;
+  name: string;
+  role: string;
+  startDate: string;
+  endDate: string;
+  description?: string;
+  techStack?: string[];
+}
+
 export interface ResumeBlock {
   id: string;
-  type: string;
-  data: object;
+  type:
+    | 'basic'
+    | 'education'
+    | 'experience'
+    | 'skills'
+    | 'projects'
+    | 'objective'
+    | 'certifications';
+  data:
+    | BasicInfo
+    | EducationItem[]
+    | ExperienceItem[]
+    | string[]
+    | ProjectItem[]
+    | { objective: string }
+    | { certifications: string[] };
 }
 
 export interface ResumeContent {

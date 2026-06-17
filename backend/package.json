@@ -9,7 +9,9 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "tsx prisma/seed.ts",
-    "lint": "eslint src --ext .ts"
+    "lint": "eslint src --ext .ts",
+    "init:templates": "tsx src/scripts/init-templates.ts",
+    "generate:thumbnails": "tsx src/scripts/generate-template-thumbnails.ts"
   },
   "dependencies": {
     "@langchain/community": "^0.0.34",
