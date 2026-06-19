@@ -6,7 +6,6 @@ import {
   generateThumbnailFromPreview,
   ensureTemplateDirExists,
 } from './thumbnail.service';
-import * as crypto from 'crypto';
 import path from 'path';
 import { promises as fs } from 'fs';
 import { fileURLToPath } from 'url';
@@ -28,11 +27,6 @@ export interface TemplateWithImages {
   is_deleted: boolean;
 }
 
-function generateDataHash(schema: object, styleConfig: object): string {
-  const data = JSON.stringify({ schema, styleConfig });
-  return crypto.createHash('md5').update(data).digest('hex');
-}
-
 export async function getTemplatesWithImages(): Promise<TemplateWithImages[]> {
   const templates = await prisma.template.findMany({
     where: { is_deleted: false },
@@ -42,9 +36,14 @@ export async function getTemplatesWithImages(): Promise<TemplateWithImages[]> {
   const result: TemplateWithImages[] = [];
 
   for (const template of templates) {
-    const schema = template.schema as object;
-    const styleConfig = template.style_config as object;
-    const currentHash = generateDataHash(schema, styleConfig);
+    const schema =
+      typeof template.schema === 'string'
+        ? JSON.parse(template.schema)
+        : template.schema;
+    const styleConfig =
+      typeof template.style_config === 'string'
+        ? JSON.parse(template.style_config)
+        : template.style_config;
 
     // 检查文件是否存在
     const thumbnailPath = path.join(
@@ -71,7 +70,6 @@ export async function getTemplatesWithImages(): Promise<TemplateWithImages[]> {
     const needsRegeneration =
       !template.thumbnail ||
       !template.preview_image ||
-      template.data_hash !== currentHash ||
       !thumbnailExists ||
       !previewExists;
 
@@ -130,7 +128,6 @@ export async function getTemplatesWithImages(): Promise<TemplateWithImages[]> {
           data: {
             thumbnail: thumbnailUrl,
             preview_image: previewUrl,
-            data_hash: currentHash,
           },
         });
 
@@ -177,8 +174,14 @@ export async function generateTemplateImages(
     throw new Error('模板不存在');
   }
 
-  const schema = template.schema as object;
-  const styleConfig = template.style_config as object;
+  const schema =
+    typeof template.schema === 'string'
+      ? JSON.parse(template.schema)
+      : template.schema;
+  const styleConfig =
+    typeof template.style_config === 'string'
+      ? JSON.parse(template.style_config)
+      : template.style_config;
 
   await ensureTemplateDirExists(templateId);
 
@@ -209,14 +212,11 @@ export async function generateTemplateImages(
   const thumbnailUrl = `/uploads/templates/${templateId}/thumbnail.webp`;
   const previewUrl = `/uploads/templates/${templateId}/preview.webp`;
 
-  const currentHash = generateDataHash(schema, styleConfig);
-
   await prisma.template.update({
     where: { id: templateId },
     data: {
       thumbnail: thumbnailUrl,
       preview_image: previewUrl,
-      data_hash: currentHash,
     },
   });
 

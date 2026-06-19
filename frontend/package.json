@@ -17,6 +17,8 @@
     "@tiptap/react": "^2.2.4",
     "@tiptap/starter-kit": "^2.2.4",
     "axios": "^1.6.7",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
     "lucide-react": "^1.18.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

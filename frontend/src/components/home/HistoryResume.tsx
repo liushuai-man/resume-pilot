@@ -1,19 +1,13 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Card, Text, Button, Group, Image, Modal } from '@mantine/core';
-import {
-  Eye,
-  Edit3,
-  Download,
-  Trash2,
-  FileText,
-  AlertCircle,
-} from 'lucide-react';
+import { Eye, Edit3, Download, Trash2, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { Resume } from '@/types/resume';
 import { notification } from '@/components/common/Notification';
 import ResumePreview from '@/components/home/ResumePreview';
 import { resumeApi } from '@/api/home.api';
-import { generateResumeHtml } from '@/utils/resumeToHtml';
+import { exportToPdf } from '@/utils/pdfExport';
+import ConfirmModal from '@/components/common/ConfirmModal';
 
 interface HistoryResumeProps {
   resume: Resume;
@@ -26,9 +20,11 @@ export default function HistoryResume({
 }: HistoryResumeProps) {
   const { id, title, content, updated_at } = resume;
   const navigate = useNavigate();
-
+  const previewRef = useRef<HTMLDivElement>(null);
+  const hiddenExportRef = useRef<HTMLDivElement>(null);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const handlePreview = () => {
     setPreviewModalOpen(true);
@@ -38,34 +34,41 @@ export default function HistoryResume({
     navigate(`/resume/${id}`);
   };
 
-  const handleExport = async () => {
+  const handleExportPdf = async (
+    targetRef: React.RefObject<HTMLDivElement>
+  ) => {
+    if (!targetRef.current) {
+      notification.error('无法获取预览内容');
+      return;
+    }
+
+    setIsExporting(true);
     try {
-      notification.info('正在生成简历...');
-      const result = await resumeApi.getResumeById(id);
-
-      if (result.code === 200) {
-        const resumeData = result.data;
-        const htmlContent = generateResumeHtml(
-          resumeData.content,
-          resumeData.title
-        );
-
-        const blob = new Blob([htmlContent], { type: 'text/html' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${title}.html`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-
-        notification.success('简历导出成功');
-      } else {
-        notification.error(result.message || '导出失败');
-      }
+      notification.info('正在生成PDF简历...');
+      await exportToPdf(targetRef.current, title);
+      notification.success('PDF简历导出成功');
     } catch (error) {
-      notification.error('导出失败，请稍后重试');
+      notification.error('PDF导出失败，请稍后重试');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportFromCard = async () => {
+    if (!hiddenExportRef.current) {
+      notification.error('无法获取预览内容');
+      return;
+    }
+
+    setIsExporting(true);
+    try {
+      notification.info('正在生成PDF简历...');
+      await exportToPdf(hiddenExportRef.current, title);
+      notification.success('PDF简历导出成功');
+    } catch (error) {
+      notification.error('PDF导出失败，请稍后重试');
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -90,15 +93,39 @@ export default function HistoryResume({
     }
   };
 
+  const handleEditFromPreview = () => {
+    setPreviewModalOpen(false);
+    navigate(`/resume/${id}`);
+  };
+
   return (
     <>
-      <Card className="aspect-[3/4] flex flex-col overflow-hidden border-2 border-gray-200 rounded-md">
-        <div className="flex-1 bg-gray-50 flex items-center justify-center overflow-hidden">
+      {/* 隐藏的导出容器 - 用于卡片直接下载 */}
+      <div
+        ref={hiddenExportRef}
+        className="fixed top-0 left-0 w-[210mm] h-[297mm] opacity-0 pointer-events-none z-[-1] overflow-hidden"
+        style={{
+          transform: 'translate(-100%, -100%)',
+        }}
+      >
+        <ResumePreview content={content} />
+      </div>
+
+      <Card className="aspect-[5/6] flex flex-col overflow-hidden border-2 border-gray-200 rounded-md p-0">
+        <div className="px-3 py-1  bg-white">
+          <Text size="sm" fw="medium" className="text-gray-800 mb-1 truncate">
+            {title}
+          </Text>
+          <Text size="xs" className="text-gray-400 ">
+            更新时间: {new Date(updated_at).toLocaleDateString('zh-CN')}
+          </Text>
+        </div>
+        <div className="flex-1 mx-3 border-2 border-gray-200 rounded-md flex items-center justify-center overflow-hidden">
           {thumbnail ? (
             <Image
               src={thumbnail}
               alt={title}
-              className="w-full h-full object-cover"
+              className="w-full object-cover "
               fit="cover"
             />
           ) : (
@@ -111,13 +138,7 @@ export default function HistoryResume({
           )}
         </div>
 
-        <div className="p-3 border-t bg-white">
-          <Text size="sm" fw="medium" className="text-gray-800 mb-1 truncate">
-            {title}
-          </Text>
-          <Text size="xs" className="text-gray-400 mb-3">
-            更新时间: {new Date(updated_at).toLocaleDateString('zh-CN')}
-          </Text>
+        <div className="p-3  bg-white">
           <Group gap={2} className="justify-around items-center">
             <Button
               variant="ghost"
@@ -140,16 +161,17 @@ export default function HistoryResume({
             <Button
               variant="ghost"
               size="sm"
-              className="w-8 h-8 p-0 border-2 rounded-full border-gray-500 text-gray-500 bg-white hover:bg-blue-500 hover:text-white hover:border-blue-500"
-              onClick={handleExport}
-              title="导出"
+              className="w-8 h-8 p-0 border-2 rounded-full border-gray-500 text-gray-500 bg-white hover:bg-green-500 hover:text-white hover:border-green-500"
+              onClick={handleExportFromCard}
+              title="下载"
+              disabled={isExporting}
             >
               <Download size={14} />
             </Button>
             <Button
               variant="ghost"
               size="sm"
-              className="w-8 h-8 p-0 border-2 rounded-full border-gray-500 text-gray-500 bg-white hover:bg-red-500 hover:text-white hover:border-red-500"
+              className="w-8 h-8 p-0 border-2 rounded-full border-gray-500 text-gray-500 bg-white hover:bg-orange-500 hover:text-white hover:border-orange-500"
               onClick={handleDelete}
               title="删除"
             >
@@ -166,43 +188,59 @@ export default function HistoryResume({
         title={title}
         size="xl"
         className="max-w-5xl"
+        centered
       >
-        <div className="relative overflow-auto max-h-[75vh]">
-          <ResumePreview content={content} />
+        <div className="bg-white border-t-2 border-gray-200 overflow-hidden">
+          <div
+            ref={previewRef}
+            className="rounded-lg overflow-auto"
+            style={{ maxHeight: '70vh' }}
+          >
+            <ResumePreview content={content} />
+          </div>
+
+          <div className="p-4 border-t-2 flex justify-end gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setPreviewModalOpen(false)}
+              className="border-gray-300 text-gray-600 hover:bg-gray-50"
+              size="md"
+            >
+              关闭
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleEditFromPreview}
+              className="border-blue-500 text-blue-600 hover:bg-blue-50"
+              size="md"
+            >
+              <Edit3 size={14} className="mr-2" />
+              编辑简历
+            </Button>
+            <Button
+              variant="filled"
+              onClick={() => handleExportPdf(previewRef)}
+              disabled={isExporting}
+              className="bg-green-600 hover:bg-green-700 text-white"
+              size="md"
+            >
+              <Download size={14} className="mr-2" />
+              {isExporting ? '导出中...' : '下载PDF'}
+            </Button>
+          </div>
         </div>
       </Modal>
 
       {/* 删除确认弹窗 */}
-      <Modal
+      <ConfirmModal
         opened={deleteConfirmOpen}
         onClose={() => setDeleteConfirmOpen(false)}
         title="确认删除"
-        size="sm"
-      >
-        <div className="flex flex-col items-center text-center py-4">
-          <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
-          <Text size="sm" className="text-gray-600 mb-6">
-            确定要删除这份简历吗？此操作无法撤销。
-          </Text>
-          <Group gap={4} className="justify-center w-full">
-            <Button
-              variant="outline"
-              onClick={() => setDeleteConfirmOpen(false)}
-              className="flex-1"
-            >
-              取消
-            </Button>
-            <Button
-              variant="filled"
-              color="red"
-              onClick={confirmDelete}
-              className="flex-1"
-            >
-              确认删除
-            </Button>
-          </Group>
-        </div>
-      </Modal>
+        message="确定要删除这份简历吗？此操作无法撤销。"
+        onConfirm={confirmDelete}
+        confirmText="确认删除"
+        type="warning"
+      />
     </>
   );
 }

@@ -12,7 +12,7 @@ export default function EmptyResume({
 }: EmptyResumeProps) {
   return (
     <Card
-      className={`aspect-[3/4] border-2 border-gray-200 rounded-lg border-dashed flex flex-col items-center justify-center cursor-pointer hover:shadow-md hover:border-solid transition-shadow ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+      className={`aspect-[5/6] border-2 border-gray-200 rounded-lg border-dashed flex flex-col items-center justify-center cursor-pointer hover:shadow-md hover:border-solid transition-shadow ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
       onClick={loading ? undefined : onClick}
     >
       {loading ? (

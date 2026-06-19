@@ -98,46 +98,43 @@ export default function HomePage() {
   };
 
   return (
-    <Container className="max-w-6xl mx-auto p-4">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">我的简历</h1>
-          <p className="text-gray-500 mt-1">管理您的个人简历</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Input
-            placeholder="搜索简历名称..."
-            value={searchKeyword}
-            onChange={(e) => setSearchKeyword(e.target.value)}
-            leftSection={<Search size={16} className="text-gray-400" />}
-            className="w-64"
-            size="sm"
-          />
-          <Select
-            value={sortBy}
-            onChange={(value) => setSortBy(value as 'created' | 'updated')}
-            data={[
-              { value: 'updated', label: '最新修改' },
-              { value: 'created', label: '最近创建' },
-            ]}
-            size="sm"
-            className="w-32"
-          />
-        </div>
-      </div>
-
+    <Container className="max-w-6xl mx-auto">
       {/* 历史简历区域 */}
       <div className="mb-10">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-800">我的简历</h2>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">首页</h1>
+            <p className="text-gray-500 mt-1">管理和创建你的简历，助力求职之路</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Input
+              placeholder="搜索简历名称..."
+              value={searchKeyword}
+              onChange={(e) => setSearchKeyword(e.target.value)}
+              leftSection={<Search size={16} className="text-gray-400" />}
+              className="w-64"
+              size="sm"
+            />
+            <Select
+              value={sortBy}
+              onChange={(value) => setSortBy(value as 'created' | 'updated')}
+              data={[
+                { value: 'updated', label: '最新修改' },
+                { value: 'created', label: '最近创建' },
+              ]}
+              size="sm"
+              className="w-32"
+            />
+          </div>
           <Button
             variant="ghost"
             onClick={() => console.log('查看全部')}
-            className="text-gray-500 hover:text-blue-600 p-2 bg-white"
+            className="text-gray-500 hover:text-blue-400 hover:bg-white p-2 bg-white"
           >
             查看全部 <ArrowRight size={14} />
           </Button>
         </div>
+
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           <EmptyResume onClick={handleCreateEmpty} loading={isCreating} />
           {filteredResumes.map((resume) => (
@@ -151,13 +148,17 @@ export default function HomePage() {
       </div>
 
       {/* 精选模板区域 */}
+
       <div className="bg-gray-50 rounded-xl ">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold text-gray-800">精选模板</h2>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">精选模板</h1>
+            <p className="text-gray-500 mt-1">选择合适的模板，快速创建专业简历</p>
+          </div>
           <Button
             variant="ghost"
             onClick={() => console.log('查看更多模板')}
-            className="text-gray-500 bg-white  hover:text-blue-600  h-auto"
+            className="text-gray-500 bg-white  hover:text-blue-400 hover:bg-white  h-auto"
           >
             查看更多 <ArrowRight size={14} />
           </Button>

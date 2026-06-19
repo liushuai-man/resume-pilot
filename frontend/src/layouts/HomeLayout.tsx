@@ -25,9 +25,12 @@ export default function HomeLayout() {
             );
             window.history.replaceState({}, '', window.location.pathname);
           }
+        } else if (res.code === 401) {
+          clearUser();
         }
       } catch (error) {
         console.error('获取用户信息失败:', error);
+        clearUser();
       }
     };
 

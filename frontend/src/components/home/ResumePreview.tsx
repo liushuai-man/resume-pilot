@@ -279,8 +279,11 @@ export default function ResumePreview({ content }: ResumePreviewProps) {
       }
 
       case 'certifications': {
-        const certifications = (data as { certifications: string[] })
-          .certifications;
+        const certifications = (
+          data as {
+            certifications: (string | { name: string; date?: string })[];
+          }
+        ).certifications;
         return (
           <div key={block.id} className="mb-6">
             <Text
@@ -292,14 +295,20 @@ export default function ResumePreview({ content }: ResumePreviewProps) {
             </Text>
             {certifications && certifications.length > 0 ? (
               <div className="flex flex-wrap gap-2">
-                {certifications.map((cert, index) => (
-                  <span
-                    key={index}
-                    className="px-3 py-1 bg-yellow-50 text-yellow-700 text-sm rounded-full"
-                  >
-                    {cert}
-                  </span>
-                ))}
+                {certifications.map((cert, index) => {
+                  const certText =
+                    typeof cert === 'string'
+                      ? cert
+                      : `${cert.name}${cert.date ? ` (${cert.date})` : ''}`;
+                  return (
+                    <span
+                      key={index}
+                      className="px-3 py-1 bg-yellow-50 text-yellow-700 text-sm rounded-full"
+                    >
+                      {certText}
+                    </span>
+                  );
+                })}
               </div>
             ) : (
               <Text size="sm" className="text-gray-500">

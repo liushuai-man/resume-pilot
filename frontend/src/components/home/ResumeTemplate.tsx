@@ -43,7 +43,7 @@ export default function ResumeTemplate({
         {templates.map((template) => (
           <Card
             key={template.id}
-            className={`group relative flex flex-col overflow-hidden border border-gray-100 rounded-lg transition-all duration-300 cursor-pointer ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}
+            className={`group relative flex flex-col overflow-hidden border border-gray-100 transition-all duration-300 cursor-pointer ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}
             style={{ aspectRatio: '3/4.5' }}
             p={0}
           >
@@ -83,10 +83,6 @@ export default function ResumeTemplate({
                 >
                   {template.category}
                 </Badge>
-                <div className="flex items-center text-gray-400 text-[10px]">
-                  <Users size={10} className="mr-0.5" />
-                  <span>{mockUsageCount(template.id)}</span>
-                </div>
               </div>
               <div className="overflow-hidden transition-all duration-300 max-h-0 group-hover:max-h-12">
                 <Group gap={1} className="pt-1 flex justify-between gap-2">
