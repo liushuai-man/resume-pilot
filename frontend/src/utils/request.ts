@@ -13,12 +13,6 @@ const instance = axios.create({
 
 instance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('token');
-
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-
     return config;
   },
   (error) => {
@@ -29,7 +23,8 @@ instance.interceptors.request.use(
 instance.interceptors.response.use(
   (response: AxiosResponse) => {
     const { data } = response;
-    if (response.status === 200) {
+    // 接受 200 和 201 状态码（201 表示创建成功）
+    if (response.status === 200 || response.status === 201) {
       return data;
     }
     return Promise.reject(new Error(response.statusText || 'Error'));
@@ -74,7 +69,6 @@ interface RequestMethods {
   ): Promise<T>;
   delete<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<T>;
 }
-
 
 const request: RequestMethods = {
   get(url, config) {

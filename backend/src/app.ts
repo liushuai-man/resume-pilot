@@ -13,9 +13,13 @@ export const app: Application = express();
 
 // Middleware
 app.use(cookieParser());
+
+// CORS 配置 - 开发环境允许多个端口
+const allowedOrigins = env.CORS_ORIGIN;
+
 app.use(
   cors({
-    origin: env.CORS_ORIGIN,
+    origin: allowedOrigins,
     credentials: true,
   })
 );

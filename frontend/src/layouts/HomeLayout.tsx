@@ -46,6 +46,7 @@ export default function HomeLayout() {
       const res = await logout();
       if (res.code === 200) {
         clearUser();
+        localStorage.removeItem('token');
         notification.success('登出成功');
       }
     } catch (error) {

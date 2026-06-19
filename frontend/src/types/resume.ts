@@ -11,6 +11,66 @@ export interface BasicInfo {
   summary?: string;
 }
 
+export interface Education {
+  id: string;
+  school: string;
+  major: string;
+  degree: string;
+  startDate: string;
+  endDate: string;
+  description?: string;
+  gpa?: string;
+}
+
+export interface Experience {
+  id: string;
+  company: string;
+  position: string;
+  department?: string;
+  startDate: string;
+  endDate: string;
+  location?: string;
+  description?: string;
+  achievements?: string[];
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  role: string;
+  startDate: string;
+  endDate: string;
+  description?: string;
+  techStack?: string[];
+  achievements?: string[];
+}
+
+export interface Skill {
+  id: string;
+  name: string;
+  level?: string;
+  category?: string;
+}
+
+export interface Certification {
+  id: string;
+  name: string;
+  issuer?: string;
+  date?: string;
+  description?: string;
+}
+
+export interface Club {
+  id: string;
+  name: string;
+  role: string;
+  position?: string;
+  startDate: string;
+  endDate: string;
+  description?: string;
+  achievements?: string[];
+}
+
 export interface EducationItem {
   id: string;
   school: string;
@@ -81,6 +141,14 @@ export interface ResumeBlock {
 
 export interface ResumeContent {
   blocks: ResumeBlock[];
+  basicInfo: BasicInfo;
+  education: Education[];
+  experience: Experience[];
+  projects: Project[];
+  skills: Skill[];
+  careerObjective: string;
+  certifications: Certification[];
+  clubs: Club[];
 }
 
 export interface Resume {

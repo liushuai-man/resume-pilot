@@ -70,9 +70,9 @@ export default function ResumePreview({ content }: ResumePreviewProps) {
                 </div>
               </div>
             </div>
-            {info.bio && (
+            {(info.bio || info.summary) && (
               <Text size="sm" className="text-gray-600 mt-4 leading-relaxed">
-                {info.bio}
+                {info.bio || info.summary}
               </Text>
             )}
           </div>

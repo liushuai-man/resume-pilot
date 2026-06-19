@@ -1,0 +1,236 @@
+import { Card } from '@mantine/core';
+import type { ResumeContent } from '@/types/resume';
+
+interface ResumePreviewProps {
+  content: ResumeContent;
+}
+
+export default function ResumePreview({ content }: ResumePreviewProps) {
+  return (
+    <Card className="bg-white shadow-lg">
+      <div className="p-8">
+        {/* 基本信息 */}
+        {content.basicInfo && (
+          <div className="text-center mb-6 pb-6 border-b border-gray-200">
+            <h1 className="text-2xl font-bold text-gray-800 mb-1">
+              {content.basicInfo.name || '您的姓名'}
+            </h1>
+            <p className="text-gray-500">{content.basicInfo.title || '您的职位'}</p>
+            <div className="flex justify-center gap-4 mt-3 text-sm text-gray-600">
+              {content.basicInfo.email && <span>{content.basicInfo.email}</span>}
+              {content.basicInfo.phone && <span>{content.basicInfo.phone}</span>}
+              {content.basicInfo.location && <span>{content.basicInfo.location}</span>}
+            </div>
+            {content.basicInfo.summary && (
+              <p className="mt-4 text-gray-600 text-sm leading-relaxed">
+                {content.basicInfo.summary}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* 教育经历 */}
+        {content.education && content.education.length > 0 && (
+          <div className="mb-6 pb-6 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+              <span className="w-1 h-5 bg-blue-500 mr-3 rounded"></span>
+              教育背景
+            </h2>
+            {content.education.map((item) => (
+              <div key={item.id} className="mb-4 last:mb-0">
+                <div className="flex justify-between">
+                  <div>
+                    <h3 className="font-medium text-gray-800">{item.school}</h3>
+                    <p className="text-sm text-gray-500">{item.major}</p>
+                  </div>
+                  <span className="text-sm text-gray-400">
+                    {item.startDate} - {item.endDate}
+                  </span>
+                </div>
+                {item.gpa && (
+                  <p className="text-sm text-gray-500 mt-1">GPA: {item.gpa}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* 工作经历 */}
+        {content.experience && content.experience.length > 0 && (
+          <div className="mb-6 pb-6 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+              <span className="w-1 h-5 bg-blue-500 mr-3 rounded"></span>
+              工作经历
+            </h2>
+            {content.experience.map((item) => (
+              <div key={item.id} className="mb-4 last:mb-0">
+                <div className="flex justify-between">
+                  <div>
+                    <h3 className="font-medium text-gray-800">{item.company}</h3>
+                    <p className="text-sm text-gray-500">{item.position}</p>
+                  </div>
+                  <span className="text-sm text-gray-400">
+                    {item.startDate} - {item.endDate || '至今'}
+                  </span>
+                </div>
+                {item.description && (
+                  <p className="text-sm text-gray-600 mt-2">{item.description}</p>
+                )}
+                {(item.achievements || []).length > 0 && (
+                  <ul className="mt-2 text-sm text-gray-600">
+                    {(item.achievements || []).map((achievement, index) => (
+                      <li key={index} className="flex items-start mt-1">
+                        <span className="text-blue-500 mr-2">•</span>
+                        {achievement}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* 项目经验 */}
+        {content.projects && content.projects.length > 0 && (
+          <div className="mb-6 pb-6 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+              <span className="w-1 h-5 bg-blue-500 mr-3 rounded"></span>
+              项目经验
+            </h2>
+            {content.projects.map((item) => (
+              <div key={item.id} className="mb-4 last:mb-0">
+                <div className="flex justify-between">
+                  <div>
+                    <h3 className="font-medium text-gray-800">{item.name}</h3>
+                    <p className="text-sm text-gray-500">{item.role}</p>
+                  </div>
+                  <span className="text-sm text-gray-400">
+                    {item.startDate} - {item.endDate || '至今'}
+                  </span>
+                </div>
+                {item.description && (
+                  <p className="text-sm text-gray-600 mt-2">{item.description}</p>
+                )}
+                {(item.techStack || []).length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {(item.techStack || []).map((tech, index) => (
+                      <span
+                        key={index}
+                        className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded"
+                      >
+                        {tech}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {(item.achievements || []).length > 0 && (
+                  <ul className="mt-2 text-sm text-gray-600">
+                    {(item.achievements || []).map((achievement, index) => (
+                      <li key={index} className="flex items-start mt-1">
+                        <span className="text-blue-500 mr-2">•</span>
+                        {achievement}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* 专业技能 */}
+        {content.skills && content.skills.length > 0 && (
+          <div className="mb-6 pb-6 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+              <span className="w-1 h-5 bg-blue-500 mr-3 rounded"></span>
+              专业技能
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {content.skills.map((item) => (
+                <span
+                  key={item.id}
+                  className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full"
+                >
+                  {item.name}
+                  {item.level && (
+                    <span className="ml-1 text-gray-500">({item.level})</span>
+                  )}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 证书 */}
+        {content.certifications && content.certifications.length > 0 && (
+          <div className="mb-6 pb-6 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+              <span className="w-1 h-5 bg-blue-500 mr-3 rounded"></span>
+              证书荣誉
+            </h2>
+            {content.certifications.map((item) => (
+              <div key={item.id} className="mb-3 last:mb-0">
+                <div className="flex justify-between">
+                  <h3 className="font-medium text-gray-800">{item.name}</h3>
+                  <span className="text-sm text-gray-400">{item.date}</span>
+                </div>
+                {item.description && (
+                  <p className="text-sm text-gray-500 mt-1">{item.description}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* 社团经历 */}
+        {content.clubs && content.clubs.length > 0 && (
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+              <span className="w-1 h-5 bg-blue-500 mr-3 rounded"></span>
+              社团经历
+            </h2>
+            {content.clubs.map((item) => (
+              <div key={item.id} className="mb-3 last:mb-0">
+                <div className="flex justify-between">
+                  <div>
+                    <h3 className="font-medium text-gray-800">{item.name}</h3>
+                    {item.position && (
+                      <p className="text-sm text-gray-500">{item.position}</p>
+                    )}
+                  </div>
+                  <span className="text-sm text-gray-400">
+                    {item.startDate} - {item.endDate || '至今'}
+                  </span>
+                </div>
+                {(item.achievements || []).length > 0 && (
+                  <ul className="mt-2 text-sm text-gray-600">
+                    {(item.achievements || []).map((achievement, index) => (
+                      <li key={index} className="flex items-start mt-1">
+                        <span className="text-blue-500 mr-2">•</span>
+                        {achievement}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* 职业目标 */}
+        {content.careerObjective && (
+          <div>
+            <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+              <span className="w-1 h-5 bg-blue-500 mr-3 rounded"></span>
+              职业目标
+            </h2>
+            <p className="text-gray-600 text-sm leading-relaxed">
+              {content.careerObjective}
+            </p>
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}

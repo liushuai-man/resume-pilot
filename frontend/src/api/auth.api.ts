@@ -1,5 +1,9 @@
 import request from '@/utils/request';
-import type { ApiResponse, GithubUser, GithubLoginRequest } from '@/types/index';
+import type {
+  ApiResponse,
+  GithubUser,
+  GithubLoginRequest,
+} from '@/types/index';
 
 export const githubLogin = async (
   code: GithubLoginRequest

@@ -1,0 +1,72 @@
+import React from 'react';
+
+// 路由配置类型
+export interface RouteConfig {
+  path: string;
+  element?: React.ReactNode;
+  layout?: React.ReactNode;
+  children?: RouteConfig[];
+}
+
+// 布局组件（延迟加载）
+const AuthLayout = React.lazy(() => import('@/layouts/AuthLayout'));
+const HomeLayout = React.lazy(() => import('@/layouts/HomeLayout'));
+
+// 页面组件（延迟加载）
+const LoginPage = React.lazy(() => import('@/pages/LoginPage'));
+const HomePage = React.lazy(() => import('@/pages/HomePage'));
+const ResumeEditorPage = React.lazy(() => import('@/pages/ResumeEditorPage'));
+const NotFoundPage = React.lazy(
+  () => import('@/components/common/NotFoundPage')
+);
+
+// 路由配置
+export const routes: RouteConfig[] = [
+  // 认证相关页面
+  {
+    path: '/auth',
+    layout: React.createElement(AuthLayout),
+    children: [{ path: 'login', element: React.createElement(LoginPage) }],
+  },
+
+  // 首页布局
+  {
+    path: '/',
+    layout: React.createElement(HomeLayout),
+    children: [{ path: '', element: React.createElement(HomePage) }],
+  },
+
+  // 主要功能布局
+  {
+    path: '/resume/:id',
+    element: React.createElement(ResumeEditorPage),
+  },
+
+  // 404 页面
+  {
+    path: '*',
+    element: React.createElement(NotFoundPage),
+  },
+];
+
+// 路由名称常量
+export const ROUTE_NAMES = {
+  LOGIN: '/auth/login',
+  HOME: '/',
+  RESUME_EDITOR: '/resume/:id',
+  RESUME_INTERVIEW: '/resume/interview',
+};
+
+// 生成带参数的路由路径
+export const generateRoutePath = (
+  route: string,
+  params?: Record<string, string>
+): string => {
+  let path = route;
+  if (params) {
+    Object.entries(params).forEach(([key, value]) => {
+      path = path.replace(`:${key}`, value);
+    });
+  }
+  return path;
+};

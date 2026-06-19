@@ -1,5 +1,5 @@
 import { Card, Text, Button, Group, Modal, Badge } from '@mantine/core';
-import { Eye, Plus, Users } from 'lucide-react';
+import { Eye, Plus } from 'lucide-react';
 import { useState } from 'react';
 import type { Template } from '@/types/resume';
 
@@ -25,16 +25,6 @@ export default function ResumeTemplate({
   const handleClosePreview = () => {
     setIsPreviewOpen(false);
     setPreviewTemplate(null);
-  };
-
-  const mockUsageCount = (id: string) => {
-    const counts: Record<string, string> = {
-      default: '12,345',
-      professional: '8,923',
-      creative: '6,542',
-      modern: '4,123',
-    };
-    return counts[id] || '1,000';
   };
 
   return (
