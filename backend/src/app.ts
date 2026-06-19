@@ -4,6 +4,10 @@ import cookieParser from 'cookie-parser';
 import { env } from './config/env';
 import type { Application } from 'express';
 import { authRouter, resumeRouter } from './routes/index';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export const app: Application = express();
 
@@ -17,6 +21,9 @@ app.use(
 );
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// Static file service for uploaded files
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
 app.get('/health', (req, res) => {

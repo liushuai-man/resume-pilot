@@ -1,18 +1,35 @@
 import { Button, Text, Container, Input, Select } from '@mantine/core';
 import { FileText, ArrowRight, Search } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import EmptyResume from '@/components/home/EmptyResume';
 import HistoryResume from '@/components/home/HistoryResume';
 import ResumeTemplate from '@/components/home/ResumeTemplate';
-import { userResumeList, resumeTemplates } from '@/mock/index';
-import { defaultResumeContent } from '@/mock/resumeTemplateData';
+import { userResumeList } from '@/mock/index';
+import { defaultResumeContent } from '@/utils/defaultResumeContent';
+import { resumeApi } from '@/api/home.api';
 import type { Template, Resume } from '@/types/resume';
 
 export default function HomePage() {
-  const templates: Template[] = resumeTemplates;
+  const [templates, setTemplates] = useState<Template[]>([]);
   const resumes: Resume[] = userResumeList;
   const [searchKeyword, setSearchKeyword] = useState('');
   const [sortBy, setSortBy] = useState<'created' | 'updated'>('updated');
+  const [isCreating, setIsCreating] = useState(false);
+
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        const response = await resumeApi.getTemplates();
+        if (response.code === 200 && response.data) {
+          setTemplates(response.data);
+        }
+      } catch (error) {
+        console.error('获取模板列表失败:', error);
+      }
+    };
+
+    fetchTemplates();
+  }, []);
 
   const getTemplateThumbnail = (templateId?: string) => {
     if (!templateId) return undefined;
@@ -39,33 +56,49 @@ export default function HomePage() {
     return result;
   }, [resumes, searchKeyword, sortBy]);
 
-  const handleSelectTemplate = (id: string) => {
-    console.log('选择模板:', id);
+  const handleSelectTemplate = async (id: string) => {
     const template = templates.find((t) => t.id === id);
-    if (template) {
-      const resumeData = {
+    if (!template) return;
+
+    setIsCreating(true);
+    try {
+      const response = await resumeApi.createResume({
         template_id: id,
-        title: '新建简历',
+        title: `基于${template.name}的简历`,
         content: defaultResumeContent,
-      };
-      console.log('创建简历数据:', resumeData);
+      });
+
+      if (response.data) {
+        window.location.href = `/editor/${response.data.id}`;
+      }
+    } catch (error) {
+      console.error('创建简历失败:', error);
+    } finally {
+      setIsCreating(false);
     }
   };
 
-  const handleCreateEmpty = () => {
-    const defaultTemplate = templates.find((t) => t.id === 'default');
-    if (defaultTemplate) {
-      const resumeData = {
+  const handleCreateEmpty = async () => {
+    setIsCreating(true);
+    try {
+      const response = await resumeApi.createResume({
         template_id: 'default',
         title: '空白简历',
         content: defaultResumeContent,
-      };
-      console.log('创建空白简历:', resumeData);
+      });
+
+      if (response.data) {
+        window.location.href = `/editor/${response.data.id}`;
+      }
+    } catch (error) {
+      console.error('创建简历失败:', error);
+    } finally {
+      setIsCreating(false);
     }
   };
 
   return (
-    <Container className="max-w-6xl mx-auto px-4 py-8">
+    <Container className="max-w-6xl mx-auto p-4">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">我的简历</h1>
@@ -106,7 +139,7 @@ export default function HomePage() {
           </Button>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          <EmptyResume onClick={handleCreateEmpty} />
+          <EmptyResume onClick={handleCreateEmpty} loading={isCreating} />
           {filteredResumes.map((resume) => (
             <HistoryResume
               key={resume.id}
@@ -124,9 +157,9 @@ export default function HomePage() {
           <Button
             variant="ghost"
             onClick={() => console.log('查看更多模板')}
-            className="text-gray-500 bg-white border-2 border-gray-500 hover:text-blue-600 p-0 h-auto"
+            className="text-gray-500 bg-white  hover:text-blue-600  h-auto"
           >
-            查看更多
+            查看更多 <ArrowRight size={14} />
           </Button>
         </div>
 
@@ -139,6 +172,7 @@ export default function HomePage() {
           <ResumeTemplate
             templates={templates}
             onSelect={handleSelectTemplate}
+            loading={isCreating}
           />
         )}
       </div>

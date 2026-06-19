@@ -6,6 +6,9 @@ export interface BasicInfo {
   bio?: string;
   avatar?: string;
   title?: string;
+  gender?: string;
+  website?: string;
+  summary?: string;
 }
 
 export interface EducationItem {
@@ -15,16 +18,18 @@ export interface EducationItem {
   degree: string;
   startDate: string;
   endDate: string;
-  description?: string;
+  description?: string | string[];
 }
 
 export interface ExperienceItem {
-  id: string;
+  id?: string;
   company: string;
   position: string;
+  department?: string;
   startDate: string;
   endDate: string;
-  description?: string;
+  location?: string;
+  description?: string | string[];
 }
 
 export interface ProjectItem {
@@ -33,8 +38,20 @@ export interface ProjectItem {
   role: string;
   startDate: string;
   endDate: string;
-  description?: string;
+  location?: string;
+  description?: string | string[];
   techStack?: string[];
+}
+
+export interface OrganizationItem {
+  id: string;
+  name: string;
+  role: string;
+  department?: string;
+  startDate: string;
+  endDate: string;
+  location?: string;
+  description?: string | string[];
 }
 
 export interface ResumeBlock {
@@ -46,15 +63,20 @@ export interface ResumeBlock {
     | 'skills'
     | 'projects'
     | 'objective'
-    | 'certifications';
+    | 'certifications'
+    | 'awards'
+    | 'organizations';
   data:
     | BasicInfo
     | EducationItem[]
     | ExperienceItem[]
     | string[]
     | ProjectItem[]
+    | OrganizationItem[]
     | { objective: string }
-    | { certifications: string[] };
+    | { certifications: string[] }
+    | { certifications: { name: string; date: string }[] }
+    | { awards: string[] };
 }
 
 export interface ResumeContent {
@@ -82,6 +104,9 @@ export interface StyleConfig {
   fontSize: number;
   fontFamily: string;
   backgroundColor?: string;
+  sectionTitleColor?: string;
+  sectionTitleSize?: number;
+  lineColor?: string;
 }
 
 export interface Template {

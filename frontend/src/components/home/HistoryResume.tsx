@@ -6,7 +6,6 @@ import {
   Download,
   Trash2,
   FileText,
-  X,
   AlertCircle,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -167,7 +166,6 @@ export default function HistoryResume({
         title={title}
         size="xl"
         className="max-w-5xl"
-        scrollAreaProps={{ style: { maxHeight: '80vh' } }}
       >
         <div className="relative overflow-auto max-h-[75vh]">
           <ResumePreview content={content} />

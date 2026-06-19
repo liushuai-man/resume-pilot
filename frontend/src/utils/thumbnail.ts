@@ -1,5 +1,5 @@
 export async function generateThumbnailFromHtml(
-  htmlContent: string,
+  _htmlContent: string,
   width: number = 400,
   height: number = 560
 ): Promise<string> {
@@ -73,7 +73,7 @@ export async function generateThumbnailFromResume(
       <text x="100" y="${educationCount > 0 ? (experienceCount > 0 ? 450 : 410) : experienceCount > 0 ? 430 : 390}" font-family="sans-serif" font-size="16" fill="#333" font-weight="bold">专业技能</text>
       ${skills
         .map(
-          (skill: string, index: number) => `
+          (_skill: string, index: number) => `
         <rect fill="#e0e0e0" x="${100 + index * 70}" y="${educationCount > 0 ? (experienceCount > 0 ? 470 : 430) : experienceCount > 0 ? 450 : 410}" width="60" height="24" rx="12"/>
       `
         )

@@ -173,18 +173,10 @@ export const getUserResumes = async (req: Request, res: Response) => {
 
 export const getTemplates = async (req: Request, res: Response) => {
   try {
-    const templates = await prisma.template.findMany({
-      where: { is_deleted: false },
-      orderBy: { created_at: 'desc' },
-    });
-
-    const result = templates.map((template) => ({
-      ...template,
-      schema: template.schema as object,
-      style_config: template.style_config as object,
-    }));
-
-    return res.json({ code: 200, message: 'Success', data: result });
+    const templates = await import('../services/template.service').then((m) =>
+      m.getTemplatesWithImages()
+    );
+    return res.json({ code: 200, message: 'Success', data: templates });
   } catch (err: any) {
     console.error('获取模板列表失败:', err);
     return error(res, '获取失败');
@@ -214,8 +206,8 @@ function generateResumeHtml(content: any): string {
     <head>
       <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; font-size: 12px; line-height: 1.5; color: #333; padding: 20px; background: #fff; }
-        .container { max-width: 600px; margin: 0 auto; }
+        body { font-family: Arial, sans-serif; font-size: 12px; line-height: 1.5; color: #333; padding: 20px; background: #fff; width: 100%; }
+        .container { width: 100%; }
         .header { border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
         .name { font-size: 24px; font-weight: bold; }
         .title { color: #666; margin: 5px 0; }
