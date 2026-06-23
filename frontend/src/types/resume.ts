@@ -18,7 +18,6 @@ export interface Education {
   degree: string;
   startDate: string;
   endDate: string;
-  description?: string;
   gpa?: string;
 }
 
@@ -60,7 +59,7 @@ export interface Certification {
   description?: string;
 }
 
-export interface Club {
+export interface CampusExperience {
   id: string;
   name: string;
   role: string;
@@ -70,6 +69,9 @@ export interface Club {
   description?: string;
   achievements?: string[];
 }
+
+// 保持向后兼容性
+export type Club = CampusExperience;
 
 export interface EducationItem {
   id: string;
@@ -148,7 +150,9 @@ export interface ResumeContent {
   skills: Skill[];
   careerObjective: string;
   certifications: Certification[];
-  clubs: Club[];
+  campusExperiences: CampusExperience[];
+  // 保持向后兼容性
+  clubs?: Club[];
 }
 
 export interface Resume {

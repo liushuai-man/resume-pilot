@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { Card, Text, Button, Group, Image, Modal } from '@mantine/core';
-import { Eye, Edit3, Download, Trash2, FileText } from 'lucide-react';
+import { Eye, Edit3, Download, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { Resume } from '@/types/resume';
 import { notification } from '@/components/common/Notification';
@@ -12,11 +12,13 @@ import ConfirmModal from '@/components/common/ConfirmModal';
 interface HistoryResumeProps {
   resume: Resume;
   thumbnail?: string;
+  onDelete?: (id: string) => void;
 }
 
 export default function HistoryResume({
   resume,
   thumbnail,
+  onDelete,
 }: HistoryResumeProps) {
   const { id, title, content, updated_at } = resume;
   const navigate = useNavigate();
@@ -82,7 +84,10 @@ export default function HistoryResume({
 
       if (result.code === 200) {
         notification.success(result.message);
-        window.location.reload();
+        // 调用回调函数更新简历列表，而不是刷新页面
+        if (onDelete) {
+          onDelete(id);
+        }
       } else {
         notification.error(result.message || '删除失败');
       }
@@ -120,20 +125,17 @@ export default function HistoryResume({
             更新时间: {new Date(updated_at).toLocaleDateString('zh-CN')}
           </Text>
         </div>
-        <div className="flex-1 mx-3 border-2 border-gray-200 rounded-md flex items-center justify-center overflow-hidden">
+        <div className="flex-1 mx-3 border-2 border-gray-200 rounded-md overflow-hidden bg-white">
           {thumbnail ? (
             <Image
               src={thumbnail}
               alt={title}
-              className="w-full object-cover "
+              className="w-full h-full object-cover"
               fit="cover"
             />
           ) : (
-            <div className="flex flex-col items-center justify-center text-gray-400">
-              <FileText size={32} />
-              <Text size="xs" mt={1}>
-                暂无预览
-              </Text>
+            <div className="p-2 h-full overflow-hidden">
+              <ResumePreview content={content} />
             </div>
           )}
         </div>

@@ -6,8 +6,7 @@ export const defaultResumeContent = {
     phone: '138-8888-8888',
     location: '北京',
     title: '系统集成工程师',
-    summary:
-      '扎实的计算机基础知识，熟悉操作系统、网络协议和数据库原理；具备良好的编程能力，熟练掌握Java、Python等常用编程语言；熟悉系统集成流程，具备一定的项目管理经验和团队协作能力；对新技术充满热情，乐于学习和探索。',
+    bio: '扎实的计算机基础知识，熟悉操作系统、网络协议和数据库原理；具备良好的编程能力，熟练掌握Java、Python等常用编程语言；熟悉系统集成流程，具备一定的项目管理经验和团队协作能力；对新技术充满热情，乐于学习和探索。',
   },
   education: [
     {
@@ -17,8 +16,6 @@ export const defaultResumeContent = {
       degree: '本科',
       startDate: '2021-09',
       endDate: '2025-06',
-      description:
-        '主修数据结构、操作系统、计算机网络、数据库原理、软件工程等专业课程。',
     },
   ],
   experience: [
@@ -89,9 +86,9 @@ export const defaultResumeContent = {
     },
     { id: 'cert-3', name: 'CISCO CCNA', issuer: '思科', date: '2025-03' },
   ],
-  clubs: [
+  campusExperiences: [
     {
-      id: 'club-1',
+      id: 'campus-1',
       name: '计算机协会',
       role: '技术部部长',
       position: '部长',

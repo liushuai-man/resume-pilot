@@ -1,14 +1,6 @@
 import { useState } from 'react';
 import { Card, Input, Button, Badge } from '@mantine/core';
-import {
-  Award,
-  Plus,
-  Trash2,
-  Sparkles,
-  Settings,
-  ChevronDown,
-  ChevronUp,
-} from 'lucide-react';
+import { Award, Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import type { Certification } from '@/types/resume';
 
 interface CertificationsBlockProps {
@@ -17,7 +9,7 @@ interface CertificationsBlockProps {
 }
 
 export default function CertificationsBlock({
-  data,
+  data = [],
   onChange,
 }: CertificationsBlockProps) {
   const [openAccordion, setOpenAccordion] = useState<string | null>(
@@ -52,7 +44,7 @@ export default function CertificationsBlock({
 
   return (
     <Card className="mb-4 border-none shadow-sm">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-pink-50 flex items-center justify-center">
             <Award size={18} className="text-pink-600" />
@@ -61,24 +53,6 @@ export default function CertificationsBlock({
           <Badge variant="outline" size="sm" className="text-gray-500">
             {data.length}
           </Badge>
-        </div>
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-            title="AI优化"
-          >
-            <Sparkles size={14} />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-gray-400 hover:text-gray-600"
-            title="设置"
-          >
-            <Settings size={14} />
-          </Button>
         </div>
       </div>
 

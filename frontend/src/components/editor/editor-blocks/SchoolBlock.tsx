@@ -1,81 +1,52 @@
 import { useState } from 'react';
 import { Card, Input, Textarea, Button } from '@mantine/core';
 import {
-  FolderKanban,
+  GraduationCap,
   Plus,
   Trash2,
   Sparkles,
   ChevronDown,
   ChevronUp,
-  Tag,
 } from 'lucide-react';
-import type { Project } from '@/types/resume';
+import type { CampusExperience } from '@/types/resume';
 
-interface ProjectsBlockProps {
-  data: Project[];
-  onChange: (data: Project[]) => void;
+interface CampusExperienceBlockProps {
+  data: CampusExperience[];
+  onChange: (data: CampusExperience[]) => void;
 }
 
-export default function ProjectsBlock({ data = [], onChange }: ProjectsBlockProps) {
+export default function CampusExperienceBlock({
+  data = [],
+  onChange,
+}: CampusExperienceBlockProps) {
   const [openAccordion, setOpenAccordion] = useState<string | null>(
     data.length > 0 ? data[0].id : null
   );
 
   const handleAdd = () => {
-    const newProject: Project = {
-      id: `proj-${Date.now()}`,
+    const newCampusExperience: CampusExperience = {
+      id: `campus-${Date.now()}`,
       name: '',
-      description: '',
+      role: '',
       startDate: '',
       endDate: '',
-      role: '',
-      techStack: [],
-      achievements: [],
+      description: '',
     };
-    onChange([...data, newProject]);
-    setOpenAccordion(newProject.id);
+    onChange([...data, newCampusExperience]);
+    setOpenAccordion(newCampusExperience.id);
   };
 
   const handleRemove = (id: string) => {
     onChange(data.filter((item) => item.id !== id));
   };
 
-  const handleChange = (id: string, field: keyof Project, value: string) => {
+  const handleChange = (
+    id: string,
+    field: keyof CampusExperience,
+    value: string
+  ) => {
     onChange(
       data.map((item) => (item.id === id ? { ...item, [field]: value } : item))
-    );
-  };
-
-  const handleAddTech = (id: string) => {
-    onChange(
-      data.map((item) =>
-        item.id === id
-          ? { ...item, techStack: [...(item.techStack || []), ''] }
-          : item
-      )
-    );
-  };
-
-  const handleRemoveTech = (id: string, index: number) => {
-    onChange(
-      data.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              techStack: (item.techStack || []).filter((_, i) => i !== index),
-            }
-          : item
-      )
-    );
-  };
-
-  const handleAddAchievement = (id: string) => {
-    onChange(
-      data.map((item) =>
-        item.id === id
-          ? { ...item, achievements: [...(item.achievements || []), ''] }
-          : item
-      )
     );
   };
 
@@ -85,37 +56,43 @@ export default function ProjectsBlock({ data = [], onChange }: ProjectsBlockProp
     value: string
   ) => {
     onChange(
-      data.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              achievements: (item.achievements || []).map(
-                (achievement: string, i: number) =>
-                  i === index ? value : achievement
-              ),
-            }
-          : item
-      )
+      data.map((item) => {
+        if (item.id === id) {
+          const achievements = [...(item.achievements || [])];
+          achievements[index] = value;
+          return { ...item, achievements };
+        }
+        return item;
+      })
+    );
+  };
+
+  const handleAddAchievement = (id: string) => {
+    onChange(
+      data.map((item) => {
+        if (item.id === id) {
+          return {
+            ...item,
+            achievements: [...(item.achievements || []), ''],
+          };
+        }
+        return item;
+      })
     );
   };
 
   const handleRemoveAchievement = (id: string, index: number) => {
     onChange(
-      data.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              achievements: (item.achievements || []).filter(
-                (_: string, i: number) => i !== index
-              ),
-            }
-          : item
-      )
+      data.map((item) => {
+        if (item.id === id) {
+          const achievements = [...(item.achievements || [])];
+          achievements.splice(index, 1);
+          return { ...item, achievements };
+        }
+        return item;
+      })
     );
   };
-
-  const techStack = (item: Project) => item.techStack || [];
-  const achievements = (item: Project) => item.achievements || [];
 
   return (
     <Card className="mb-3 border-none shadow-sm p-2">
@@ -132,13 +109,13 @@ export default function ProjectsBlock({ data = [], onChange }: ProjectsBlockProp
               }
             >
               <div className="flex items-center gap-2">
-                <FolderKanban size={16} className="text-gray-400" />
+                <GraduationCap size={16} className="text-gray-400" />
                 <div className="text-left">
                   <span className="font-medium text-gray-800">
-                    {item.name || '未填写项目名称'}
+                    {item.name || '未填写校园经历名称'}
                   </span>
                   <span className="text-gray-500 text-sm ml-2">
-                    {item.role || '未填写角色'}
+                    {item.role || '未填写职位'}
                   </span>
                 </div>
               </div>
@@ -159,7 +136,7 @@ export default function ProjectsBlock({ data = [], onChange }: ProjectsBlockProp
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="text-xs font-medium text-gray-600 mb-1 block">
-                      项目名称
+                      经历名称
                     </label>
                     <Input
                       value={item.name}
@@ -167,12 +144,12 @@ export default function ProjectsBlock({ data = [], onChange }: ProjectsBlockProp
                         handleChange(item.id, 'name', e.target.value)
                       }
                       size="sm"
-                      placeholder="请输入项目名称"
+                      placeholder="请输入经历名称"
                     />
                   </div>
                   <div>
                     <label className="text-xs font-medium text-gray-600 mb-1 block">
-                      角色
+                      担任职位
                     </label>
                     <Input
                       value={item.role}
@@ -180,7 +157,7 @@ export default function ProjectsBlock({ data = [], onChange }: ProjectsBlockProp
                         handleChange(item.id, 'role', e.target.value)
                       }
                       size="sm"
-                      placeholder="如：前端开发"
+                      placeholder="如：部长"
                     />
                   </div>
                 </div>
@@ -215,7 +192,7 @@ export default function ProjectsBlock({ data = [], onChange }: ProjectsBlockProp
                 <div>
                   <div className="flex items-center gap-1 mb-1">
                     <label className="text-xs font-medium text-gray-600">
-                      项目描述
+                      职责描述
                     </label>
                     <Button
                       variant="ghost"
@@ -232,51 +209,17 @@ export default function ProjectsBlock({ data = [], onChange }: ProjectsBlockProp
                       handleChange(item.id, 'description', e.target.value)
                     }
                     size="sm"
-                    placeholder="描述项目背景和目标..."
+                    placeholder="描述你的职责和贡献..."
                     rows={3}
                   />
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 flex items-center">
-                    <Tag size={14} className="mr-1" />
-                    技术栈
-                  </label>
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {techStack(item).map((tech, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-full"
-                      >
-                        <span className="font-medium text-sm">
-                          {tech || '添加技术'}
-                        </span>
-                        <button
-                          onClick={() => handleRemoveTech(item.id, index)}
-                          className="ml-1 p-0.5 hover:bg-gray-200 rounded-full transition-colors"
-                        >
-                          <Trash2 size={12} className="text-gray-400" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-dashed border-gray-300 text-gray-500"
-                    onClick={() => handleAddTech(item.id)}
-                  >
-                    <Plus size={14} className="mr-1" />
-                    添加技术
-                  </Button>
-                </div>
-
-                <div>
                   <label className="text-sm font-medium text-gray-700 mb-2 block">
-                    主要成果
+                    主要贡献
                   </label>
                   <div className="space-y-2">
-                    {achievements(item).map((achievement, index) => (
+                    {(item.achievements || []).map((achievement, index) => (
                       <div key={index} className="flex gap-2">
                         <Input
                           value={achievement}
@@ -288,13 +231,13 @@ export default function ProjectsBlock({ data = [], onChange }: ProjectsBlockProp
                             )
                           }
                           size="sm"
-                          placeholder="输入一项成果..."
+                          placeholder={`贡献 ${index + 1}`}
                           className="flex-1"
                         />
                         <Button
                           variant="outline"
                           size="xs"
-                          className="p-1.5 bg-white text-blue-500 border-blue-200 hover:bg-blue-50 hover:border-blue-300"
+                          className="p-1.5 bg-white text-red-500 border-red-200 hover:bg-red-50 hover:border-red-300"
                           onClick={() =>
                             handleRemoveAchievement(item.id, index)
                           }
@@ -306,11 +249,11 @@ export default function ProjectsBlock({ data = [], onChange }: ProjectsBlockProp
                     <Button
                       variant="outline"
                       size="sm"
-                      className="w-full border-dashed border-gray-300 text-gray-500"
+                      className="w-full border-dashed border-gray-300 text-gray-500 hover:bg-gray-50"
                       onClick={() => handleAddAchievement(item.id)}
                     >
                       <Plus size={14} className="mr-1" />
-                      添加成果
+                      添加贡献
                     </Button>
                   </div>
                 </div>
@@ -339,7 +282,7 @@ export default function ProjectsBlock({ data = [], onChange }: ProjectsBlockProp
         onClick={handleAdd}
       >
         <Plus size={14} className="mr-1" />
-        添加项目经验
+        添加校园经历
       </Button>
     </Card>
   );

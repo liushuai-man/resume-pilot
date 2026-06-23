@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import EditorLayout from '@/layouts/EditorLayout';
 import EditorToolbar from '@/components/editor/EditorToolbar';
+import FormatToolbar from '@/components/editor/FormatToolbar';
 import ResumePreview from '@/components/editor/ResumePreview';
+import AddModuleModal from '@/components/editor/AddModuleModal';
 import {
   BasicInfoBlock,
   EducationBlock,
@@ -11,10 +13,9 @@ import {
   SkillsBlock,
   CareerObjectiveBlock,
   CertificationsBlock,
-  ClubsBlock,
+  CampusExperienceBlock,
 } from '@/components/editor/editor-blocks';
 import AIConversation from '@/components/editor/AIConversation';
-import { defaultResumeContent } from '@/utils/defaultResumeContent';
 import { exportToPdf } from '@/utils/pdfExport';
 import { notification } from '@/components/common/Notification';
 import { Button, Card, Badge } from '@mantine/core';
@@ -30,59 +31,142 @@ import {
   ChevronRight,
   Plus,
 } from 'lucide-react';
+import { useResumeStore } from '@/store/useResumeStore';
 import type {
-  ResumeContent,
   BasicInfo,
   Education,
   Experience,
   Project,
   Skill,
   Certification,
-  Club,
+  CampusExperience,
 } from '@/types/resume';
 
 export default function ResumeEditorPage() {
   const { id: resumeId } = useParams<{ id: string }>();
   const [activeSection, setActiveSection] = useState('basic');
-  const [content, setContent] = useState<ResumeContent>(defaultResumeContent);
+  const [showAddModuleModal, setShowAddModuleModal] = useState(false);
+  const {
+    resume,
+    content,
+    isSaving,
+    lastSaved,
+    updateContent,
+    updateTitle,
+    saveResume,
+    loadResume,
+    createResume,
+    initStore,
+    reset,
+  } = useResumeStore();
+
+  useEffect(() => {
+    // 如果有 resumeId，总是从服务器加载最新数据
+    // 覆盖 localStorage 中的缓存数据
+    if (resumeId) {
+      // 先清除 localStorage，确保 initStore 不会读取到旧数据
+      localStorage.removeItem('resume-storage');
+    }
+
+    // 初始化 store
+    initStore();
+
+    // 如果有 resumeId，从服务器加载数据
+    if (resumeId) {
+      console.log('开始加载简历:', resumeId);
+      loadResume(resumeId)
+        .then(() => {
+          // 使用 getState 获取最新状态
+          const currentResume = useResumeStore.getState().resume;
+          console.log('简历加载完成:', currentResume);
+        })
+        .catch((error) => {
+          console.error('简历加载失败:', error);
+        });
+    }
+  }, [resumeId, loadResume, initStore]);
+
+  // 页面卸载时（包括刷新）保存数据到本地存储
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // 页面刷新时数据会自动通过 Zustand persist 保存到 localStorage
+      // 不需要额外操作
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+
+  // 组件卸载时（导航离开）自动保存到服务器并清理本地存储
+  useEffect(() => {
+    const handleUnmount = async () => {
+      if (resume) {
+        try {
+          await saveResume();
+        } catch (error) {
+          console.error('自动保存失败:', error);
+        }
+      }
+      // 清理本地存储，确保下次进入时从服务器加载最新数据
+      localStorage.removeItem('resume-storage');
+      reset();
+    };
+
+    return () => {
+      void handleUnmount();
+    };
+  }, [resume, saveResume, reset]);
 
   const handleUpdateBasicInfo = (data: BasicInfo) => {
-    setContent({ ...content, basicInfo: data });
+    updateContent({ basicInfo: data });
   };
 
   const handleUpdateEducation = (data: Education[]) => {
-    setContent({ ...content, education: data });
+    updateContent({ education: data });
   };
 
   const handleUpdateExperience = (data: Experience[]) => {
-    setContent({ ...content, experience: data });
+    updateContent({ experience: data });
   };
 
   const handleUpdateProjects = (data: Project[]) => {
-    setContent({ ...content, projects: data });
+    updateContent({ projects: data });
   };
 
   const handleUpdateSkills = (data: Skill[]) => {
-    setContent({ ...content, skills: data });
+    updateContent({ skills: data });
   };
 
   const handleUpdateCareerObjective = (data: string) => {
-    setContent({ ...content, careerObjective: data });
+    updateContent({ careerObjective: data });
   };
 
   const handleUpdateCertifications = (data: Certification[]) => {
-    setContent({ ...content, certifications: data });
+    updateContent({ certifications: data });
   };
 
-  const handleUpdateClubs = (data: Club[]) => {
-    setContent({ ...content, clubs: data });
+  const handleUpdateCampusExperiences = (data: CampusExperience[]) => {
+    updateContent({ campusExperiences: data });
   };
 
-  const handleSave = () => {
-    notification.info('正在保存简历...');
-    setTimeout(() => {
-      notification.success('简历保存成功');
-    }, 1000);
+  const handleSave = async () => {
+    if (resumeId) {
+      // 如果 URL 中有 resumeId，说明是编辑现有简历
+      // 获取当前标题（优先从 resume，然后从编辑器输入）
+      const currentTitle =
+        resume?.title || content?.basicInfo?.title || '我的简历';
+      await saveResume(resumeId, currentTitle);
+    } else {
+      // 如果没有 resumeId，说明是新建简历
+      // 使用 store 中的标题（用户在顶部导航栏修改的标题）
+      // 如果没有设置，使用默认值 '我的简历'
+      const currentTitle =
+        resume?.title || content?.basicInfo?.title || '我的简历';
+      await createResume(currentTitle);
+    }
   };
 
   const handleExport = () => {
@@ -101,45 +185,49 @@ export default function ResumeEditorPage() {
     }
   };
 
+  const handleTitleChange = (title: string) => {
+    updateTitle(title);
+  };
+
   const sections = [
     { id: 'basic', label: '基础信息', icon: User, count: undefined },
     {
       id: 'education',
       label: '教育经历',
       icon: GraduationCap,
-      count: content.education.length,
+      count: content.education?.length ?? 0,
     },
     {
       id: 'experience',
       label: '工作经历',
       icon: Briefcase,
-      count: content.experience.length,
+      count: content.experience?.length ?? 0,
     },
     {
       id: 'projects',
       label: '项目经验',
       icon: FolderOpen,
-      count: content.projects.length,
+      count: content.projects?.length ?? 0,
     },
     {
       id: 'skills',
       label: '专业技能',
       icon: Wrench,
-      count: content.skills.length,
+      count: content.skills?.length ?? 0,
     },
-    { id: 'objective', label: '职业目标', icon: Target, count: undefined },
     {
       id: 'certifications',
       label: '证书荣誉',
       icon: Award,
-      count: content.certifications.length,
+      count: content.certifications?.length ?? 0,
     },
     {
-      id: 'clubs',
-      label: '社团经历',
+      id: 'campus',
+      label: '校园经历',
       icon: Users,
-      count: content.clubs.length,
+      count: content.campusExperiences?.length ?? 0,
     },
+    { id: 'objective', label: '职业目标', icon: Target, count: undefined },
   ];
 
   const renderSection = () => {
@@ -190,8 +278,13 @@ export default function ResumeEditorPage() {
             onChange={handleUpdateCertifications}
           />
         );
-      case 'clubs':
-        return <ClubsBlock data={content.clubs} onChange={handleUpdateClubs} />;
+      case 'campus':
+        return (
+          <CampusExperienceBlock
+            data={content.campusExperiences}
+            onChange={handleUpdateCampusExperiences}
+          />
+        );
       default:
         return (
           <Card className="border-none shadow-sm">
@@ -213,19 +306,40 @@ export default function ResumeEditorPage() {
     }
   };
 
+  const formatLastSaved = (date: Date | null | string) => {
+    if (!date) return '';
+
+    // 确保 date 是 Date 对象
+    const lastSavedDate = typeof date === 'string' ? new Date(date) : date;
+
+    const now = new Date();
+    const diff = now.getTime() - lastSavedDate.getTime();
+    const minutes = Math.floor(diff / 60000);
+
+    if (minutes < 1) return '刚刚';
+    if (minutes < 60) return `${minutes}分钟前`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}小时前`;
+    return lastSavedDate.toLocaleDateString();
+  };
+
   return (
     <EditorLayout
       toolbar={
         <EditorToolbar
-          title={resumeId ? `简历-${resumeId}` : '新建简历'}
+          title={resume?.title || content?.basicInfo?.title || '新建简历'}
           onSave={handleSave}
           onExport={handleExport}
+          lastModified={formatLastSaved(lastSaved)}
+          isSaving={isSaving}
+          onTitleChange={handleTitleChange}
         />
       }
+      formatToolbar={<FormatToolbar />}
       leftPanel={
-        <div className="h-full flex flex-col">
+        <div className="h-full flex flex-col overflow-hidden">
           {/* 顶部工具栏 */}
-          <div className="p-3 border-b border-gray-100">
+          <div className="p-3 border-b-2 border-gray-200 flex-shrink-0">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-gray-700">
                 编辑区域
@@ -233,56 +347,85 @@ export default function ResumeEditorPage() {
               <Button
                 variant="ghost"
                 size="xs"
-                className="text-blue-600 hover:text-blue-700"
+                className="text-blue-400 bg-white hover:bg-blue-50 hover:border-blue-400 hover:text-blue-500"
+                onClick={() => setShowAddModuleModal(true)}
               >
                 <Plus size={14} /> 添加模块
               </Button>
             </div>
           </div>
 
-          {/* 导航菜单 */}
-          <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+          {/* 导航菜单与编辑内容 */}
+          <div className="flex-1 overflow-y-auto p-3 space-y-1">
             {sections.map((section) => (
-              <button
-                key={section.id}
-                onClick={() => setActiveSection(section.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                  activeSection === section.id
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'text-gray-600 hover:bg-gray-50'
-                }`}
-              >
-                <div
-                  className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+              <div key={section.id} className="rounded-lg overflow-hidden">
+                {/* 导航项 */}
+                <button
+                  onClick={() =>
+                    setActiveSection(
+                      activeSection === section.id ? '' : section.id
+                    )
+                  }
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
                     activeSection === section.id
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-100 text-gray-500'
+                      ? 'bg-blue-50 text-blue-600'
+                      : 'text-gray-600 hover:bg-gray-50'
                   }`}
                 >
-                  <section.icon size={16} />
-                </div>
-                <span className="flex-1 text-left">{section.label}</span>
-                {section.count !== undefined && (
-                  <Badge variant="outline" size="xs" className="text-gray-400">
-                    {section.count}
-                  </Badge>
+                  <div
+                    className={`w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center ${
+                      activeSection === section.id
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-gray-100 text-gray-500'
+                    }`}
+                  >
+                    <section.icon size={16} />
+                  </div>
+                  <span className="flex-1 text-left truncate">
+                    {section.label}
+                  </span>
+                  {section.count !== undefined && (
+                    <Badge
+                      variant="outline"
+                      size="xs"
+                      className="text-gray-400 flex-shrink-0"
+                    >
+                      {section.count}
+                    </Badge>
+                  )}
+                  <ChevronRight
+                    size={14}
+                    className={`text-gray-400 flex-shrink-0 transition-transform ${
+                      activeSection === section.id ? 'rotate-90' : ''
+                    }`}
+                  />
+                </button>
+
+                {/* 编辑内容区域 - 在对应导航项下方展开 */}
+                {activeSection === section.id && (
+                  <div className="border-t border-gray-100 bg-white">
+                    {renderSection()}
+                  </div>
                 )}
-                <ChevronRight size={14} className="text-gray-400" />
-              </button>
+              </div>
             ))}
-          </nav>
+          </div>
         </div>
       }
       rightPanel={<AIConversation />}
     >
       {/* 中间预览区 */}
-      <div className="resume-preview-container w-full max-w-3xl mx-auto">
+      <div className="resume-preview-container w-full h-full">
         <ResumePreview content={content} />
       </div>
-      {/* 左侧编辑区内容 */}
-      <div className="fixed left-0 top-14 w-80 h-[calc(100vh-56px)] bg-white border-r border-gray-200 overflow-y-auto hidden lg:block z-20">
-        <div className="p-4">{renderSection()}</div>
-      </div>
+      {/* 添加模块模态框 */}
+      <AddModuleModal
+        isOpen={showAddModuleModal}
+        onClose={() => setShowAddModuleModal(false)}
+        onSelect={(moduleId) => {
+          setActiveSection(moduleId);
+        }}
+      />
     </EditorLayout>
   );
 }

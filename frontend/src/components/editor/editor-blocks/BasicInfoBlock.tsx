@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Card, Input, Textarea, Button, Avatar } from '@mantine/core';
-import { User, Sparkles, Settings, Plus, X } from 'lucide-react';
+import { Sparkles, Plus, X } from 'lucide-react';
 import type { BasicInfo } from '@/types/resume';
 
 interface BasicInfoBlockProps {
@@ -9,7 +9,7 @@ interface BasicInfoBlockProps {
 }
 
 export default function BasicInfoBlock({
-  data,
+  data = {} as BasicInfo,
   onChange,
 }: BasicInfoBlockProps) {
   const [customFields, setCustomFields] = useState<
@@ -44,36 +44,9 @@ export default function BasicInfoBlock({
   };
 
   return (
-    <Card className="mb-4 border-none shadow-sm">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
-            <User size={18} className="text-blue-600" />
-          </div>
-          <span className="font-medium text-gray-800">基础信息</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-            title="AI优化"
-          >
-            <Sparkles size={14} />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-gray-400 hover:text-gray-600"
-            title="设置"
-          >
-            <Settings size={14} />
-          </Button>
-        </div>
-      </div>
-
+    <Card className="mb-3 border-none shadow-sm p-2">
       {/* 头像 */}
-      <div className="flex items-center gap-4 mb-4">
+      <div className="flex items-center gap-3 mb-3">
         <Avatar size="xl" className="border-2 border-gray-200">
           {data.name?.charAt(0) || '?'}
         </Avatar>
@@ -88,8 +61,8 @@ export default function BasicInfoBlock({
       </div>
 
       {/* 表单字段 */}
-      <div className="space-y-3">
-        <div className="grid grid-cols-2 gap-3">
+      <div className="space-y-2">
+        <div className="grid grid-cols-2 gap-2">
           <div>
             <label className="text-xs font-medium text-gray-600 mb-1 block">
               姓名
@@ -138,7 +111,7 @@ export default function BasicInfoBlock({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2">
           <div>
             <label className="text-xs font-medium text-gray-600 mb-1 block">
               地址
@@ -164,9 +137,19 @@ export default function BasicInfoBlock({
         </div>
 
         <div>
-          <label className="text-xs font-medium text-gray-600 mb-1 block">
-            个人简介
-          </label>
+          <div className="flex items-center gap-1 mb-1">
+            <label className="text-xs font-medium text-gray-600">
+              个人简介
+            </label>
+            <Button
+              variant="ghost"
+              size="xs"
+              className="p-0.5 text-blue-500 hover:text-blue-300 hover:bg-white bg-white border-none"
+              title="AI补全"
+            >
+              <Sparkles size={12} />
+            </Button>
+          </div>
           <Textarea
             value={data.bio || ''}
             onChange={(e) => handleChange('bio', e.target.value)}
@@ -200,12 +183,12 @@ export default function BasicInfoBlock({
                   className="flex-1"
                 />
                 <Button
-                  variant="ghost"
-                  size="sm"
-                  color="red"
+                  variant="outline"
+                  size="xs"
+                  className="p-1.5 bg-white text-red-500 border-red-200 hover:bg-red-50 hover:border-red-300"
                   onClick={() => handleRemoveCustomField(index)}
                 >
-                  <X size={14} />
+                  <X size={12} />
                 </Button>
               </div>
             ))}

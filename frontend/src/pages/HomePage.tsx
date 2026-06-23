@@ -12,7 +12,7 @@ import EmptyResume from '@/components/home/EmptyResume';
 import HistoryResume from '@/components/home/HistoryResume';
 import ResumeTemplate from '@/components/home/ResumeTemplate';
 import { resumeApi } from '@/api/home.api';
-import { defaultResumeContent } from '@/utils/defaultResumeContent';
+import { emptyResumeContent } from '@/utils/emptyResumeContent';
 import { useUserStore } from '@/store/useUserStore';
 import { useNavigate } from 'react-router-dom';
 import { notification } from '@/components/common/Notification';
@@ -99,7 +99,7 @@ export default function HomePage() {
     return result;
   }, [resumes, searchKeyword, sortBy, sortOrder]);
 
-  // 使用默认模板创建简历
+  // 使用默认模板创建简历（空内容）
   const handleCreateEmpty = async () => {
     if (!isLoggedIn) {
       notification.error('请先登录');
@@ -109,8 +109,8 @@ export default function HomePage() {
     try {
       const response = await resumeApi.createResume({
         template_id: 'default',
-        title: '空白简历',
-        content: defaultResumeContent,
+        title: '我的简历',
+        content: emptyResumeContent,
       });
 
       if (response.data) {
@@ -125,7 +125,7 @@ export default function HomePage() {
     }
   };
 
-  // 使用指定模板创建简历
+  // 使用指定模板创建简历（空内容）
   const handleSelectTemplate = async (templateId: string) => {
     if (!isLoggedIn) {
       notification.error('请先登录');
@@ -140,7 +140,7 @@ export default function HomePage() {
       const response = await resumeApi.createResume({
         template_id: templateId,
         title: `基于${template.name}的简历`,
-        content: defaultResumeContent,
+        content: emptyResumeContent,
       });
 
       if (response.data) {
@@ -154,6 +154,12 @@ export default function HomePage() {
       setIsCreating(false);
     }
   };
+
+  // 删除简历后更新列表
+  const handleDeleteResume = (id: string) => {
+    setResumes((prev) => prev.filter((resume) => resume.id !== id));
+  };
+
   return (
     <Container className="max-w-6xl mx-auto">
       {/* 历史简历区域 */}
@@ -223,6 +229,7 @@ export default function HomePage() {
                 key={resume.id}
                 resume={resume}
                 thumbnail={getTemplateThumbnail(resume.template_id)}
+                onDelete={handleDeleteResume}
               />
             ))
           ) : searchKeyword && resumes.length > 0 ? (

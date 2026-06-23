@@ -6,231 +6,268 @@ interface ResumePreviewProps {
 }
 
 export default function ResumePreview({ content }: ResumePreviewProps) {
+  // 检查内容是否为空
+  const isEmpty =
+    !content.basicInfo?.name &&
+    !content.basicInfo?.title &&
+    !content.education?.length &&
+    !content.experience?.length &&
+    !content.projects?.length &&
+    !content.skills?.length &&
+    !content.certifications?.length &&
+    !content.campusExperiences?.length &&
+    !content.careerObjective;
+
   return (
-    <Card className="bg-white shadow-lg">
-      <div className="p-8">
-        {/* 基本信息 */}
-        {content.basicInfo && (
-          <div className="text-center mb-6 pb-6 border-b border-gray-200">
-            <h1 className="text-2xl font-bold text-gray-800 mb-1">
-              {content.basicInfo.name || '您的姓名'}
-            </h1>
-            <p className="text-gray-500">{content.basicInfo.title || '您的职位'}</p>
-            <div className="flex justify-center gap-4 mt-3 text-sm text-gray-600">
-              {content.basicInfo.email && <span>{content.basicInfo.email}</span>}
-              {content.basicInfo.phone && <span>{content.basicInfo.phone}</span>}
-              {content.basicInfo.location && <span>{content.basicInfo.location}</span>}
-            </div>
-            {content.basicInfo.summary && (
-              <p className="mt-4 text-gray-600 text-sm leading-relaxed">
-                {content.basicInfo.summary}
+    <Card className="bg-white shadow-lg min-h-[calc(100vh-8rem)]">
+      {isEmpty ? (
+        <div className="min-h-[calc(100vh-10rem)] p-8 flex items-center justify-center text-gray-400">
+          <p className="text-center">暂无简历内容，请在左侧编辑区域填写信息</p>
+        </div>
+      ) : (
+        <div className="p-8">
+          {/* 基本信息 */}
+          {content.basicInfo && (
+            <div className="text-center mb-6 pb-6 border-b border-gray-200">
+              <h1 className="text-2xl font-bold text-gray-800 mb-1">
+                {content.basicInfo.name || '您的姓名'}
+              </h1>
+              <p className="text-gray-500">
+                {content.basicInfo.title || '您的职位'}
               </p>
-            )}
-          </div>
-        )}
-
-        {/* 教育经历 */}
-        {content.education && content.education.length > 0 && (
-          <div className="mb-6 pb-6 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-              <span className="w-1 h-5 bg-blue-500 mr-3 rounded"></span>
-              教育背景
-            </h2>
-            {content.education.map((item) => (
-              <div key={item.id} className="mb-4 last:mb-0">
-                <div className="flex justify-between">
-                  <div>
-                    <h3 className="font-medium text-gray-800">{item.school}</h3>
-                    <p className="text-sm text-gray-500">{item.major}</p>
-                  </div>
-                  <span className="text-sm text-gray-400">
-                    {item.startDate} - {item.endDate}
-                  </span>
-                </div>
-                {item.gpa && (
-                  <p className="text-sm text-gray-500 mt-1">GPA: {item.gpa}</p>
+              <div className="flex justify-center gap-4 mt-3 text-sm text-gray-600">
+                {content.basicInfo.email && (
+                  <span>{content.basicInfo.email}</span>
+                )}
+                {content.basicInfo.phone && (
+                  <span>{content.basicInfo.phone}</span>
+                )}
+                {content.basicInfo.location && (
+                  <span>{content.basicInfo.location}</span>
                 )}
               </div>
-            ))}
-          </div>
-        )}
+              {content.basicInfo.summary && (
+                <p className="mt-4 text-gray-600 text-sm leading-relaxed">
+                  {content.basicInfo.summary}
+                </p>
+              )}
+            </div>
+          )}
 
-        {/* 工作经历 */}
-        {content.experience && content.experience.length > 0 && (
-          <div className="mb-6 pb-6 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-              <span className="w-1 h-5 bg-blue-500 mr-3 rounded"></span>
-              工作经历
-            </h2>
-            {content.experience.map((item) => (
-              <div key={item.id} className="mb-4 last:mb-0">
-                <div className="flex justify-between">
-                  <div>
-                    <h3 className="font-medium text-gray-800">{item.company}</h3>
-                    <p className="text-sm text-gray-500">{item.position}</p>
+          {/* 教育经历 */}
+          {content.education && content.education.length > 0 && (
+            <div className="mb-6 pb-6 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                <span className="w-1 h-5 bg-blue-500 mr-3 rounded"></span>
+                教育背景
+              </h2>
+              {content.education.map((item) => (
+                <div key={item.id} className="mb-4 last:mb-0">
+                  <div className="flex justify-between">
+                    <div>
+                      <h3 className="font-medium text-gray-800">
+                        {item.school}
+                      </h3>
+                      <p className="text-sm text-gray-500">{item.major}</p>
+                    </div>
+                    <span className="text-sm text-gray-400">
+                      {item.startDate} - {item.endDate}
+                    </span>
                   </div>
-                  <span className="text-sm text-gray-400">
-                    {item.startDate} - {item.endDate || '至今'}
-                  </span>
-                </div>
-                {item.description && (
-                  <p className="text-sm text-gray-600 mt-2">{item.description}</p>
-                )}
-                {(item.achievements || []).length > 0 && (
-                  <ul className="mt-2 text-sm text-gray-600">
-                    {(item.achievements || []).map((achievement, index) => (
-                      <li key={index} className="flex items-start mt-1">
-                        <span className="text-blue-500 mr-2">•</span>
-                        {achievement}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* 项目经验 */}
-        {content.projects && content.projects.length > 0 && (
-          <div className="mb-6 pb-6 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-              <span className="w-1 h-5 bg-blue-500 mr-3 rounded"></span>
-              项目经验
-            </h2>
-            {content.projects.map((item) => (
-              <div key={item.id} className="mb-4 last:mb-0">
-                <div className="flex justify-between">
-                  <div>
-                    <h3 className="font-medium text-gray-800">{item.name}</h3>
-                    <p className="text-sm text-gray-500">{item.role}</p>
-                  </div>
-                  <span className="text-sm text-gray-400">
-                    {item.startDate} - {item.endDate || '至今'}
-                  </span>
-                </div>
-                {item.description && (
-                  <p className="text-sm text-gray-600 mt-2">{item.description}</p>
-                )}
-                {(item.techStack || []).length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {(item.techStack || []).map((tech, index) => (
-                      <span
-                        key={index}
-                        className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded"
-                      >
-                        {tech}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                {(item.achievements || []).length > 0 && (
-                  <ul className="mt-2 text-sm text-gray-600">
-                    {(item.achievements || []).map((achievement, index) => (
-                      <li key={index} className="flex items-start mt-1">
-                        <span className="text-blue-500 mr-2">•</span>
-                        {achievement}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* 专业技能 */}
-        {content.skills && content.skills.length > 0 && (
-          <div className="mb-6 pb-6 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-              <span className="w-1 h-5 bg-blue-500 mr-3 rounded"></span>
-              专业技能
-            </h2>
-            <div className="flex flex-wrap gap-2">
-              {content.skills.map((item) => (
-                <span
-                  key={item.id}
-                  className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full"
-                >
-                  {item.name}
-                  {item.level && (
-                    <span className="ml-1 text-gray-500">({item.level})</span>
+                  {item.gpa && (
+                    <p className="text-sm text-gray-500 mt-1">
+                      GPA: {item.gpa}
+                    </p>
                   )}
-                </span>
+                </div>
               ))}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* 证书 */}
-        {content.certifications && content.certifications.length > 0 && (
-          <div className="mb-6 pb-6 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-              <span className="w-1 h-5 bg-blue-500 mr-3 rounded"></span>
-              证书荣誉
-            </h2>
-            {content.certifications.map((item) => (
-              <div key={item.id} className="mb-3 last:mb-0">
-                <div className="flex justify-between">
-                  <h3 className="font-medium text-gray-800">{item.name}</h3>
-                  <span className="text-sm text-gray-400">{item.date}</span>
-                </div>
-                {item.description && (
-                  <p className="text-sm text-gray-500 mt-1">{item.description}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* 社团经历 */}
-        {content.clubs && content.clubs.length > 0 && (
-          <div className="mb-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-              <span className="w-1 h-5 bg-blue-500 mr-3 rounded"></span>
-              社团经历
-            </h2>
-            {content.clubs.map((item) => (
-              <div key={item.id} className="mb-3 last:mb-0">
-                <div className="flex justify-between">
-                  <div>
-                    <h3 className="font-medium text-gray-800">{item.name}</h3>
-                    {item.position && (
+          {/* 工作经历 */}
+          {content.experience && content.experience.length > 0 && (
+            <div className="mb-6 pb-6 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                <span className="w-1 h-5 bg-blue-500 mr-3 rounded"></span>
+                工作经历
+              </h2>
+              {content.experience.map((item) => (
+                <div key={item.id} className="mb-4 last:mb-0">
+                  <div className="flex justify-between">
+                    <div>
+                      <h3 className="font-medium text-gray-800">
+                        {item.company}
+                      </h3>
                       <p className="text-sm text-gray-500">{item.position}</p>
+                    </div>
+                    <span className="text-sm text-gray-400">
+                      {item.startDate} - {item.endDate || '至今'}
+                    </span>
+                  </div>
+                  {item.description && (
+                    <p className="text-sm text-gray-600 mt-2">
+                      {item.description}
+                    </p>
+                  )}
+                  {(item.achievements || []).length > 0 && (
+                    <ul className="mt-2 text-sm text-gray-600">
+                      {(item.achievements || []).map((achievement, index) => (
+                        <li key={index} className="flex items-start mt-1">
+                          <span className="text-blue-500 mr-2">•</span>
+                          {achievement}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* 项目经验 */}
+          {content.projects && content.projects.length > 0 && (
+            <div className="mb-6 pb-6 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                <span className="w-1 h-5 bg-blue-500 mr-3 rounded"></span>
+                项目经验
+              </h2>
+              {content.projects.map((item) => (
+                <div key={item.id} className="mb-4 last:mb-0">
+                  <div className="flex justify-between">
+                    <div>
+                      <h3 className="font-medium text-gray-800">{item.name}</h3>
+                      <p className="text-sm text-gray-500">{item.role}</p>
+                    </div>
+                    <span className="text-sm text-gray-400">
+                      {item.startDate} - {item.endDate || '至今'}
+                    </span>
+                  </div>
+                  {item.description && (
+                    <p className="text-sm text-gray-600 mt-2">
+                      {item.description}
+                    </p>
+                  )}
+                  {(item.techStack || []).length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {(item.techStack || []).map((tech, index) => (
+                        <span
+                          key={index}
+                          className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded"
+                        >
+                          {tech}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {(item.achievements || []).length > 0 && (
+                    <ul className="mt-2 text-sm text-gray-600">
+                      {(item.achievements || []).map((achievement, index) => (
+                        <li key={index} className="flex items-start mt-1">
+                          <span className="text-blue-500 mr-2">•</span>
+                          {achievement}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* 专业技能 */}
+          {content.skills && content.skills.length > 0 && (
+            <div className="mb-6 pb-6 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                <span className="w-1 h-5 bg-blue-500 mr-3 rounded"></span>
+                专业技能
+              </h2>
+              <ul className="list-disc list-inside space-y-1">
+                {content.skills.map((item) => (
+                  <li key={item.id} className="text-gray-700 text-sm">
+                    {item.name}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* 证书 */}
+          {content.certifications && content.certifications.length > 0 && (
+            <div className="mb-6 pb-6 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                <span className="w-1 h-5 bg-blue-500 mr-3 rounded"></span>
+                证书荣誉
+              </h2>
+              {content.certifications.map((item) => (
+                <div key={item.id} className="mb-3 last:mb-0">
+                  <div className="flex justify-between">
+                    <h3 className="font-medium text-gray-800">{item.name}</h3>
+                    <span className="text-sm text-gray-400">{item.date}</span>
+                  </div>
+                  {item.description && (
+                    <p className="text-sm text-gray-500 mt-1">
+                      {item.description}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* 校园经历 */}
+          {content.campusExperiences &&
+            content.campusExperiences.length > 0 && (
+              <div className="mb-6">
+                <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                  <span className="w-1 h-5 bg-blue-500 mr-3 rounded"></span>
+                  校园经历
+                </h2>
+                {content.campusExperiences.map((item) => (
+                  <div key={item.id} className="mb-3 last:mb-0">
+                    <div className="flex justify-between">
+                      <div>
+                        <h3 className="font-medium text-gray-800">
+                          {item.name}
+                        </h3>
+                        {item.position && (
+                          <p className="text-sm text-gray-500">
+                            {item.position}
+                          </p>
+                        )}
+                      </div>
+                      <span className="text-sm text-gray-400">
+                        {item.startDate} - {item.endDate || '至今'}
+                      </span>
+                    </div>
+                    {(item.achievements || []).length > 0 && (
+                      <ul className="mt-2 text-sm text-gray-600">
+                        {(item.achievements || []).map((achievement, index) => (
+                          <li key={index} className="flex items-start mt-1">
+                            <span className="text-blue-500 mr-2">•</span>
+                            {achievement}
+                          </li>
+                        ))}
+                      </ul>
                     )}
                   </div>
-                  <span className="text-sm text-gray-400">
-                    {item.startDate} - {item.endDate || '至今'}
-                  </span>
-                </div>
-                {(item.achievements || []).length > 0 && (
-                  <ul className="mt-2 text-sm text-gray-600">
-                    {(item.achievements || []).map((achievement, index) => (
-                      <li key={index} className="flex items-start mt-1">
-                        <span className="text-blue-500 mr-2">•</span>
-                        {achievement}
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                ))}
               </div>
-            ))}
-          </div>
-        )}
+            )}
 
-        {/* 职业目标 */}
-        {content.careerObjective && (
-          <div>
-            <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-              <span className="w-1 h-5 bg-blue-500 mr-3 rounded"></span>
-              职业目标
-            </h2>
-            <p className="text-gray-600 text-sm leading-relaxed">
-              {content.careerObjective}
-            </p>
-          </div>
-        )}
-      </div>
+          {/* 职业目标 */}
+          {content.careerObjective && (
+            <div>
+              <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                <span className="w-1 h-5 bg-blue-500 mr-3 rounded"></span>
+                职业目标
+              </h2>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                {content.careerObjective}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
     </Card>
   );
 }
