@@ -64,11 +64,11 @@ export default function ResumeEditorPage() {
     // 如果有 resumeId，总是从服务器加载最新数据
     // 覆盖 localStorage 中的缓存数据
     if (resumeId) {
-      // 先清除 localStorage，确保 initStore 不会读取到旧数据
+      // 先清除 localStorage，确保不会读取到旧数据
       localStorage.removeItem('resume-storage');
     }
 
-    // 初始化 store
+    // 初始化 store（persist middleware 会自动从 localStorage 恢复状态）
     initStore();
 
     // 如果有 resumeId，从服务器加载数据
@@ -76,7 +76,6 @@ export default function ResumeEditorPage() {
       console.log('开始加载简历:', resumeId);
       loadResume(resumeId)
         .then(() => {
-          // 使用 getState 获取最新状态
           const currentResume = useResumeStore.getState().resume;
           console.log('简历加载完成:', currentResume);
         })
@@ -100,25 +99,30 @@ export default function ResumeEditorPage() {
     };
   }, []);
 
-  // 组件卸载时（导航离开）自动保存到服务器并清理本地存储
+  // 组件卸载时（导航离开）自动保存到服务器
   useEffect(() => {
+    let isUnmounted = false;
+
     const handleUnmount = async () => {
-      if (resume) {
+      if (isUnmounted) return;
+      isUnmounted = true;
+
+      const currentResume = useResumeStore.getState().resume;
+      if (currentResume && currentResume.id) {
         try {
-          await saveResume();
+          await saveResume(currentResume.id);
         } catch (error) {
           console.error('自动保存失败:', error);
         }
       }
-      // 清理本地存储，确保下次进入时从服务器加载最新数据
-      localStorage.removeItem('resume-storage');
-      reset();
+      // 不需要清除 localStorage，Zustand persist 会自动处理
+      // 保留 localStorage 可以在页面刷新时快速恢复状态
     };
 
     return () => {
-      void handleUnmount();
+      handleUnmount();
     };
-  }, [resume, saveResume, reset]);
+  }, [saveResume]);
 
   const handleUpdateBasicInfo = (data: BasicInfo) => {
     updateContent({ basicInfo: data });

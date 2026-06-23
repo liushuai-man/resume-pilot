@@ -18,16 +18,20 @@ export const createResume = async (req: Request, res: Response) => {
       return error(res, '未授权', 401);
     }
 
+    // Prisma Json 类型会自动处理序列化，不需要手动调用 JSON.stringify
     const resume = await prisma.resume.create({
       data: {
         user_id: userId,
         template_id,
         title,
-        content: JSON.stringify(content),
+        content,
       },
     });
 
-    await generateResumeThumbnail(resume.id, content);
+    // 生成缩略图时需要确保 content 是对象
+    const contentForThumbnail =
+      typeof content === 'string' ? JSON.parse(content) : content;
+    await generateResumeThumbnail(resume.id, contentForThumbnail);
 
     return res
       .status(201)
@@ -60,16 +64,21 @@ export const updateResume = async (req: Request, res: Response) => {
       return error(res, '无权操作', 403);
     }
 
+    // Prisma Json 类型会自动处理序列化，不需要手动调用 JSON.stringify
+    // axios 发送时会将对象转为 JSON，Prisma 会正确处理
     const resume = await prisma.resume.update({
       where: { id },
       data: {
         title,
-        content: JSON.stringify(content),
+        content,
         updated_at: new Date(),
       },
     });
 
-    await generateResumeThumbnail(id, content);
+    // 生成缩略图时需要确保 content 是对象
+    const contentForThumbnail =
+      typeof content === 'string' ? JSON.parse(content) : content;
+    await generateResumeThumbnail(id, contentForThumbnail);
 
     return res.json({ code: 200, message: '更新成功', data: resume });
   } catch (err: any) {
@@ -132,12 +141,18 @@ export const getResumeById = async (req: Request, res: Response) => {
       return error(res, '无权查看', 403);
     }
 
+    // Prisma Json 类型会自动解析，不需要手动 JSON.parse
+    // 但为了兼容可能存在的旧数据（双重序列化），进行检查
+    const content = typeof resume.content === 'string' 
+      ? JSON.parse(resume.content) 
+      : resume.content;
+
     return res.json({
       code: 200,
       message: 'Success',
       data: {
         ...resume,
-        content: resume.content as object,
+        content: typeof content === 'string' ? JSON.parse(content) : content, // 处理双重序列化
       },
     });
   } catch (err: any) {
@@ -159,10 +174,17 @@ export const getUserResumes = async (req: Request, res: Response) => {
       orderBy: { updated_at: 'desc' },
     });
 
-    const result = resumes.map((resume) => ({
-      ...resume,
-      content: resume.content as object,
-    }));
+    const result = resumes.map((resume) => {
+      // 正确解析 JSON 字符串
+      const content =
+        typeof resume.content === 'string'
+          ? JSON.parse(resume.content)
+          : resume.content;
+      return {
+        ...resume,
+        content,
+      };
+    });
 
     return res.json({ code: 200, message: 'Success', data: result });
   } catch (err: any) {

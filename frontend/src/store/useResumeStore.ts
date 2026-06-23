@@ -32,58 +32,11 @@ export const useResumeStore = create<ResumeState>()(
       lastSaved: null,
       initialized: false,
 
-      // 初始化时修复 localStorage 数据格式
+      // 初始化 store
       initStore: () => {
-        const storage = localStorage.getItem('resume-storage');
-        if (storage) {
-          try {
-            const parsed = JSON.parse(storage);
-
-            // 如果 lastSaved 是字符串，转换为 Date 对象
-            if (parsed.lastSaved && typeof parsed.lastSaved === 'string') {
-              set({ lastSaved: new Date(parsed.lastSaved) });
-            }
-
-            // 检查 content 是否有效
-            const hasValidContent =
-              parsed.content &&
-              typeof parsed.content === 'object' &&
-              parsed.content.basicInfo &&
-              typeof parsed.content.basicInfo === 'object' &&
-              parsed.content.education !== undefined &&
-              parsed.content.experience !== undefined;
-
-            // 只有当 resume 和 content 都有效时才恢复状态
-            // 否则清除 localStorage 并使用空内容重新开始
-            if (
-              parsed.resume &&
-              typeof parsed.resume === 'object' &&
-              hasValidContent
-            ) {
-              set({
-                resume: parsed.resume as Resume,
-                content: parsed.content,
-                initialized: true,
-              });
-            } else {
-              // 数据不完整或无效，清除并重新开始
-              localStorage.removeItem('resume-storage');
-              set({
-                content: emptyResumeContent,
-                initialized: false,
-              });
-            }
-          } catch (e) {
-            console.error('Failed to parse resume storage:', e);
-            localStorage.removeItem('resume-storage');
-            set({ content: emptyResumeContent });
-            set({ initialized: false });
-          }
-        } else {
-          // 没有存储的数据，使用空内容
-          set({ content: emptyResumeContent });
-          set({ initialized: false });
-        }
+        // persist middleware 会自动从 localStorage 恢复状态
+        // 这里只需要设置初始化标志
+        set({ initialized: true });
       },
 
       setResume: (resume) => {
@@ -125,6 +78,13 @@ export const useResumeStore = create<ResumeState>()(
 
       saveResume: async (resumeId?: string, title?: string) => {
         const { resume, content, isSaving } = get();
+        console.log('saveResume 被调用:', {
+          resumeId,
+          title,
+          resume,
+          contentLength: JSON.stringify(content).length,
+        });
+
         if (isSaving) return;
 
         // 优先使用传入的 resumeId，否则使用 store 中的 resume.id
@@ -151,12 +111,18 @@ export const useResumeStore = create<ResumeState>()(
             title: currentTitle,
             content,
           });
+          console.log('API 响应:', response);
           if (response.code === 200) {
             set({
               resume: response.data,
               content: response.data.content, // 确保 content 也从响应中更新
               lastSaved: new Date(),
             });
+            // 设置后检查 localStorage
+            setTimeout(() => {
+              const storage = localStorage.getItem('resume-storage');
+              console.log('保存后 localStorage:', storage);
+            }, 100);
             notification.success('简历保存成功');
             console.log('简历保存成功:', response.data);
           } else {
@@ -174,13 +140,23 @@ export const useResumeStore = create<ResumeState>()(
         set({ isSaving: true });
         try {
           const response = await resumeApi.getResumeById(id);
+          console.log('API 返回数据:', response);
           if (response.code === 200 && response.data) {
+            console.log('准备设置状态:', {
+              resume: response.data,
+              content: response.data.content,
+            });
             set({
               resume: response.data,
               content: response.data.content,
               lastSaved: new Date(),
               initialized: true,
             });
+            // 设置后立即检查 localStorage
+            setTimeout(() => {
+              const storage = localStorage.getItem('resume-storage');
+              console.log('localStorage 内容:', storage);
+            }, 100);
           } else {
             notification.error(response.message || '加载简历失败');
           }

@@ -100,6 +100,10 @@ export async function generateThumbnail(
   const page: Page = await browser.newPage();
 
   try {
+    // 确保输出目录存在
+    const outputDir = path.dirname(outputPath);
+    await fs.mkdir(outputDir, { recursive: true });
+
     await page.setContent(htmlContent, { waitUntil: 'domcontentloaded' });
     await page.setViewport({
       width: THUMBNAIL_WIDTH,
@@ -111,7 +115,6 @@ export async function generateThumbnail(
       path: outputPath,
       type: 'png',
       fullPage: true,
-      quality: 80,
     });
 
     return outputPath;
