@@ -1,5 +1,5 @@
 import { Card, Input, Button } from '@mantine/core';
-import { Wrench, Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import type { Skill } from '@/types/resume';
 
 interface SkillsBlockProps {
@@ -28,13 +28,6 @@ export default function SkillsBlock({ data = [], onChange }: SkillsBlockProps) {
 
   return (
     <Card className="mb-3 border-none shadow-sm p-2">
-      <div className="flex items-center gap-2 mb-2">
-        <div className="w-6 h-6 rounded-md bg-cyan-50 flex items-center justify-center">
-          <Wrench size={14} className="text-cyan-600" />
-        </div>
-        <span className="font-medium text-gray-800">专业技能</span>
-      </div>
-
       <div className="space-y-2">
         {data.map((item) => (
           <div key={item.id} className="flex items-center gap-2">

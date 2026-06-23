@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Card, Input, Textarea, Button, Avatar } from '@mantine/core';
-import { Sparkles, Plus, X } from 'lucide-react';
+import { Card, Input, Button, Avatar } from '@mantine/core';
+import { Plus, X } from 'lucide-react';
 import type { BasicInfo } from '@/types/resume';
 
 interface BasicInfoBlockProps {
@@ -134,29 +134,6 @@ export default function BasicInfoBlock({
               placeholder="https://..."
             />
           </div>
-        </div>
-
-        <div>
-          <div className="flex items-center gap-1 mb-1">
-            <label className="text-xs font-medium text-gray-600">
-              个人简介
-            </label>
-            <Button
-              variant="ghost"
-              size="xs"
-              className="p-0.5 text-blue-500 hover:text-blue-300 hover:bg-white bg-white border-none"
-              title="AI补全"
-            >
-              <Sparkles size={12} />
-            </Button>
-          </div>
-          <Textarea
-            value={data.bio || ''}
-            onChange={(e) => handleChange('bio', e.target.value)}
-            size="sm"
-            placeholder="请简要介绍自己..."
-            rows={3}
-          />
         </div>
 
         {/* 自定义字段 */}

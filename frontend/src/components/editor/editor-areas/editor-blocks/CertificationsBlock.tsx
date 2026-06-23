@@ -69,7 +69,9 @@ export default function CertificationsBlock({
               }
             >
               <div className="flex items-center gap-3">
-                <Award size={16} className="text-gray-400" />
+                <div className="w-6 h-6 rounded-md bg-pink-50 flex items-center justify-center">
+                  <Award size={14} className="text-pink-600" />
+                </div>
                 <div className="text-left">
                   <span className="font-medium text-gray-800">
                     {item.name || '未填写证书名称'}

@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import EditorLayout from '@/layouts/EditorLayout';
-import EditorToolbar from '@/components/editor/EditorToolbar';
+import EditorToolbar from '@/components/editor/EditorHeaderToolbar';
 import FormatToolbar from '@/components/editor/FormatToolbar';
 import ResumePreview from '@/components/editor/ResumePreview';
-import AddModuleModal from '@/components/editor/AddModuleModal';
+import AddModuleModal from '@/components/editor/editor-areas/AddModuleModal';
 import {
   BasicInfoBlock,
   EducationBlock,
@@ -14,7 +14,7 @@ import {
   CareerObjectiveBlock,
   CertificationsBlock,
   CampusExperienceBlock,
-} from '@/components/editor/editor-blocks';
+} from '@/components/editor/editor-areas/editor-blocks';
 import AIConversation from '@/components/editor/AIConversation';
 import { exportToPdf } from '@/utils/pdfExport';
 import { notification } from '@/components/common/Notification';
@@ -57,7 +57,6 @@ export default function ResumeEditorPage() {
     loadResume,
     createResume,
     initStore,
-    reset,
   } = useResumeStore();
 
   useEffect(() => {

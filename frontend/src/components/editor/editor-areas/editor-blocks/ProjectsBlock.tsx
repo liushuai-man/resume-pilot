@@ -1,52 +1,84 @@
 import { useState } from 'react';
-import { Card, Input, Textarea, Button } from '@mantine/core';
+import { Card, Input, Button } from '@mantine/core';
 import {
-  GraduationCap,
+  FolderKanban,
   Plus,
   Trash2,
-  Sparkles,
   ChevronDown,
   ChevronUp,
+  Tag,
 } from 'lucide-react';
-import type { CampusExperience } from '@/types/resume';
+import RichTextEditor from '../RichTextEditor';
+import type { Project } from '@/types/resume';
 
-interface CampusExperienceBlockProps {
-  data: CampusExperience[];
-  onChange: (data: CampusExperience[]) => void;
+interface ProjectsBlockProps {
+  data: Project[];
+  onChange: (data: Project[]) => void;
 }
 
-export default function CampusExperienceBlock({
+export default function ProjectsBlock({
   data = [],
   onChange,
-}: CampusExperienceBlockProps) {
+}: ProjectsBlockProps) {
   const [openAccordion, setOpenAccordion] = useState<string | null>(
     data.length > 0 ? data[0].id : null
   );
 
   const handleAdd = () => {
-    const newCampusExperience: CampusExperience = {
-      id: `campus-${Date.now()}`,
+    const newProject: Project = {
+      id: `proj-${Date.now()}`,
       name: '',
-      role: '',
+      description: '',
       startDate: '',
       endDate: '',
-      description: '',
+      role: '',
+      techStack: [],
+      achievements: [],
     };
-    onChange([...data, newCampusExperience]);
-    setOpenAccordion(newCampusExperience.id);
+    onChange([...data, newProject]);
+    setOpenAccordion(newProject.id);
   };
 
   const handleRemove = (id: string) => {
     onChange(data.filter((item) => item.id !== id));
   };
 
-  const handleChange = (
-    id: string,
-    field: keyof CampusExperience,
-    value: string
-  ) => {
+  const handleChange = (id: string, field: keyof Project, value: string) => {
     onChange(
       data.map((item) => (item.id === id ? { ...item, [field]: value } : item))
+    );
+  };
+
+  const handleAddTech = (id: string) => {
+    onChange(
+      data.map((item) =>
+        item.id === id
+          ? { ...item, techStack: [...(item.techStack || []), ''] }
+          : item
+      )
+    );
+  };
+
+  const handleRemoveTech = (id: string, index: number) => {
+    onChange(
+      data.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              techStack: (item.techStack || []).filter((_, i) => i !== index),
+            }
+          : item
+      )
+    );
+  };
+
+  const handleAddAchievement = (id: string) => {
+    onChange(
+      data.map((item) =>
+        item.id === id
+          ? { ...item, achievements: [...(item.achievements || []), ''] }
+          : item
+      )
     );
   };
 
@@ -56,43 +88,37 @@ export default function CampusExperienceBlock({
     value: string
   ) => {
     onChange(
-      data.map((item) => {
-        if (item.id === id) {
-          const achievements = [...(item.achievements || [])];
-          achievements[index] = value;
-          return { ...item, achievements };
-        }
-        return item;
-      })
-    );
-  };
-
-  const handleAddAchievement = (id: string) => {
-    onChange(
-      data.map((item) => {
-        if (item.id === id) {
-          return {
-            ...item,
-            achievements: [...(item.achievements || []), ''],
-          };
-        }
-        return item;
-      })
+      data.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              achievements: (item.achievements || []).map(
+                (achievement: string, i: number) =>
+                  i === index ? value : achievement
+              ),
+            }
+          : item
+      )
     );
   };
 
   const handleRemoveAchievement = (id: string, index: number) => {
     onChange(
-      data.map((item) => {
-        if (item.id === id) {
-          const achievements = [...(item.achievements || [])];
-          achievements.splice(index, 1);
-          return { ...item, achievements };
-        }
-        return item;
-      })
+      data.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              achievements: (item.achievements || []).filter(
+                (_: string, i: number) => i !== index
+              ),
+            }
+          : item
+      )
     );
   };
+
+  const techStack = (item: Project) => item.techStack || [];
+  const achievements = (item: Project) => item.achievements || [];
 
   return (
     <Card className="mb-3 border-none shadow-sm p-2">
@@ -109,13 +135,13 @@ export default function CampusExperienceBlock({
               }
             >
               <div className="flex items-center gap-2">
-                <GraduationCap size={16} className="text-gray-400" />
+                <FolderKanban size={16} className="text-gray-400" />
                 <div className="text-left">
                   <span className="font-medium text-gray-800">
-                    {item.name || '未填写校园经历名称'}
+                    {item.name || '未填写项目名称'}
                   </span>
                   <span className="text-gray-500 text-sm ml-2">
-                    {item.role || '未填写职位'}
+                    {item.role || '未填写角色'}
                   </span>
                 </div>
               </div>
@@ -136,7 +162,7 @@ export default function CampusExperienceBlock({
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="text-xs font-medium text-gray-600 mb-1 block">
-                      经历名称
+                      项目名称
                     </label>
                     <Input
                       value={item.name}
@@ -144,12 +170,12 @@ export default function CampusExperienceBlock({
                         handleChange(item.id, 'name', e.target.value)
                       }
                       size="sm"
-                      placeholder="请输入经历名称"
+                      placeholder="请输入项目名称"
                     />
                   </div>
                   <div>
                     <label className="text-xs font-medium text-gray-600 mb-1 block">
-                      担任职位
+                      角色
                     </label>
                     <Input
                       value={item.role}
@@ -157,7 +183,7 @@ export default function CampusExperienceBlock({
                         handleChange(item.id, 'role', e.target.value)
                       }
                       size="sm"
-                      placeholder="如：部长"
+                      placeholder="如：前端开发"
                     />
                   </div>
                 </div>
@@ -190,36 +216,58 @@ export default function CampusExperienceBlock({
                   </div>
                 </div>
                 <div>
-                  <div className="flex items-center gap-1 mb-1">
-                    <label className="text-xs font-medium text-gray-600">
-                      职责描述
-                    </label>
-                    <Button
-                      variant="ghost"
-                      size="xs"
-                      className="p-0.5 text-blue-500 hover:text-blue-300 hover:bg-white bg-white border-none"
-                      title="AI补全"
-                    >
-                      <Sparkles size={12} />
-                    </Button>
-                  </div>
-                  <Textarea
-                    value={item.description}
-                    onChange={(e) =>
-                      handleChange(item.id, 'description', e.target.value)
+                  <label className="text-xs font-medium text-gray-600 mb-2 block">
+                    项目描述
+                  </label>
+                  <RichTextEditor
+                    value={item.description || ''}
+                    onChange={(value) =>
+                      handleChange(item.id, 'description', value)
                     }
-                    size="sm"
-                    placeholder="描述你的职责和贡献..."
-                    rows={3}
+                    placeholder="描述项目背景和目标..."
                   />
                 </div>
 
                 <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+                    <Tag size={14} className="mr-1" />
+                    技术栈
+                  </label>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {techStack(item).map((tech, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-full"
+                      >
+                        <span className="font-medium text-sm">
+                          {tech || '添加技术'}
+                        </span>
+                        <button
+                          onClick={() => handleRemoveTech(item.id, index)}
+                          className="ml-1 p-0.5 hover:bg-gray-200 rounded-full transition-colors"
+                        >
+                          <Trash2 size={12} className="text-gray-400" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-dashed border-gray-300 text-gray-500"
+                    onClick={() => handleAddTech(item.id)}
+                  >
+                    <Plus size={14} className="mr-1" />
+                    添加技术
+                  </Button>
+                </div>
+
+                <div>
                   <label className="text-sm font-medium text-gray-700 mb-2 block">
-                    主要贡献
+                    主要成果
                   </label>
                   <div className="space-y-2">
-                    {(item.achievements || []).map((achievement, index) => (
+                    {achievements(item).map((achievement, index) => (
                       <div key={index} className="flex gap-2">
                         <Input
                           value={achievement}
@@ -231,13 +279,13 @@ export default function CampusExperienceBlock({
                             )
                           }
                           size="sm"
-                          placeholder={`贡献 ${index + 1}`}
+                          placeholder="输入一项成果..."
                           className="flex-1"
                         />
                         <Button
                           variant="outline"
                           size="xs"
-                          className="p-1.5 bg-white text-red-500 border-red-200 hover:bg-red-50 hover:border-red-300"
+                          className="p-1.5 bg-white text-blue-500 border-blue-200 hover:bg-blue-50 hover:border-blue-300"
                           onClick={() =>
                             handleRemoveAchievement(item.id, index)
                           }
@@ -249,11 +297,11 @@ export default function CampusExperienceBlock({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="w-full border-dashed border-gray-300 text-gray-500 hover:bg-gray-50"
+                      className="w-full border-dashed border-gray-300 text-gray-500"
                       onClick={() => handleAddAchievement(item.id)}
                     >
                       <Plus size={14} className="mr-1" />
-                      添加贡献
+                      添加成果
                     </Button>
                   </div>
                 </div>
@@ -282,7 +330,7 @@ export default function CampusExperienceBlock({
         onClick={handleAdd}
       >
         <Plus size={14} className="mr-1" />
-        添加校园经历
+        添加项目经验
       </Button>
     </Card>
   );

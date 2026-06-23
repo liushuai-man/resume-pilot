@@ -1,71 +1,43 @@
 import { useState } from 'react';
-import { Card, Input, Textarea, Button } from '@mantine/core';
-import {
-  FolderKanban,
-  Plus,
-  Trash2,
-  Sparkles,
-  ChevronDown,
-  ChevronUp,
-  Tag,
-} from 'lucide-react';
-import type { Project } from '@/types/resume';
+import { Card, Input, Button } from '@mantine/core';
+import { Briefcase, Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import RichTextEditor from '../RichTextEditor';
+import type { Experience } from '@/types/resume';
 
-interface ProjectsBlockProps {
-  data: Project[];
-  onChange: (data: Project[]) => void;
+interface ExperienceBlockProps {
+  data: Experience[];
+  onChange: (data: Experience[]) => void;
 }
 
-export default function ProjectsBlock({ data = [], onChange }: ProjectsBlockProps) {
+export default function ExperienceBlock({
+  data = [],
+  onChange,
+}: ExperienceBlockProps) {
   const [openAccordion, setOpenAccordion] = useState<string | null>(
     data.length > 0 ? data[0].id : null
   );
 
   const handleAdd = () => {
-    const newProject: Project = {
-      id: `proj-${Date.now()}`,
-      name: '',
-      description: '',
+    const newExperience: Experience = {
+      id: `exp-${Date.now()}`,
+      company: '',
+      position: '',
       startDate: '',
       endDate: '',
-      role: '',
-      techStack: [],
+      description: '',
       achievements: [],
     };
-    onChange([...data, newProject]);
-    setOpenAccordion(newProject.id);
+    onChange([...data, newExperience]);
+    setOpenAccordion(newExperience.id);
   };
 
   const handleRemove = (id: string) => {
     onChange(data.filter((item) => item.id !== id));
   };
 
-  const handleChange = (id: string, field: keyof Project, value: string) => {
+  const handleChange = (id: string, field: keyof Experience, value: string) => {
     onChange(
       data.map((item) => (item.id === id ? { ...item, [field]: value } : item))
-    );
-  };
-
-  const handleAddTech = (id: string) => {
-    onChange(
-      data.map((item) =>
-        item.id === id
-          ? { ...item, techStack: [...(item.techStack || []), ''] }
-          : item
-      )
-    );
-  };
-
-  const handleRemoveTech = (id: string, index: number) => {
-    onChange(
-      data.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              techStack: (item.techStack || []).filter((_, i) => i !== index),
-            }
-          : item
-      )
     );
   };
 
@@ -89,9 +61,8 @@ export default function ProjectsBlock({ data = [], onChange }: ProjectsBlockProp
         item.id === id
           ? {
               ...item,
-              achievements: (item.achievements || []).map(
-                (achievement: string, i: number) =>
-                  i === index ? value : achievement
+              achievements: (item.achievements || []).map((achievement, i) =>
+                i === index ? value : achievement
               ),
             }
           : item
@@ -106,7 +77,7 @@ export default function ProjectsBlock({ data = [], onChange }: ProjectsBlockProp
           ? {
               ...item,
               achievements: (item.achievements || []).filter(
-                (_: string, i: number) => i !== index
+                (_, i) => i !== index
               ),
             }
           : item
@@ -114,8 +85,7 @@ export default function ProjectsBlock({ data = [], onChange }: ProjectsBlockProp
     );
   };
 
-  const techStack = (item: Project) => item.techStack || [];
-  const achievements = (item: Project) => item.achievements || [];
+  const achievements = (item: Experience) => item.achievements || [];
 
   return (
     <Card className="mb-3 border-none shadow-sm p-2">
@@ -132,13 +102,13 @@ export default function ProjectsBlock({ data = [], onChange }: ProjectsBlockProp
               }
             >
               <div className="flex items-center gap-2">
-                <FolderKanban size={16} className="text-gray-400" />
+                <Briefcase size={16} className="text-gray-400" />
                 <div className="text-left">
                   <span className="font-medium text-gray-800">
-                    {item.name || '未填写项目名称'}
+                    {item.company || '未填写公司'}
                   </span>
                   <span className="text-gray-500 text-sm ml-2">
-                    {item.role || '未填写角色'}
+                    {item.position || '未填写职位'}
                   </span>
                 </div>
               </div>
@@ -159,28 +129,28 @@ export default function ProjectsBlock({ data = [], onChange }: ProjectsBlockProp
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="text-xs font-medium text-gray-600 mb-1 block">
-                      项目名称
+                      公司名称
                     </label>
                     <Input
-                      value={item.name}
+                      value={item.company}
                       onChange={(e) =>
-                        handleChange(item.id, 'name', e.target.value)
+                        handleChange(item.id, 'company', e.target.value)
                       }
                       size="sm"
-                      placeholder="请输入项目名称"
+                      placeholder="请输入公司名称"
                     />
                   </div>
                   <div>
                     <label className="text-xs font-medium text-gray-600 mb-1 block">
-                      角色
+                      职位
                     </label>
                     <Input
-                      value={item.role}
+                      value={item.position}
                       onChange={(e) =>
-                        handleChange(item.id, 'role', e.target.value)
+                        handleChange(item.id, 'position', e.target.value)
                       }
                       size="sm"
-                      placeholder="如：前端开发"
+                      placeholder="请输入职位"
                     />
                   </div>
                 </div>
@@ -213,67 +183,21 @@ export default function ProjectsBlock({ data = [], onChange }: ProjectsBlockProp
                   </div>
                 </div>
                 <div>
-                  <div className="flex items-center gap-1 mb-1">
-                    <label className="text-xs font-medium text-gray-600">
-                      项目描述
-                    </label>
-                    <Button
-                      variant="ghost"
-                      size="xs"
-                      className="p-0.5 text-blue-500 hover:text-blue-300 hover:bg-white bg-white border-none"
-                      title="AI补全"
-                    >
-                      <Sparkles size={12} />
-                    </Button>
-                  </div>
-                  <Textarea
-                    value={item.description}
-                    onChange={(e) =>
-                      handleChange(item.id, 'description', e.target.value)
+                  <label className="text-xs font-medium text-gray-600 mb-2 block">
+                    工作职责
+                  </label>
+                  <RichTextEditor
+                    value={item.description || ''}
+                    onChange={(value) =>
+                      handleChange(item.id, 'description', value)
                     }
-                    size="sm"
-                    placeholder="描述项目背景和目标..."
-                    rows={3}
+                    placeholder="描述你的主要工作职责..."
                   />
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 flex items-center">
-                    <Tag size={14} className="mr-1" />
-                    技术栈
-                  </label>
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {techStack(item).map((tech, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-full"
-                      >
-                        <span className="font-medium text-sm">
-                          {tech || '添加技术'}
-                        </span>
-                        <button
-                          onClick={() => handleRemoveTech(item.id, index)}
-                          className="ml-1 p-0.5 hover:bg-gray-200 rounded-full transition-colors"
-                        >
-                          <Trash2 size={12} className="text-gray-400" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-dashed border-gray-300 text-gray-500"
-                    onClick={() => handleAddTech(item.id)}
-                  >
-                    <Plus size={14} className="mr-1" />
-                    添加技术
-                  </Button>
-                </div>
-
-                <div>
                   <label className="text-sm font-medium text-gray-700 mb-2 block">
-                    主要成果
+                    主要成就
                   </label>
                   <div className="space-y-2">
                     {achievements(item).map((achievement, index) => (
@@ -288,7 +212,7 @@ export default function ProjectsBlock({ data = [], onChange }: ProjectsBlockProp
                             )
                           }
                           size="sm"
-                          placeholder="输入一项成果..."
+                          placeholder="输入一项成就..."
                           className="flex-1"
                         />
                         <Button
@@ -310,7 +234,7 @@ export default function ProjectsBlock({ data = [], onChange }: ProjectsBlockProp
                       onClick={() => handleAddAchievement(item.id)}
                     >
                       <Plus size={14} className="mr-1" />
-                      添加成果
+                      添加成就
                     </Button>
                   </div>
                 </div>
@@ -339,7 +263,7 @@ export default function ProjectsBlock({ data = [], onChange }: ProjectsBlockProp
         onClick={handleAdd}
       >
         <Plus size={14} className="mr-1" />
-        添加项目经验
+        添加工作经历
       </Button>
     </Card>
   );

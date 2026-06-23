@@ -1,59 +1,52 @@
 import { useState } from 'react';
-import { Card, Input, Textarea, Button } from '@mantine/core';
+import { Card, Input, Button } from '@mantine/core';
 import {
-  Briefcase,
+  GraduationCap,
   Plus,
   Trash2,
-  Sparkles,
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
-import type { Experience } from '@/types/resume';
+import RichTextEditor from '../RichTextEditor';
+import type { CampusExperience } from '@/types/resume';
 
-interface ExperienceBlockProps {
-  data: Experience[];
-  onChange: (data: Experience[]) => void;
+interface CampusExperienceBlockProps {
+  data: CampusExperience[];
+  onChange: (data: CampusExperience[]) => void;
 }
 
-export default function ExperienceBlock({
+export default function CampusExperienceBlock({
   data = [],
   onChange,
-}: ExperienceBlockProps) {
+}: CampusExperienceBlockProps) {
   const [openAccordion, setOpenAccordion] = useState<string | null>(
     data.length > 0 ? data[0].id : null
   );
 
   const handleAdd = () => {
-    const newExperience: Experience = {
-      id: `exp-${Date.now()}`,
-      company: '',
-      position: '',
+    const newCampusExperience: CampusExperience = {
+      id: `campus-${Date.now()}`,
+      name: '',
+      role: '',
       startDate: '',
       endDate: '',
       description: '',
-      achievements: [],
     };
-    onChange([...data, newExperience]);
-    setOpenAccordion(newExperience.id);
+    onChange([...data, newCampusExperience]);
+    setOpenAccordion(newCampusExperience.id);
   };
 
   const handleRemove = (id: string) => {
     onChange(data.filter((item) => item.id !== id));
   };
 
-  const handleChange = (id: string, field: keyof Experience, value: string) => {
+  const handleChange = (
+    id: string,
+    field: keyof CampusExperience,
+    value: string
+  ) => {
     onChange(
       data.map((item) => (item.id === id ? { ...item, [field]: value } : item))
-    );
-  };
-
-  const handleAddAchievement = (id: string) => {
-    onChange(
-      data.map((item) =>
-        item.id === id
-          ? { ...item, achievements: [...(item.achievements || []), ''] }
-          : item
-      )
     );
   };
 
@@ -63,35 +56,43 @@ export default function ExperienceBlock({
     value: string
   ) => {
     onChange(
-      data.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              achievements: (item.achievements || []).map((achievement, i) =>
-                i === index ? value : achievement
-              ),
-            }
-          : item
-      )
+      data.map((item) => {
+        if (item.id === id) {
+          const achievements = [...(item.achievements || [])];
+          achievements[index] = value;
+          return { ...item, achievements };
+        }
+        return item;
+      })
+    );
+  };
+
+  const handleAddAchievement = (id: string) => {
+    onChange(
+      data.map((item) => {
+        if (item.id === id) {
+          return {
+            ...item,
+            achievements: [...(item.achievements || []), ''],
+          };
+        }
+        return item;
+      })
     );
   };
 
   const handleRemoveAchievement = (id: string, index: number) => {
     onChange(
-      data.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              achievements: (item.achievements || []).filter(
-                (_, i) => i !== index
-              ),
-            }
-          : item
-      )
+      data.map((item) => {
+        if (item.id === id) {
+          const achievements = [...(item.achievements || [])];
+          achievements.splice(index, 1);
+          return { ...item, achievements };
+        }
+        return item;
+      })
     );
   };
-
-  const achievements = (item: Experience) => item.achievements || [];
 
   return (
     <Card className="mb-3 border-none shadow-sm p-2">
@@ -108,13 +109,13 @@ export default function ExperienceBlock({
               }
             >
               <div className="flex items-center gap-2">
-                <Briefcase size={16} className="text-gray-400" />
+                <GraduationCap size={16} className="text-gray-400" />
                 <div className="text-left">
                   <span className="font-medium text-gray-800">
-                    {item.company || '未填写公司'}
+                    {item.name || '未填写校园经历名称'}
                   </span>
                   <span className="text-gray-500 text-sm ml-2">
-                    {item.position || '未填写职位'}
+                    {item.role || '未填写职位'}
                   </span>
                 </div>
               </div>
@@ -135,28 +136,28 @@ export default function ExperienceBlock({
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="text-xs font-medium text-gray-600 mb-1 block">
-                      公司名称
+                      经历名称
                     </label>
                     <Input
-                      value={item.company}
+                      value={item.name}
                       onChange={(e) =>
-                        handleChange(item.id, 'company', e.target.value)
+                        handleChange(item.id, 'name', e.target.value)
                       }
                       size="sm"
-                      placeholder="请输入公司名称"
+                      placeholder="请输入经历名称"
                     />
                   </div>
                   <div>
                     <label className="text-xs font-medium text-gray-600 mb-1 block">
-                      职位
+                      担任职位
                     </label>
                     <Input
-                      value={item.position}
+                      value={item.role}
                       onChange={(e) =>
-                        handleChange(item.id, 'position', e.target.value)
+                        handleChange(item.id, 'role', e.target.value)
                       }
                       size="sm"
-                      placeholder="请输入职位"
+                      placeholder="如：部长"
                     />
                   </div>
                 </div>
@@ -189,36 +190,24 @@ export default function ExperienceBlock({
                   </div>
                 </div>
                 <div>
-                  <div className="flex items-center gap-1 mb-1">
-                    <label className="text-xs font-medium text-gray-600">
-                      工作职责
-                    </label>
-                    <Button
-                      variant="ghost"
-                      size="xs"
-                      className="p-0.5 text-blue-500 hover:text-blue-300 hover:bg-white bg-white border-none"
-                      title="AI补全"
-                    >
-                      <Sparkles size={12} />
-                    </Button>
-                  </div>
-                  <Textarea
-                    value={item.description}
-                    onChange={(e) =>
-                      handleChange(item.id, 'description', e.target.value)
+                  <label className="text-xs font-medium text-gray-600 mb-2 block">
+                    职责描述
+                  </label>
+                  <RichTextEditor
+                    value={item.description || ''}
+                    onChange={(value) =>
+                      handleChange(item.id, 'description', value)
                     }
-                    size="sm"
-                    placeholder="描述你的主要工作职责..."
-                    rows={3}
+                    placeholder="描述你的职责和贡献..."
                   />
                 </div>
 
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-2 block">
-                    主要成就
+                    主要贡献
                   </label>
                   <div className="space-y-2">
-                    {achievements(item).map((achievement, index) => (
+                    {(item.achievements || []).map((achievement, index) => (
                       <div key={index} className="flex gap-2">
                         <Input
                           value={achievement}
@@ -230,13 +219,13 @@ export default function ExperienceBlock({
                             )
                           }
                           size="sm"
-                          placeholder="输入一项成就..."
+                          placeholder={`贡献 ${index + 1}`}
                           className="flex-1"
                         />
                         <Button
                           variant="outline"
                           size="xs"
-                          className="p-1.5 bg-white text-blue-500 border-blue-200 hover:bg-blue-50 hover:border-blue-300"
+                          className="p-1.5 bg-white text-red-500 border-red-200 hover:bg-red-50 hover:border-red-300"
                           onClick={() =>
                             handleRemoveAchievement(item.id, index)
                           }
@@ -248,11 +237,11 @@ export default function ExperienceBlock({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="w-full border-dashed border-gray-300 text-gray-500"
+                      className="w-full border-dashed border-gray-300 text-gray-500 hover:bg-gray-50"
                       onClick={() => handleAddAchievement(item.id)}
                     >
                       <Plus size={14} className="mr-1" />
-                      添加成就
+                      添加贡献
                     </Button>
                   </div>
                 </div>
@@ -281,7 +270,7 @@ export default function ExperienceBlock({
         onClick={handleAdd}
       >
         <Plus size={14} className="mr-1" />
-        添加工作经历
+        添加校园经历
       </Button>
     </Card>
   );

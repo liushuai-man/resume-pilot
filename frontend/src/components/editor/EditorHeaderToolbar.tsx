@@ -12,7 +12,7 @@ interface EditorToolbarProps {
   onTitleChange?: (title: string) => void;
 }
 
-export default function EditorToolbar({
+export default function EditorHeaderToolbar({
   title,
   onSave,
   onExport,
