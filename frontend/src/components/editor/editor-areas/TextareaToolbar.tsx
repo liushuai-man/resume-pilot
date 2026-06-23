@@ -14,9 +14,13 @@ import {
 
 interface TextareaToolbarProps {
   onFormat?: (format: string) => void;
+  isActive?: (format: string) => boolean;
 }
 
-export default function TextareaToolbar({ onFormat }: TextareaToolbarProps) {
+export default function TextareaToolbar({
+  onFormat,
+  isActive = () => false,
+}: TextareaToolbarProps) {
   const ToolbarButton = ({
     children,
     label,
@@ -55,10 +59,18 @@ export default function TextareaToolbar({ onFormat }: TextareaToolbarProps) {
       <ToolbarDivider />
 
       {/* 文字格式 */}
-      <ToolbarButton label="加粗" onClick={() => onFormat?.('bold')}>
+      <ToolbarButton
+        label="加粗"
+        onClick={() => onFormat?.('bold')}
+        active={isActive('bold')}
+      >
         <Bold size={14} />
       </ToolbarButton>
-      <ToolbarButton label="斜体" onClick={() => onFormat?.('italic')}>
+      <ToolbarButton
+        label="斜体"
+        onClick={() => onFormat?.('italic')}
+        active={isActive('italic')}
+      >
         <Italic size={14} />
       </ToolbarButton>
       <ToolbarDivider />
@@ -67,29 +79,49 @@ export default function TextareaToolbar({ onFormat }: TextareaToolbarProps) {
       <ToolbarButton
         label="无序列表"
         onClick={() => onFormat?.('bulletList')}
-        active
+        active={isActive('bulletList')}
       >
         <List size={14} />
       </ToolbarButton>
-      <ToolbarButton label="有序列表" onClick={() => onFormat?.('orderedList')}>
+      <ToolbarButton
+        label="有序列表"
+        onClick={() => onFormat?.('orderedList')}
+        active={isActive('orderedList')}
+      >
         <ListOrdered size={14} />
       </ToolbarButton>
       <ToolbarDivider />
 
       {/* 对齐方式 */}
-      <ToolbarButton label="左对齐" onClick={() => onFormat?.('alignLeft')}>
+      <ToolbarButton
+        label="左对齐"
+        onClick={() => onFormat?.('alignLeft')}
+        active={isActive('alignLeft')}
+      >
         <AlignLeft size={14} />
       </ToolbarButton>
-      <ToolbarButton label="居中对齐" onClick={() => onFormat?.('alignCenter')}>
+      <ToolbarButton
+        label="居中对齐"
+        onClick={() => onFormat?.('alignCenter')}
+        active={isActive('alignCenter')}
+      >
         <AlignCenter size={14} />
       </ToolbarButton>
-      <ToolbarButton label="右对齐" onClick={() => onFormat?.('alignRight')}>
+      <ToolbarButton
+        label="右对齐"
+        onClick={() => onFormat?.('alignRight')}
+        active={isActive('alignRight')}
+      >
         <AlignRight size={14} />
       </ToolbarButton>
       <ToolbarDivider />
 
       {/* 链接和清除格式 */}
-      <ToolbarButton label="插入链接" onClick={() => onFormat?.('link')}>
+      <ToolbarButton
+        label="插入链接"
+        onClick={() => onFormat?.('link')}
+        active={isActive('link')}
+      >
         <Link2 size={14} />
       </ToolbarButton>
       <ToolbarButton label="清除格式" onClick={() => onFormat?.('clearFormat')}>
