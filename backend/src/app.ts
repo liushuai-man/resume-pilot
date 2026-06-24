@@ -3,7 +3,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { env } from './config/env';
 import type { Application } from 'express';
-import { authRouter, resumeRouter } from './routes/index';
+import { authRouter, resumeRouter, aiRouter } from './routes/index';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -36,3 +36,4 @@ app.get('/health', (req, res) => {
 
 app.use('/api/auth', authRouter);
 app.use('/api/resume', resumeRouter);
+app.use('/api/ai', aiRouter);
