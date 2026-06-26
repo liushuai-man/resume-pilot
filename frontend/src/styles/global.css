@@ -27,3 +27,105 @@ body {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
+
+/* 隐藏 Mantine Select 下拉框的勾选标记 */
+.custom-select [data-indicator] {
+  display: none !important;
+}
+
+.custom-select .mantine-Select-itemIndicator {
+  display: none !important;
+}
+
+.custom-select .mantine-Select-optionIcon {
+  display: none !important;
+}
+
+.custom-select .mantine-Icon {
+  display: none !important;
+}
+
+.custom-select svg {
+  display: none !important;
+}
+
+/* 针对 Select 选项中的图标容器 */
+.custom-select-dropdown .mantine-Select-itemIndicator {
+  display: none !important;
+}
+
+.custom-select-dropdown [data-indicator] {
+  display: none !important;
+}
+
+/* 自定义选中项样式 */
+.custom-select-option[data-selected] {
+  background-color: #dbeafe !important;
+  color: #1d4ed8 !important;
+  border: 1px solid #3b82f6 !important;
+  border-radius: 4px !important;
+  margin: 2px !important;
+  padding: 7px 11px !important;
+}
+
+.custom-select .mantine-Select-option[data-selected] {
+  background-color: #dbeafe !important;
+  color: #1d4ed8 !important;
+  border: 1px solid #3b82f6 !important;
+  border-radius: 4px !important;
+  margin: 2px !important;
+  padding: 7px 11px !important;
+}
+
+.custom-select [data-selected] {
+  background-color: #dbeafe !important;
+  color: #1d4ed8 !important;
+  border: 1px solid #3b82f6 !important;
+  border-radius: 4px !important;
+  margin: 2px !important;
+  padding: 7px 11px !important;
+}
+
+/* === 全局选择器 - 针对挂载在 body 上的 dropdown === */
+/* 隐藏勾选标记 */
+.mantine-Select-dropdown [data-indicator] {
+  display: none !important;
+}
+
+.mantine-Select-dropdown .mantine-Select-itemIndicator {
+  display: none !important;
+}
+
+.mantine-Select-dropdown svg {
+  display: none !important;
+}
+
+/* 自定义选中项样式 - 使用更高优先级 */
+.mantine-Select-dropdown .mantine-Select-option[data-selected='true'] {
+  background-color: #dbeafe !important;
+  color: #1d4ed8 !important;
+  border: 1px solid #3b82f6 !important;
+  border-radius: 4px !important;
+  margin: 2px !important;
+  padding: 7px 11px !important;
+}
+
+/* 更通用的选中项样式 */
+.mantine-Select-option[data-selected] {
+  background-color: #dbeafe !important;
+  color: #1d4ed8 !important;
+  border: 1px solid #3b82f6 !important;
+  border-radius: 4px !important;
+  margin: 2px !important;
+  padding: 7px 11px !important;
+}
+
+/* 针对 options 容器内的选项 */
+.mantine-Select-options .mantine-Select-option[data-selected] {
+  background-color: #dbeafe !important;
+  color: #1d4ed8 !important;
+  border: 1px solid #3b82f6 !important;
+  border-radius: 4px !important;
+  margin: 2px !important;
+  padding: 7px 11px !important;
+}

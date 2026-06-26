@@ -11,6 +11,14 @@ interface ResumeState {
   isSaving: boolean;
   lastSaved: Date | null;
   initialized: boolean;
+  // 格式配置
+  formatConfig: {
+    fontFamily: string;
+    fontSize: string;
+    lineHeight: string;
+    margin: string;
+    textAlign: 'left' | 'center' | 'right';
+  };
 
   initStore: () => void;
   setResume: (resume: Resume) => void;
@@ -21,6 +29,7 @@ interface ResumeState {
   loadResume: (id: string) => Promise<void>;
   createResume: (title: string) => Promise<void>;
   reset: () => void;
+  updateFormatConfig: (config: Partial<ResumeState['formatConfig']>) => void;
 }
 
 export const useResumeStore = create<ResumeState>()(
@@ -31,6 +40,13 @@ export const useResumeStore = create<ResumeState>()(
       isSaving: false,
       lastSaved: null,
       initialized: false,
+      formatConfig: {
+        fontFamily: '微软雅黑',
+        fontSize: '16',
+        lineHeight: '1.5',
+        margin: '20',
+        textAlign: 'left',
+      },
 
       // 初始化 store
       initStore: () => {
@@ -140,7 +156,6 @@ export const useResumeStore = create<ResumeState>()(
         set({ isSaving: true });
         try {
           const response = await resumeApi.getResumeById(id);
-          console.log('API 返回数据:', response);
           if (response.code === 200 && response.data) {
             console.log('准备设置状态:', {
               resume: response.data,
@@ -152,11 +167,6 @@ export const useResumeStore = create<ResumeState>()(
               lastSaved: new Date(),
               initialized: true,
             });
-            // 设置后立即检查 localStorage
-            setTimeout(() => {
-              const storage = localStorage.getItem('resume-storage');
-              console.log('localStorage 内容:', storage);
-            }, 100);
           } else {
             notification.error(response.message || '加载简历失败');
           }
@@ -202,7 +212,20 @@ export const useResumeStore = create<ResumeState>()(
           isSaving: false,
           lastSaved: null,
           initialized: false,
+          formatConfig: {
+            fontFamily: '微软雅黑',
+            fontSize: '16',
+            lineHeight: '1.5',
+            margin: '20',
+            textAlign: 'left',
+          },
         });
+      },
+
+      updateFormatConfig: (config) => {
+        set((state) => ({
+          formatConfig: { ...state.formatConfig, ...config },
+        }));
       },
     }),
     {

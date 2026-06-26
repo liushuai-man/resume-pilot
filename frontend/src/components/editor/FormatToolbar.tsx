@@ -1,26 +1,35 @@
-import { useState } from 'react';
 import { Select, Tooltip } from '@mantine/core';
-import { Palette, ChevronDown } from 'lucide-react';
+import {
+  Palette,
+  ChevronDown,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+} from 'lucide-react';
+import { useResumeStore } from '@/store/useResumeStore';
 
 export default function FormatToolbar() {
-  const [fontFamily, setFontFamily] = useState<string | null>('微软雅黑');
-  const [fontSize, setFontSize] = useState<string | null>('16');
-  const [lineHeight, setLineHeight] = useState<string | null>('1.5');
-  const [margin, setMargin] = useState<string | null>('20');
+  const { formatConfig, updateFormatConfig } = useResumeStore();
 
   const ToolbarButton = ({
     children,
     label,
     onClick,
+    active = false,
   }: {
     children: React.ReactNode;
     label: string;
     onClick?: () => void;
+    active?: boolean;
   }) => (
     <Tooltip label={label}>
       <button
         onClick={onClick}
-        className="h-8 px-2 rounded flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+        className={`h-8 px-2 rounded flex items-center justify-center transition-all duration-200 cursor-pointer ${
+          active
+            ? 'bg-blue-100 text-blue-600 border border-blue-300'
+            : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100 border border-transparent'
+        }`}
       >
         {children}
       </button>
@@ -53,27 +62,33 @@ export default function FormatToolbar() {
           className={`h-8 ${width} min-w-0`}
           radius="sm"
           rightSection={<ChevronDown size={12} className="text-gray-400" />}
+          classNames={{
+            input: 'text-xs',
+            dropdown: 'text-xs',
+            option: 'text-xs',
+          }}
           styles={{
             input: {
               paddingLeft: '8px',
               paddingRight: '20px',
               fontSize: '12px',
+              color: '#333',
+              backgroundColor: '#fff',
+              border: '1px solid #e5e7eb',
+              cursor: 'pointer',
             },
             dropdown: {
-              backgroundColor: '#1a1a1a',
-              borderColor: '#333',
+              backgroundColor: '#ffffff',
+              borderColor: '#e5e7eb',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+              borderRadius: '6px',
             },
             option: {
-              color: '#fff',
+              color: '#374151',
               fontSize: '13px',
               padding: '8px 12px',
-              '&[data-selected]': {
-                backgroundColor: '#ff6b35',
-                color: '#fff',
-              },
-              '&:hover': {
-                backgroundColor: '#333',
-              },
+              backgroundColor: '#ffffff',
+              cursor: 'pointer',
             },
           }}
         />
@@ -89,8 +104,8 @@ export default function FormatToolbar() {
       <DropdownButton
         title="字体"
         label="字体"
-        value={fontFamily}
-        onChange={setFontFamily}
+        value={formatConfig.fontFamily}
+        onChange={(val) => updateFormatConfig({ fontFamily: val || '微软雅黑' })}
         options={[
           '微软雅黑',
           '宋体',
@@ -107,8 +122,8 @@ export default function FormatToolbar() {
       <DropdownButton
         title="字号"
         label="字号"
-        value={fontSize}
-        onChange={setFontSize}
+        value={formatConfig.fontSize}
+        onChange={(val) => updateFormatConfig({ fontSize: val || '16' })}
         options={[
           '10',
           '11',
@@ -130,8 +145,8 @@ export default function FormatToolbar() {
       <DropdownButton
         title="行距"
         label="行距"
-        value={lineHeight}
-        onChange={setLineHeight}
+        value={formatConfig.lineHeight}
+        onChange={(val) => updateFormatConfig({ lineHeight: val || '1.5' })}
         options={['1.0', '1.2', '1.3', '1.4', '1.5', '1.6', '1.8', '2.0']}
         width="w-14"
       />
@@ -141,11 +156,40 @@ export default function FormatToolbar() {
       <DropdownButton
         title="页边距"
         label="页边距"
-        value={margin}
-        onChange={setMargin}
+        value={formatConfig.margin}
+        onChange={(val) => updateFormatConfig({ margin: val || '20' })}
         options={['10', '15', '20', '25', '30', '35', '40']}
         width="w-14"
       />
+      <ToolbarDivider />
+
+      {/* 对齐方式 */}
+      <div className="flex items-center gap-1">
+        <span className="text-xs text-gray-500 font-medium">对齐</span>
+        <div className="flex items-center bg-gray-50 rounded-lg overflow-hidden border border-gray-200">
+          <ToolbarButton
+            label="左对齐"
+            onClick={() => updateFormatConfig({ textAlign: 'left' })}
+            active={formatConfig.textAlign === 'left'}
+          >
+            <AlignLeft size={14} />
+          </ToolbarButton>
+          <ToolbarButton
+            label="居中对齐"
+            onClick={() => updateFormatConfig({ textAlign: 'center' })}
+            active={formatConfig.textAlign === 'center'}
+          >
+            <AlignCenter size={14} />
+          </ToolbarButton>
+          <ToolbarButton
+            label="右对齐"
+            onClick={() => updateFormatConfig({ textAlign: 'right' })}
+            active={formatConfig.textAlign === 'right'}
+          >
+            <AlignRight size={14} />
+          </ToolbarButton>
+        </div>
+      </div>
       <ToolbarDivider />
 
       {/* 主题色 */}

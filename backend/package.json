@@ -11,7 +11,9 @@
     "prisma:seed": "tsx prisma/seed.ts",
     "lint": "eslint src --ext .ts",
     "init:templates": "tsx src/scripts/init-templates.ts",
-    "generate:thumbnails": "tsx src/scripts/generate-template-thumbnails.ts"
+    "generate:thumbnails": "tsx src/scripts/generate-template-thumbnails.ts",
+    "test:ai": "tsx scripts/test-ai-config.ts",
+    "test:ai:all": "tsx scripts/test-ai-config.ts --all"
   },
   "dependencies": {
     "@langchain/community": "^0.0.34",

@@ -9,6 +9,7 @@ import {
   Tag,
 } from 'lucide-react';
 import RichTextEditor from '../RichTextEditor';
+import AIInput from '../AIInput';
 import type { Project } from '@/types/resume';
 
 interface ProjectsBlockProps {
@@ -23,6 +24,10 @@ export default function ProjectsBlock({
   const [openAccordion, setOpenAccordion] = useState<string | null>(
     data.length > 0 ? data[0].id : null
   );
+
+  const getContextForItem = (item: Project) => {
+    return `项目: ${item.name || '未知'}, 角色: ${item.role || '未知'}, 技术栈: ${(item.techStack || []).join(', ') || '未知'}`;
+  };
 
   const handleAdd = () => {
     const newProject: Project = {
@@ -225,6 +230,8 @@ export default function ProjectsBlock({
                       handleChange(item.id, 'description', value)
                     }
                     placeholder="描述项目背景和目标..."
+                    targetField="项目描述"
+                    context={`项目: ${item.name || '未知'}, 角色: ${item.role || '未知'}`}
                   />
                 </div>
 
@@ -269,17 +276,15 @@ export default function ProjectsBlock({
                   <div className="space-y-2">
                     {achievements(item).map((achievement, index) => (
                       <div key={index} className="flex gap-2">
-                        <Input
+                        <AIInput
                           value={achievement}
-                          onChange={(e) =>
-                            handleAchievementChange(
-                              item.id,
-                              index,
-                              e.target.value
-                            )
+                          onChange={(value) =>
+                            handleAchievementChange(item.id, index, value)
                           }
-                          size="sm"
                           placeholder="输入一项成果..."
+                          targetField="项目成果"
+                          context={getContextForItem(item)}
+                          size="sm"
                           className="flex-1"
                         />
                         <Button

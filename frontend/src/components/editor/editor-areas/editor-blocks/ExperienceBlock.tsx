@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Card, Input, Button } from '@mantine/core';
 import { Briefcase, Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import RichTextEditor from '../RichTextEditor';
+import AIInput from '../AIInput';
 import type { Experience } from '@/types/resume';
 
 interface ExperienceBlockProps {
@@ -16,6 +17,10 @@ export default function ExperienceBlock({
   const [openAccordion, setOpenAccordion] = useState<string | null>(
     data.length > 0 ? data[0].id : null
   );
+
+  const getContextForItem = (item: Experience) => {
+    return `公司: ${item.company || '未知'}, 职位: ${item.position || '未知'}`;
+  };
 
   const handleAdd = () => {
     const newExperience: Experience = {
@@ -192,6 +197,8 @@ export default function ExperienceBlock({
                       handleChange(item.id, 'description', value)
                     }
                     placeholder="描述你的主要工作职责..."
+                    targetField="工作经历描述"
+                    context={`公司: ${item.company || '未知'}, 职位: ${item.position || '未知'}`}
                   />
                 </div>
 
@@ -202,17 +209,15 @@ export default function ExperienceBlock({
                   <div className="space-y-2">
                     {achievements(item).map((achievement, index) => (
                       <div key={index} className="flex gap-2">
-                        <Input
+                        <AIInput
                           value={achievement}
-                          onChange={(e) =>
-                            handleAchievementChange(
-                              item.id,
-                              index,
-                              e.target.value
-                            )
+                          onChange={(value) =>
+                            handleAchievementChange(item.id, index, value)
                           }
-                          size="sm"
                           placeholder="输入一项成就..."
+                          targetField="工作经历成就"
+                          context={getContextForItem(item)}
+                          size="sm"
                           className="flex-1"
                         />
                         <Button

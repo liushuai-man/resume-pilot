@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Tooltip } from '@mantine/core';
+import { Tooltip, Button } from '@mantine/core';
 import {
   PanelLeftClose,
   PanelRightClose,
@@ -47,38 +47,40 @@ export default function EditorLayout({
         <div className="flex items-center gap-2">
           {/* 左侧面板开关 */}
           <Tooltip label={leftCollapsed ? '展开编辑区' : '收起编辑区'}>
-            <button
+            <Button
+              variant="subtle"
+              size="xs"
+              color="gray"
               onClick={() => setLeftCollapsed(!leftCollapsed)}
-              className={`p-1.5 rounded-lg transition-colors ${
-                leftCollapsed
-                  ? 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
+              leftSection={
+                leftCollapsed ? (
+                  <PanelLeftOpen size={16} />
+                ) : (
+                  <PanelLeftClose size={16} />
+                )
+              }
             >
-              {leftCollapsed ? (
-                <PanelLeftOpen size={16} />
-              ) : (
-                <PanelLeftClose size={16} />
-              )}
-            </button>
+              {leftCollapsed ? '展开' : '收起'}
+            </Button>
           </Tooltip>
 
           {/* 右侧面板开关 */}
           <Tooltip label={rightCollapsed ? '展开AI会话' : '收起AI会话'}>
-            <button
+            <Button
+              variant="subtle"
+              size="xs"
+              color="gray"
               onClick={() => setRightCollapsed(!rightCollapsed)}
-              className={`p-1.5 rounded-lg transition-colors ${
-                rightCollapsed
-                  ? 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
+              leftSection={
+                rightCollapsed ? (
+                  <PanelRightOpen size={16} />
+                ) : (
+                  <PanelRightClose size={16} />
+                )
+              }
             >
-              {rightCollapsed ? (
-                <PanelRightOpen size={16} />
-              ) : (
-                <PanelRightClose size={16} />
-              )}
-            </button>
+              {rightCollapsed ? '展开' : '收起'}
+            </Button>
           </Tooltip>
         </div>
       </header>
@@ -103,10 +105,10 @@ export default function EditorLayout({
           </div>
         </aside>
 
-        {/* 中间预览区 - 居中显示，固定宽度的简历预览 */}
-        <main className="flex-1 overflow-y-auto bg-gray-100 flex items-start justify-center py-6">
-          {/* 简历预览容器 - 固定宽度800px，确保PDF导出效果一致 */}
-          <div className="w-[800px] min-w-[800px] max-w-[800px]">
+        {/* 中间预览区 - 根据左右面板状态分配空间 */}
+        <main className={`flex-1 overflow-y-auto bg-gray-100 flex items-start justify-center py-6 px-4 transition-all duration-300`}>
+          {/* 简历预览容器 - 响应式宽度，确保内容不被遮挡 */}
+          <div className="w-full max-w-[850px] min-w-[700px]">
             {children}
           </div>
         </main>

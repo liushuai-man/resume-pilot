@@ -105,9 +105,10 @@ export default function ResumePreview({ content }: ResumePreviewProps) {
                     </span>
                   </div>
                   {item.description && (
-                    <p className="text-sm text-gray-600 mt-2">
-                      {item.description}
-                    </p>
+                    <div
+                      className="text-sm text-gray-600 mt-2 prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{ __html: item.description }}
+                    />
                   )}
                   {(item.achievements || []).length > 0 && (
                     <ul className="mt-2 text-sm text-gray-600">
@@ -143,9 +144,10 @@ export default function ResumePreview({ content }: ResumePreviewProps) {
                     </span>
                   </div>
                   {item.description && (
-                    <p className="text-sm text-gray-600 mt-2">
-                      {item.description}
-                    </p>
+                    <div
+                      className="text-sm text-gray-600 mt-2 prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{ __html: item.description }}
+                    />
                   )}
                   {(item.techStack || []).length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-2">
@@ -261,9 +263,10 @@ export default function ResumePreview({ content }: ResumePreviewProps) {
                 <span className="w-1 h-5 bg-blue-500 mr-3 rounded"></span>
                 职业目标
               </h2>
-              <p className="text-gray-600 text-sm leading-relaxed">
-                {content.careerObjective}
-              </p>
+              <div
+                className="text-sm text-gray-600 prose prose-sm max-w-none"
+                dangerouslySetInnerHTML={{ __html: content.careerObjective }}
+              />
             </div>
           )}
         </div>

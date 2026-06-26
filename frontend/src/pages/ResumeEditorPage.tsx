@@ -155,6 +155,27 @@ export default function ResumeEditorPage() {
     updateContent({ campusExperiences: data });
   };
 
+  // 处理AI对话中应用到简历的操作
+  const handleApplyToResume = (aiContent: string, field: string) => {
+    console.log('应用到简历:', { content: aiContent, field });
+    notification.success('内容已复制到剪贴板，请粘贴到对应的简历区域');
+
+    // 复制到剪贴板
+    navigator.clipboard.writeText(aiContent);
+
+    // 根据当前编辑的字段自动粘贴到对应位置
+    if (activeSection) {
+      switch (activeSection) {
+        case 'objective':
+          updateContent({ careerObjective: aiContent });
+          break;
+        default:
+          // 其他字段需要用户手动粘贴
+          break;
+      }
+    }
+  };
+
   const handleSave = async () => {
     if (resumeId) {
       // 如果 URL 中有 resumeId，说明是编辑现有简历
@@ -415,7 +436,12 @@ export default function ResumeEditorPage() {
           </div>
         </div>
       }
-      rightPanel={<AIConversation />}
+      rightPanel={
+        <AIConversation
+          currentField={activeSection}
+          onApplyToResume={handleApplyToResume}
+        />
+      }
     >
       {/* 中间预览区 */}
       <div className="resume-preview-container w-full h-full">

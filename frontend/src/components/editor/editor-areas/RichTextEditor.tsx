@@ -1,24 +1,32 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
-import { Sparkles, CheckCircle2 } from 'lucide-react';
+import { Sparkles, CheckCircle2, Loader2 } from 'lucide-react';
 import TextareaToolbar from './TextareaToolbar';
+import { useAI } from '@/hooks/useAI';
 
 interface RichTextEditorProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  context?: string;
+  targetField?: string;
 }
 
 export default function RichTextEditor({
   value,
   onChange,
   placeholder,
+  context = '',
+  targetField = '',
 }: RichTextEditorProps) {
+  const editorRef = useRef<HTMLDivElement>(null);
+  const { isLoading, complete, polish } = useAI({ targetField });
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -59,7 +67,6 @@ export default function RichTextEditor({
     },
   });
 
-  // 同步外部 value 变化到编辑器
   useEffect(() => {
     if (editor && value !== editor.getHTML()) {
       editor.commands.setContent(value, false);
@@ -70,12 +77,27 @@ export default function RichTextEditor({
     (format: string) => {
       if (!editor) return;
 
+      // 确保编辑器有焦点
+      editor.commands.focus();
+
       switch (format) {
         case 'bold':
           editor.chain().focus().toggleBold().run();
           break;
         case 'italic':
           editor.chain().focus().toggleItalic().run();
+          break;
+        case 'underline':
+          editor.chain().focus().toggleUnderline().run();
+          break;
+        case 'heading1':
+          editor.chain().focus().toggleHeading({ level: 1 }).run();
+          break;
+        case 'heading2':
+          editor.chain().focus().toggleHeading({ level: 2 }).run();
+          break;
+        case 'heading3':
+          editor.chain().focus().toggleHeading({ level: 3 }).run();
           break;
         case 'undo':
           editor.chain().focus().undo().run();
@@ -116,6 +138,40 @@ export default function RichTextEditor({
         case 'clearFormat':
           editor.chain().focus().unsetAllMarks().run();
           break;
+        case 'indentDecrease': {
+          const selection = window.getSelection();
+          if (selection && selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            const container = range.commonAncestorContainer;
+            const element =
+              container.nodeType === Node.TEXT_NODE
+                ? container.parentElement
+                : (container as HTMLElement);
+            const block = element?.closest('p, li, div') as HTMLElement;
+            if (block) {
+              const currentIndent = parseInt(block.style.marginLeft) || 0;
+              block.style.marginLeft = Math.max(0, currentIndent - 20) + 'px';
+            }
+          }
+          break;
+        }
+        case 'indentIncrease': {
+          const selection = window.getSelection();
+          if (selection && selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            const container = range.commonAncestorContainer;
+            const element =
+              container.nodeType === Node.TEXT_NODE
+                ? container.parentElement
+                : (container as HTMLElement);
+            const block = element?.closest('p, li, div') as HTMLElement;
+            if (block) {
+              const currentIndent = parseInt(block.style.marginLeft) || 0;
+              block.style.marginLeft = currentIndent + 20 + 'px';
+            }
+          }
+          break;
+        }
         default:
           console.log('Unknown format:', format);
       }
@@ -132,6 +188,14 @@ export default function RichTextEditor({
           return editor.isActive('bold');
         case 'italic':
           return editor.isActive('italic');
+        case 'underline':
+          return editor.isActive('underline');
+        case 'heading1':
+          return editor.isActive('heading', { level: 1 });
+        case 'heading2':
+          return editor.isActive('heading', { level: 2 });
+        case 'heading3':
+          return editor.isActive('heading', { level: 3 });
         case 'bulletList':
           return editor.isActive('bulletList');
         case 'orderedList':
@@ -151,13 +215,33 @@ export default function RichTextEditor({
     [editor]
   );
 
-  const handleAIComplete = () => {
-    console.log('AI补全');
-  };
+  const handleAIComplete = useCallback(async () => {
+    if (!editor || isLoading) return;
 
-  const handleAIPolish = () => {
-    console.log('AI润色');
-  };
+    const currentText = editor.getText();
+    if (!currentText.trim()) {
+      return;
+    }
+
+    const result = await complete(currentText, context);
+    if (result) {
+      editor.commands.insertContent(result);
+    }
+  }, [editor, isLoading, complete, context]);
+
+  const handleAIPolish = useCallback(async () => {
+    if (!editor || isLoading) return;
+
+    const currentText = editor.getText();
+    if (!currentText.trim()) {
+      return;
+    }
+
+    const result = await polish(currentText);
+    if (result) {
+      editor.commands.setContent(result);
+    }
+  }, [editor, isLoading, polish]);
 
   if (!editor) {
     return null;
@@ -165,29 +249,54 @@ export default function RichTextEditor({
 
   return (
     <div className="flex flex-col bg-white border border-gray-200 rounded-lg overflow-hidden">
-      {/* 工具栏 - 常驻显示 */}
       <TextareaToolbar onFormat={handleFormat} isActive={isActive} />
 
-      {/* 编辑区域 */}
       <div className="flex-1 bg-white text-gray-800 p-4 min-h-[150px] overflow-auto">
-        <EditorContent editor={editor} />
+        <EditorContent editor={editor} ref={editorRef} />
       </div>
 
-      {/* 底部按钮 */}
       <div className="flex gap-2 p-3 border-t border-gray-200">
         <button
           onClick={handleAIComplete}
-          className="flex-1 flex items-center justify-center gap-2 h-10 bg-gray-50 hover:bg-gray-100 rounded-lg text-gray-600 transition-colors"
+          disabled={isLoading}
+          className={`flex-1 flex items-center justify-center gap-2 h-10 rounded-lg transition-colors ${
+            isLoading
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              : 'bg-blue-500 hover:bg-blue-600 text-white'
+          }`}
         >
-          <Sparkles size={16} />
-          <span>AI补全</span>
+          {isLoading ? (
+            <>
+              <Loader2 size={16} className="animate-spin" />
+              <span>补全中...</span>
+            </>
+          ) : (
+            <>
+              <Sparkles size={16} />
+              <span>AI补全</span>
+            </>
+          )}
         </button>
         <button
           onClick={handleAIPolish}
-          className="flex-1 flex items-center justify-center gap-2 h-10 bg-gray-50 hover:bg-gray-100 rounded-lg text-gray-600 transition-colors"
+          disabled={isLoading}
+          className={`flex-1 flex items-center justify-center gap-2 h-10 rounded-lg transition-colors ${
+            isLoading
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              : 'bg-green-500 hover:bg-green-600 text-white'
+          }`}
         >
-          <CheckCircle2 size={16} />
-          <span>AI润色</span>
+          {isLoading ? (
+            <>
+              <Loader2 size={16} className="animate-spin" />
+              <span>润色中...</span>
+            </>
+          ) : (
+            <>
+              <CheckCircle2 size={16} />
+              <span>AI润色</span>
+            </>
+          )}
         </button>
       </div>
     </div>

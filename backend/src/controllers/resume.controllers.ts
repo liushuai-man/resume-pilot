@@ -64,8 +64,7 @@ export const updateResume = async (req: Request, res: Response) => {
       return error(res, '无权操作', 403);
     }
 
-    // Prisma Json 类型会自动处理序列化，不需要手动调用 JSON.stringify
-    // axios 发送时会将对象转为 JSON，Prisma 会正确处理
+
     const resume = await prisma.resume.update({
       where: { id },
       data: {

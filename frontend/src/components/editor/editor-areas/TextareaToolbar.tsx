@@ -5,12 +5,16 @@ import {
   Italic,
   List,
   ListOrdered,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
   Link2,
   Eraser,
+  IndentDecrease,
+  IndentIncrease,
+  Underline,
+  Heading1,
+  Heading2,
+  Heading3,
 } from 'lucide-react';
+import { Tooltip } from '@mantine/core';
 
 interface TextareaToolbarProps {
   onFormat?: (format: string) => void;
@@ -32,46 +36,70 @@ export default function TextareaToolbar({
     onClick?: () => void;
     active?: boolean;
   }) => (
-    <button
-      onClick={onClick}
-      title={label}
-      className={`w-8 h-7 rounded flex items-center justify-center transition-colors ${
-        active
-          ? 'bg-blue-100 text-blue-600'
-          : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-      }`}
-    >
-      {children}
-    </button>
+    <Tooltip label={label} position="top">
+      <button
+        onClick={(e) => {
+          e.preventDefault();
+          onClick?.();
+        }}
+        type="button"
+        className={`w-8 h-8 rounded-md flex items-center justify-center transition-all duration-200 cursor-pointer hover:scale-105 ${
+          active
+            ? 'bg-blue-100 text-blue-600 border border-blue-300 shadow-sm'
+            : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100 border border-transparent'
+        }`}
+      >
+        {children}
+      </button>
+    </Tooltip>
   );
 
-  const ToolbarDivider = () => <div className="w-px h-5 bg-gray-200 mx-1" />;
+  const ToolbarDivider = () => <div className="w-px h-6 bg-gray-300 mx-1" />;
 
   return (
-    <div className="flex items-center gap-0.5 px-2 py-1.5 bg-gray-50 border-b border-gray-200">
+    <div className="flex items-center gap-1 px-3 py-2 bg-gray-50 border-b border-gray-200 flex-wrap">
       {/* 撤销/重做 */}
-      <ToolbarButton label="撤销" onClick={() => onFormat?.('undo')}>
+      <ToolbarButton label="撤销 (Ctrl+Z)" onClick={() => onFormat?.('undo')}>
         <Undo size={14} />
       </ToolbarButton>
-      <ToolbarButton label="重做" onClick={() => onFormat?.('redo')}>
+      <ToolbarButton label="重做 (Ctrl+Y)" onClick={() => onFormat?.('redo')}>
         <Redo size={14} />
+      </ToolbarButton>
+      <ToolbarDivider />
+
+      {/* 标题 */}
+      <ToolbarButton label="标题 1" onClick={() => onFormat?.('heading1')}>
+        <Heading1 size={14} />
+      </ToolbarButton>
+      <ToolbarButton label="标题 2" onClick={() => onFormat?.('heading2')}>
+        <Heading2 size={14} />
+      </ToolbarButton>
+      <ToolbarButton label="标题 3" onClick={() => onFormat?.('heading3')}>
+        <Heading3 size={14} />
       </ToolbarButton>
       <ToolbarDivider />
 
       {/* 文字格式 */}
       <ToolbarButton
-        label="加粗"
+        label="加粗 (Ctrl+B)"
         onClick={() => onFormat?.('bold')}
         active={isActive('bold')}
       >
         <Bold size={14} />
       </ToolbarButton>
       <ToolbarButton
-        label="斜体"
+        label="斜体 (Ctrl+I)"
         onClick={() => onFormat?.('italic')}
         active={isActive('italic')}
       >
         <Italic size={14} />
+      </ToolbarButton>
+      <ToolbarButton
+        label="下划线 (Ctrl+U)"
+        onClick={() => onFormat?.('underline')}
+        active={isActive('underline')}
+      >
+        <Underline size={14} />
       </ToolbarButton>
       <ToolbarDivider />
 
@@ -92,27 +120,18 @@ export default function TextareaToolbar({
       </ToolbarButton>
       <ToolbarDivider />
 
-      {/* 对齐方式 */}
+      {/* 缩进 */}
       <ToolbarButton
-        label="左对齐"
-        onClick={() => onFormat?.('alignLeft')}
-        active={isActive('alignLeft')}
+        label="减少缩进"
+        onClick={() => onFormat?.('indentDecrease')}
       >
-        <AlignLeft size={14} />
+        <IndentDecrease size={14} />
       </ToolbarButton>
       <ToolbarButton
-        label="居中对齐"
-        onClick={() => onFormat?.('alignCenter')}
-        active={isActive('alignCenter')}
+        label="增加缩进"
+        onClick={() => onFormat?.('indentIncrease')}
       >
-        <AlignCenter size={14} />
-      </ToolbarButton>
-      <ToolbarButton
-        label="右对齐"
-        onClick={() => onFormat?.('alignRight')}
-        active={isActive('alignRight')}
-      >
-        <AlignRight size={14} />
+        <IndentIncrease size={14} />
       </ToolbarButton>
       <ToolbarDivider />
 
