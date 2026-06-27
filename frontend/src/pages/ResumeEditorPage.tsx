@@ -352,6 +352,7 @@ export default function ResumeEditorPage() {
       toolbar={
         <EditorToolbar
           title={resume?.title || content?.basicInfo?.title || '新建简历'}
+          resumeId={resumeId || ''}
           onSave={handleSave}
           onExport={handleExport}
           lastModified={formatLastSaved(lastSaved)}

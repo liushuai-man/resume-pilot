@@ -165,11 +165,22 @@ export default function HomePage() {
       {/* 历史简历区域 */}
       <div className="mb-10">
         <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">我的简历</h1>
-            <p className="text-gray-500 mt-1">
-              管理和创建你的简历，助力求职之路
-            </p>
+          <div className="flex items-center gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-800">我的简历</h1>
+              <p className="text-gray-500 mt-1">
+                管理和创建你的简历，助力求职之路
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 px-4 border-blue-400 text-blue-500 bg-white hover:bg-blue-50 hover:border-blue-600 hover:text-blue-700 flex-shrink-0"
+              onClick={() => navigate('/interview')}
+            >
+              <FileText size={14} className="mr-2" />
+              在线面试
+            </Button>
           </div>
           <div className="flex items-center gap-3">
             <Input

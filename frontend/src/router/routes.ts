@@ -16,6 +16,7 @@ const HomeLayout = React.lazy(() => import('@/layouts/HomeLayout'));
 const LoginPage = React.lazy(() => import('@/pages/LoginPage'));
 const HomePage = React.lazy(() => import('@/pages/HomePage'));
 const ResumeEditorPage = React.lazy(() => import('@/pages/ResumeEditorPage'));
+const InterviewPage = React.lazy(() => import('@/pages/InterviewPage'));
 const NotFoundPage = React.lazy(
   () => import('@/components/common/NotFoundPage')
 );
@@ -40,6 +41,14 @@ export const routes: RouteConfig[] = [
   {
     path: '/resume/:id',
     element: React.createElement(ResumeEditorPage),
+  },
+  {
+    path: '/resume/interview',
+    element: React.createElement(InterviewPage),
+  },
+  {
+    path: '/resume/interview/:resumeId',
+    element: React.createElement(InterviewPage),
   },
 
   // 404 页面

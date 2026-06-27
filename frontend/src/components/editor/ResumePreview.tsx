@@ -3,9 +3,13 @@ import type { ResumeContent } from '@/types/resume';
 
 interface ResumePreviewProps {
   content: ResumeContent;
+  highlightSection?: string;
 }
 
-export default function ResumePreview({ content }: ResumePreviewProps) {
+export default function ResumePreview({
+  content,
+  highlightSection,
+}: ResumePreviewProps) {
   // 检查内容是否为空
   const isEmpty =
     !content.basicInfo?.name &&
@@ -28,7 +32,9 @@ export default function ResumePreview({ content }: ResumePreviewProps) {
         <div className="p-8">
           {/* 基本信息 */}
           {content.basicInfo && (
-            <div className="text-center mb-6 pb-6 border-b border-gray-200">
+            <div
+              className={`text-center mb-6 pb-6 border-b border-gray-200 ${highlightSection === 'basicInfo' ? 'ring-2 ring-blue-500 rounded-lg p-4 bg-blue-50' : ''}`}
+            >
               <h1 className="text-2xl font-bold text-gray-800 mb-1">
                 {content.basicInfo.name || '您的姓名'}
               </h1>
@@ -56,7 +62,9 @@ export default function ResumePreview({ content }: ResumePreviewProps) {
 
           {/* 教育经历 */}
           {content.education && content.education.length > 0 && (
-            <div className="mb-6 pb-6 border-b border-gray-200">
+            <div
+              className={`mb-6 pb-6 border-b border-gray-200 ${highlightSection === 'education' ? 'ring-2 ring-blue-500 rounded-lg p-4 bg-blue-50' : ''}`}
+            >
               <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                 <span className="w-1 h-5 bg-blue-500 mr-3 rounded"></span>
                 教育背景
@@ -86,7 +94,9 @@ export default function ResumePreview({ content }: ResumePreviewProps) {
 
           {/* 工作经历 */}
           {content.experience && content.experience.length > 0 && (
-            <div className="mb-6 pb-6 border-b border-gray-200">
+            <div
+              className={`mb-6 pb-6 border-b border-gray-200 ${highlightSection === 'experience' ? 'ring-2 ring-blue-500 rounded-lg p-4 bg-blue-50' : ''}`}
+            >
               <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                 <span className="w-1 h-5 bg-blue-500 mr-3 rounded"></span>
                 工作经历
@@ -127,7 +137,9 @@ export default function ResumePreview({ content }: ResumePreviewProps) {
 
           {/* 项目经验 */}
           {content.projects && content.projects.length > 0 && (
-            <div className="mb-6 pb-6 border-b border-gray-200">
+            <div
+              className={`mb-6 pb-6 border-b border-gray-200 ${highlightSection === 'projects' ? 'ring-2 ring-blue-500 rounded-lg p-4 bg-blue-50' : ''}`}
+            >
               <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                 <span className="w-1 h-5 bg-blue-500 mr-3 rounded"></span>
                 项目经验
@@ -178,7 +190,9 @@ export default function ResumePreview({ content }: ResumePreviewProps) {
 
           {/* 专业技能 */}
           {content.skills && content.skills.length > 0 && (
-            <div className="mb-6 pb-6 border-b border-gray-200">
+            <div
+              className={`mb-6 pb-6 border-b border-gray-200 ${highlightSection === 'skills' ? 'ring-2 ring-blue-500 rounded-lg p-4 bg-blue-50' : ''}`}
+            >
               <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                 <span className="w-1 h-5 bg-blue-500 mr-3 rounded"></span>
                 专业技能
@@ -195,7 +209,9 @@ export default function ResumePreview({ content }: ResumePreviewProps) {
 
           {/* 证书 */}
           {content.certifications && content.certifications.length > 0 && (
-            <div className="mb-6 pb-6 border-b border-gray-200">
+            <div
+              className={`mb-6 pb-6 border-b border-gray-200 ${highlightSection === 'certifications' ? 'ring-2 ring-blue-500 rounded-lg p-4 bg-blue-50' : ''}`}
+            >
               <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                 <span className="w-1 h-5 bg-blue-500 mr-3 rounded"></span>
                 证书荣誉
@@ -219,7 +235,9 @@ export default function ResumePreview({ content }: ResumePreviewProps) {
           {/* 校园经历 */}
           {content.campusExperiences &&
             content.campusExperiences.length > 0 && (
-              <div className="mb-6">
+              <div
+                className={`mb-6 ${highlightSection === 'campusExperiences' ? 'ring-2 ring-blue-500 rounded-lg p-4 bg-blue-50' : ''}`}
+              >
                 <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                   <span className="w-1 h-5 bg-blue-500 mr-3 rounded"></span>
                   校园经历
@@ -258,7 +276,13 @@ export default function ResumePreview({ content }: ResumePreviewProps) {
 
           {/* 职业目标 */}
           {content.careerObjective && (
-            <div>
+            <div
+              className={
+                highlightSection === 'careerObjective'
+                  ? 'ring-2 ring-blue-500 rounded-lg p-4 bg-blue-50'
+                  : ''
+              }
+            >
               <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                 <span className="w-1 h-5 bg-blue-500 mr-3 rounded"></span>
                 职业目标

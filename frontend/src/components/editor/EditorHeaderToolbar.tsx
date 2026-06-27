@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Button, Input, Badge, Loader } from '@mantine/core';
-import { Save, Download } from 'lucide-react';
+import { Save, Download, Bot } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface EditorToolbarProps {
   title: string;
+  resumeId: string;
   onSave: () => void;
   onExport: () => void;
   lastModified?: string;
@@ -14,6 +15,7 @@ interface EditorToolbarProps {
 
 export default function EditorHeaderToolbar({
   title,
+  resumeId,
   onSave,
   onExport,
   lastModified,
@@ -81,8 +83,21 @@ export default function EditorHeaderToolbar({
         </Badge>
       </div>
 
-      {/* 右侧：操作按钮*/}
+      {/* 右侧：操作按钮 */}
       <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="xs"
+          className="h-7 px-3"
+          onClick={() => {
+            onSave();
+            navigate(`/resume/interview/${resumeId}`);
+          }}
+          disabled={isSaving}
+        >
+          <Bot size={12} className="mr-1" />
+          在线面试
+        </Button>
         <Button
           variant="outline"
           size="xs"

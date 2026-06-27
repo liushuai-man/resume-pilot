@@ -5,7 +5,12 @@ import {
   AICompleteRequest,
   AIPolishRequest,
 } from '../services/ai.service';
-import { aiChat, ChatMessage, AIChatRequest } from '../api/ai-chat';
+import {
+  aiChat,
+  getSessionSummary,
+  clearSession,
+  AIChatRequest,
+} from '../api/ai-chat';
 import { success, error } from '../utils/response';
 import { aiConfig } from '../config/ai';
 
@@ -79,13 +84,27 @@ export const chat = async (req: Request, res: Response) => {
     console.log('使用模型:', aiConfig.provider);
     console.log('消息数量:', req.body.messages?.length);
 
-    const { messages, resumeContent, currentField }: AIChatRequest = req.body;
+    const {
+      messages,
+      resumeContent,
+      currentField,
+      sessionId,
+      resumeId,
+    }: AIChatRequest = req.body;
+    const userId = (req as any).user?.id;
 
     if (!messages || messages.length === 0) {
       return error(res, '请提供对话消息', 400);
     }
 
-    const response = await aiChat({ messages, resumeContent, currentField });
+    const response = await aiChat({
+      messages,
+      resumeContent,
+      currentField,
+      sessionId,
+      userId,
+      resumeId,
+    });
     console.log('AI对话成功:', response?.substring(0, 50) + '...');
 
     return success(res, { content: response }, '对话成功');
@@ -99,6 +118,38 @@ export const chat = async (req: Request, res: Response) => {
       console.error('API响应数据:', err.response.data);
     }
     return error(res, `对话失败: ${err.message}`, 500);
+  }
+};
+
+export const getChatSummary = async (req: Request, res: Response) => {
+  try {
+    const { sessionId } = req.params;
+
+    if (!sessionId) {
+      return error(res, '请提供会话ID', 400);
+    }
+
+    const summary = await getSessionSummary(sessionId);
+    return success(res, { summary }, '获取摘要成功');
+  } catch (err: any) {
+    console.error('获取对话摘要失败:', err);
+    return error(res, `获取摘要失败: ${err.message}`, 500);
+  }
+};
+
+export const clearChatSession = async (req: Request, res: Response) => {
+  try {
+    const { sessionId } = req.params;
+
+    if (!sessionId) {
+      return error(res, '请提供会话ID', 400);
+    }
+
+    await clearSession(sessionId);
+    return success(res, null, '清除会话成功');
+  } catch (err: any) {
+    console.error('清除会话失败:', err);
+    return error(res, `清除会话失败: ${err.message}`, 500);
   }
 };
 

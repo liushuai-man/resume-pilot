@@ -59,9 +59,7 @@ export default function EditorLayout({
                   <PanelLeftClose size={16} />
                 )
               }
-            >
-              {leftCollapsed ? '展开' : '收起'}
-            </Button>
+            ></Button>
           </Tooltip>
 
           {/* 右侧面板开关 */}
@@ -78,9 +76,7 @@ export default function EditorLayout({
                   <PanelRightClose size={16} />
                 )
               }
-            >
-              {rightCollapsed ? '展开' : '收起'}
-            </Button>
+            ></Button>
           </Tooltip>
         </div>
       </header>
@@ -92,38 +88,31 @@ export default function EditorLayout({
 
       {/* 主体内容区 - 使用 flex 布局 */}
       <div className="flex-1 flex overflow-hidden">
-        {/* 左侧编辑区 - 固定宽度320px */}
+        {/* 左侧编辑区 - 响应式宽度，使用 clamp 函数 */}
         <aside
-          className={`flex-shrink-0 bg-white border-r border-gray-200 transition-all duration-300 ease-in-out ${
-            leftCollapsed ? 'w-0 border-r-0 overflow-hidden' : 'w-80'
+          className={`bg-white border-r border-gray-200 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) ${
+            leftCollapsed
+              ? 'w-0 border-r-0 overflow-hidden opacity-0'
+              : 'w-[clamp(280px,25vw,480px)] flex-shrink-0'
           }`}
         >
-          <div
-            className={`h-full overflow-y-auto ${leftCollapsed ? 'w-0' : 'w-80'}`}
-          >
-            {leftPanel}
-          </div>
+          <div className="h-full overflow-y-auto">{leftPanel}</div>
         </aside>
 
-        {/* 中间预览区 - 根据左右面板状态分配空间 */}
-        <main className={`flex-1 overflow-y-auto bg-gray-100 flex items-start justify-center py-6 px-4 transition-all duration-300`}>
-          {/* 简历预览容器 - 响应式宽度，确保内容不被遮挡 */}
-          <div className="w-full max-w-[850px] min-w-[700px]">
-            {children}
-          </div>
+        {/* 中间预览区 - 响应式宽度，使用 clamp 函数 */}
+        <main className="w-[clamp(600px,50vw,850px)] flex-shrink-0 overflow-y-auto bg-gray-100 flex items-start justify-center py-6 px-4">
+          <div className="w-full">{children}</div>
         </main>
 
-        {/* 右侧AI会话区 - 固定宽度384px */}
+        {/* 右侧AI会话区 - 响应式宽度，使用 clamp 函数 */}
         <aside
-          className={`flex-shrink-0 bg-white border-l border-gray-200 transition-all duration-300 ease-in-out ${
-            rightCollapsed ? 'w-0 border-l-0 overflow-hidden' : 'w-96'
+          className={`bg-white border-l border-gray-200 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) ${
+            rightCollapsed
+              ? 'w-0 border-l-0 overflow-hidden opacity-0'
+              : 'w-[clamp(320px,25vw,480px)] flex-shrink-0'
           }`}
         >
-          <div
-            className={`h-full overflow-y-auto ${rightCollapsed ? 'w-0' : 'w-96'}`}
-          >
-            {rightPanel}
-          </div>
+          <div className="h-full overflow-y-auto">{rightPanel}</div>
         </aside>
       </div>
     </div>
