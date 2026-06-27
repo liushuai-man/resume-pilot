@@ -22,6 +22,9 @@ import { interviewApi, Question, Answer } from '@/api/interview.api';
 import ResumePreview from '@/components/editor/ResumePreview';
 import { notifications } from '@mantine/notifications';
 
+const RESUME_WIDTH = 850;
+const MIN_SCALE = 0.4;
+
 const InterviewPage = () => {
   const navigate = useNavigate();
   const { resumeId: paramResumeId } = useParams<{ resumeId?: string }>();
@@ -45,6 +48,12 @@ const InterviewPage = () => {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [isFinished, setIsFinished] = useState(false);
   const [interviewResult, setInterviewResult] = useState<any>(null);
+
+  // 缩放状态
+  const [scale, setScale] = useState(1);
+  const [previewHeight, setPreviewHeight] = useState(0);
+  const previewContainerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -82,6 +91,44 @@ const InterviewPage = () => {
   useEffect(() => {
     fetchResumes();
   }, [fetchResumes]);
+
+  useEffect(() => {
+    const container = previewContainerRef.current;
+    if (!container) return;
+
+    const updateScale = () => {
+      const width = container.offsetWidth;
+      const newScale = Math.min(Math.max(width / RESUME_WIDTH, MIN_SCALE), 1);
+      setScale(newScale);
+
+      if (contentRef.current) {
+        setPreviewHeight(contentRef.current.offsetHeight * newScale);
+      }
+    };
+
+    updateScale();
+
+    const observer = new ResizeObserver(updateScale);
+    observer.observe(container);
+
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const updateHeight = () => {
+      if (contentRef.current) {
+        setPreviewHeight(contentRef.current.offsetHeight * scale);
+      }
+    };
+
+    updateHeight();
+    const observer = new ResizeObserver(updateHeight);
+    if (contentRef.current) {
+      observer.observe(contentRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [resume, scale]);
 
   const handleStartInterview = async () => {
     if (!selectedResumeId) return;
@@ -251,10 +298,22 @@ const InterviewPage = () => {
 
       {/* 主内容 */}
       <div className="flex flex-1 overflow-hidden">
-        {/* 左侧：简历预览 - 固定宽度，与编辑器中的预览区一致 */}
-        <div className="w-[850px] flex-shrink-0 border-r border-gray-200 overflow-hidden bg-gray-100">
+        {/* 左侧：简历预览 - flex-1 自适应，内部内容固定宽度并缩放 */}
+        <div
+          ref={previewContainerRef}
+          className="flex-1 flex-shrink-0 border-r border-gray-200 overflow-hidden bg-gray-100"
+        >
           <div className="h-full overflow-y-auto p-4 flex items-start justify-center">
-            <div className="w-full">
+            <div
+              ref={contentRef}
+              className="transition-transform duration-300 ease-out"
+              style={{
+                width: RESUME_WIDTH,
+                transform: `scale(${scale})`,
+                transformOrigin: 'top center',
+                height: previewHeight,
+              }}
+            >
               {resume ? (
                 <ResumePreview
                   content={resume.content}

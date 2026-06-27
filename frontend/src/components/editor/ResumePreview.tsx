@@ -29,7 +29,7 @@ export default function ResumePreview({
           <p className="text-center">暂无简历内容，请在左侧编辑区域填写信息</p>
         </div>
       ) : (
-        <div className="p-8">
+        <div className="p-8 ">
           {/* 基本信息 */}
           {content.basicInfo && (
             <div

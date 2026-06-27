@@ -3,12 +3,21 @@ import jsPDF from 'jspdf';
 
 export const exportToPdf = async (element: HTMLElement, filename: string): Promise<void> => {
   try {
+    const originalTransform = element.style.transform;
+    const originalTransformOrigin = element.style.transformOrigin;
+    
+    element.style.transform = 'scale(1)';
+    element.style.transformOrigin = 'top center';
+
     const canvas = await html2canvas(element, {
       scale: 2,
       useCORS: true,
       backgroundColor: '#ffffff',
       logging: false,
     });
+
+    element.style.transform = originalTransform;
+    element.style.transformOrigin = originalTransformOrigin;
 
     const imgData = canvas.toDataURL('image/png');
     const pdf = new jsPDF({

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Tooltip, Button } from '@mantine/core';
 import {
   PanelLeftClose,
@@ -6,6 +6,9 @@ import {
   PanelLeftOpen,
   PanelRightOpen,
 } from 'lucide-react';
+
+const RESUME_WIDTH = 850;
+const MIN_SCALE = 0.4;
 
 interface EditorLayoutProps {
   children: React.ReactNode;
@@ -24,6 +27,43 @@ export default function EditorLayout({
 }: EditorLayoutProps) {
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
+  const [scale, setScale] = useState(1);
+  const previewContainerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const container = previewContainerRef.current;
+    if (!container) return;
+
+    const updateScale = () => {
+      const width = container.offsetWidth;
+      const newScale = Math.min(Math.max(width / RESUME_WIDTH, MIN_SCALE), 1);
+      setScale(newScale);
+    };
+
+    updateScale();
+
+    const observer = new ResizeObserver(updateScale);
+    observer.observe(container);
+
+    return () => observer.disconnect();
+  }, [leftCollapsed, rightCollapsed]);
+
+  useEffect(() => {
+    const updateHeight = () => {
+      if (contentRef.current) {
+        contentRef.current.style.height = `${contentRef.current.offsetHeight * scale}px`;
+      }
+    };
+
+    updateHeight();
+    const observer = new ResizeObserver(updateHeight);
+    if (contentRef.current) {
+      observer.observe(contentRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [children, scale]);
 
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-gray-100">
@@ -90,26 +130,41 @@ export default function EditorLayout({
       <div className="flex-1 flex overflow-hidden">
         {/* 左侧编辑区 - 响应式宽度，使用 clamp 函数 */}
         <aside
-          className={`bg-white border-r border-gray-200 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) ${
+          className={`bg-white border-r border-gray-200 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) flex-shrink-0 ${
             leftCollapsed
               ? 'w-0 border-r-0 overflow-hidden opacity-0'
-              : 'w-[clamp(280px,25vw,480px)] flex-shrink-0'
+              : 'w-[clamp(280px,25vw,480px)]'
           }`}
         >
           <div className="h-full overflow-y-auto">{leftPanel}</div>
         </aside>
 
-        {/* 中间预览区 - 响应式宽度，使用 clamp 函数 */}
-        <main className="w-[clamp(600px,50vw,850px)] flex-shrink-0 overflow-y-auto bg-gray-100 flex items-start justify-center py-6 px-4">
-          <div className="w-full">{children}</div>
+        {/* 中间预览区 - flex-1 自适应，内部内容等比缩放 */}
+        <main
+          ref={previewContainerRef}
+          className="flex-1 overflow-y-auto bg-gray-100 flex items-start justify-center py-6 px-4"
+          style={{ height: '100%' }}
+        >
+          {/* 缩放容器 - 固定宽度850px，根据可用空间等比缩放 */}
+          <div
+            ref={contentRef}
+            className="transition-transform duration-300 ease-out flex-shrink-0"
+            style={{
+              width: RESUME_WIDTH,
+              transform: `scale(${scale})`,
+              transformOrigin: 'top center',
+            }}
+          >
+            {children}
+          </div>
         </main>
 
         {/* 右侧AI会话区 - 响应式宽度，使用 clamp 函数 */}
         <aside
-          className={`bg-white border-l border-gray-200 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) ${
+          className={`bg-white border-l border-gray-200 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) flex-shrink-0 ${
             rightCollapsed
               ? 'w-0 border-l-0 overflow-hidden opacity-0'
-              : 'w-[clamp(320px,25vw,480px)] flex-shrink-0'
+              : 'w-[clamp(320px,25vw,480px)]'
           }`}
         >
           <div className="h-full overflow-y-auto">{rightPanel}</div>
