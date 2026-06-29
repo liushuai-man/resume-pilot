@@ -29,7 +29,9 @@ export interface AIResponse {
 }
 
 export const aiApi = {
-  complete: async (data: AICompleteRequest): Promise<ApiResponse<AIResponse>> => {
+  complete: async (
+    data: AICompleteRequest
+  ): Promise<ApiResponse<AIResponse>> => {
     return await request.post('/ai/complete', data);
   },
 

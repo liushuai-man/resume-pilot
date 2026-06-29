@@ -63,13 +63,6 @@ export default function HomePage() {
     fetchResumes();
   }, [isLoggedIn]);
 
-  // 获取模板缩略图
-  const getTemplateThumbnail = (templateId?: string) => {
-    if (!templateId) return undefined;
-    const template = templates.find((t) => t.id === templateId);
-    return template?.thumbnail;
-  };
-
   // 筛选和排序简历
   const filteredResumes = useMemo(() => {
     let result = [...resumes];
@@ -172,6 +165,8 @@ export default function HomePage() {
                 管理和创建你的简历，助力求职之路
               </p>
             </div>
+          </div>
+          <div className="flex items-center gap-3">
             <Button
               variant="outline"
               size="sm"
@@ -181,8 +176,6 @@ export default function HomePage() {
               <FileText size={14} className="mr-2" />
               在线面试
             </Button>
-          </div>
-          <div className="flex items-center gap-3">
             <Input
               placeholder="搜索简历名称..."
               value={searchKeyword}
@@ -239,7 +232,6 @@ export default function HomePage() {
               <HistoryResume
                 key={resume.id}
                 resume={resume}
-                thumbnail={getTemplateThumbnail(resume.template_id)}
                 onDelete={handleDeleteResume}
               />
             ))

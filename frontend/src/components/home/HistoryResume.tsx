@@ -1,23 +1,22 @@
 import { useState, useRef } from 'react';
-import { Card, Text, Button, Group, Image, Modal } from '@mantine/core';
+import { Card, Text, Button, Group, Modal } from '@mantine/core';
 import { Eye, Edit3, Download, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { Resume } from '@/types/resume';
 import { notification } from '@/components/common/Notification';
-import ResumePreview from '@/components/home/ResumePreview';
+import ResumePreview from '@/components/editor/ResumePreview';
 import { resumeApi } from '@/api/home.api';
 import { exportToPdf } from '@/utils/pdfExport';
+import { formatDateTime } from '@/utils/format';
 import ConfirmModal from '@/components/common/ConfirmModal';
 
 interface HistoryResumeProps {
   resume: Resume;
-  thumbnail?: string;
   onDelete?: (id: string) => void;
 }
 
 export default function HistoryResume({
   resume,
-  thumbnail,
   onDelete,
 }: HistoryResumeProps) {
   const { id, title, content, updated_at } = resume;
@@ -113,7 +112,7 @@ export default function HistoryResume({
           transform: 'translate(-100%, -100%)',
         }}
       >
-        <ResumePreview content={content} />
+        <ResumePreview content={content} variant="card" />
       </div>
 
       <Card className="aspect-[5/6] flex flex-col overflow-hidden border-2 border-gray-200 rounded-md p-0">
@@ -122,22 +121,15 @@ export default function HistoryResume({
             {title}
           </Text>
           <Text size="xs" className="text-gray-400 ">
-            更新时间: {new Date(updated_at).toLocaleDateString('zh-CN')}
+            更新时间: {formatDateTime(updated_at)}
           </Text>
         </div>
         <div className="flex-1 mx-3 border-2 border-gray-200 rounded-md overflow-hidden bg-white">
-          {thumbnail ? (
-            <Image
-              src={thumbnail}
-              alt={title}
-              className="w-full h-full object-cover"
-              fit="cover"
-            />
-          ) : (
-            <div className="p-2 h-full overflow-hidden">
-              <ResumePreview content={content} />
+          <div className="w-full h-full overflow-hidden">
+            <div className="transform scale-[0.30] origin-top-left">
+              <ResumePreview content={content} variant="card" />
             </div>
-          )}
+          </div>
         </div>
 
         <div className="p-3  bg-white">
@@ -192,24 +184,18 @@ export default function HistoryResume({
         className="max-w-5xl"
         centered
       >
-        <div className="bg-white border-t-2 border-gray-200 overflow-hidden">
+        <div className="bg-white border-t-2 border-gray-200 overflow-hidden p-0">
           <div
             ref={previewRef}
-            className="rounded-lg overflow-auto"
+            className="overflow-auto bg-gray-100"
             style={{ maxHeight: '70vh' }}
           >
-            <ResumePreview content={content} />
+            <div className="min-h-full flex justify-center">
+              <ResumePreview content={content} variant="card" />
+            </div>
           </div>
 
           <div className="p-4 border-t-2 flex justify-end gap-3">
-            <Button
-              variant="outline"
-              onClick={() => setPreviewModalOpen(false)}
-              className="border-gray-300 text-gray-600 hover:bg-gray-50"
-              size="md"
-            >
-              关闭
-            </Button>
             <Button
               variant="outline"
               onClick={handleEditFromPreview}

@@ -4,11 +4,13 @@ import type { ResumeContent } from '@/types/resume';
 interface ResumePreviewProps {
   content: ResumeContent;
   highlightSection?: string;
+  variant?: 'editor' | 'card';
 }
 
 export default function ResumePreview({
   content,
   highlightSection,
+  variant = 'editor',
 }: ResumePreviewProps) {
   // 检查内容是否为空
   const isEmpty =
@@ -22,8 +24,13 @@ export default function ResumePreview({
     !content.campusExperiences?.length &&
     !content.careerObjective;
 
+  const cardClassName =
+    variant === 'card'
+      ? 'bg-white shadow-lg w-[794px]'
+      : 'bg-white shadow-lg min-h-[calc(80vh)]';
+
   return (
-    <Card className="bg-white shadow-lg min-h-[calc(100vh-8rem)]">
+    <Card className={cardClassName}>
       {isEmpty ? (
         <div className="min-h-[calc(100vh-10rem)] p-8 flex items-center justify-center text-gray-400">
           <p className="text-center">暂无简历内容，请在左侧编辑区域填写信息</p>
