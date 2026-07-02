@@ -61,8 +61,7 @@ export default function RichTextEditor({
     },
     editorProps: {
       attributes: {
-        class:
-          'prose prose-sm sm:prose lg:prose-lg xl:prose-xl focus:outline-none',
+        class: 'focus:outline-none text-sm leading-relaxed',
       },
     },
   });

@@ -5,7 +5,6 @@ import {
   Italic,
   List,
   ListOrdered,
-  Link2,
   Eraser,
   IndentDecrease,
   IndentIncrease,
@@ -38,10 +37,9 @@ export default function TextareaToolbar({
   }) => (
     <Tooltip label={label} position="top">
       <button
-        onClick={(e) => {
-          e.preventDefault();
-          onClick?.();
-        }}
+        tabIndex={-1}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => onClick?.()}
         type="button"
         className={`w-8 h-8 rounded-md flex items-center justify-center transition-all duration-200 cursor-pointer hover:scale-105 ${
           active
@@ -135,14 +133,7 @@ export default function TextareaToolbar({
       </ToolbarButton>
       <ToolbarDivider />
 
-      {/* 链接和清除格式 */}
-      <ToolbarButton
-        label="插入链接"
-        onClick={() => onFormat?.('link')}
-        active={isActive('link')}
-      >
-        <Link2 size={14} />
-      </ToolbarButton>
+      {/* 清除格式 */}
       <ToolbarButton label="清除格式" onClick={() => onFormat?.('clearFormat')}>
         <Eraser size={14} />
       </ToolbarButton>

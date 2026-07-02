@@ -9,6 +9,7 @@ export interface BasicInfo {
   gender?: string;
   website?: string;
   summary?: string;
+  customFields?: { id: string; label: string; value: string }[];
 }
 
 export interface Education {

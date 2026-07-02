@@ -142,7 +142,7 @@ export default function EditorLayout({
         {/* 中间预览区 - flex-1 自适应，内部内容等比缩放 */}
         <main
           ref={previewContainerRef}
-          className="flex-1 overflow-y-auto bg-gray-100 flex items-start justify-center py-6 px-4"
+          className="flex-1 overflow-y-auto bg-gray-100 flex items-start justify-center p-4"
           style={{ height: '100%' }}
         >
           {/* 缩放容器 - 固定宽度850px，根据可用空间等比缩放 */}

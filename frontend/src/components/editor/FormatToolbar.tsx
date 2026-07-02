@@ -51,49 +51,45 @@ export default function FormatToolbar() {
     options: string[];
     width?: string;
   }) => (
-    <Tooltip label={label}>
-      <div className="flex items-center gap-1">
-        <span className="text-xs text-gray-500 font-medium">{title}</span>
+    <div className="flex items-center gap-1">
+      <span className="text-xs text-gray-500 font-medium whitespace-nowrap">
+        {title}
+      </span>
+      <Tooltip label={label}>
         <Select
           value={value}
           onChange={onChange}
           data={options}
           size="xs"
-          className={`h-8 ${width} min-w-0`}
+          className={`${width} min-w-0`}
           radius="sm"
           rightSection={<ChevronDown size={12} className="text-gray-400" />}
-          classNames={{
-            input: 'text-xs',
-            dropdown: 'text-xs',
-            option: 'text-xs',
-          }}
           styles={{
             input: {
-              paddingLeft: '8px',
-              paddingRight: '20px',
               fontSize: '12px',
               color: '#333',
               backgroundColor: '#fff',
               border: '1px solid #e5e7eb',
               cursor: 'pointer',
+              minHeight: '28px',
+              height: '28px',
             },
             dropdown: {
               backgroundColor: '#ffffff',
-              borderColor: '#e5e7eb',
+              border: '1px solid #e5e7eb',
               boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
               borderRadius: '6px',
             },
             option: {
               color: '#374151',
               fontSize: '13px',
-              padding: '8px 12px',
-              backgroundColor: '#ffffff',
+              padding: '6px 10px',
               cursor: 'pointer',
             },
           }}
         />
-      </div>
-    </Tooltip>
+      </Tooltip>
+    </div>
   );
 
   const ToolbarDivider = () => <div className="w-px h-5 bg-gray-200 mx-2" />;
@@ -105,7 +101,9 @@ export default function FormatToolbar() {
         title="字体"
         label="字体"
         value={formatConfig.fontFamily}
-        onChange={(val) => updateFormatConfig({ fontFamily: val || '微软雅黑' })}
+        onChange={(val) =>
+          updateFormatConfig({ fontFamily: val || '微软雅黑' })
+        }
         options={[
           '微软雅黑',
           '宋体',
@@ -114,7 +112,7 @@ export default function FormatToolbar() {
           'Arial',
           'Times New Roman',
         ]}
-        width="w-20"
+        width="w-28"
       />
       <ToolbarDivider />
 
@@ -137,7 +135,7 @@ export default function FormatToolbar() {
           '22',
           '24',
         ]}
-        width="w-14"
+        width="w-20"
       />
       <ToolbarDivider />
 
@@ -148,7 +146,7 @@ export default function FormatToolbar() {
         value={formatConfig.lineHeight}
         onChange={(val) => updateFormatConfig({ lineHeight: val || '1.5' })}
         options={['1.0', '1.2', '1.3', '1.4', '1.5', '1.6', '1.8', '2.0']}
-        width="w-14"
+        width="w-24"
       />
       <ToolbarDivider />
 
@@ -159,7 +157,7 @@ export default function FormatToolbar() {
         value={formatConfig.margin}
         onChange={(val) => updateFormatConfig({ margin: val || '20' })}
         options={['10', '15', '20', '25', '30', '35', '40']}
-        width="w-14"
+        width="w-20"
       />
       <ToolbarDivider />
 

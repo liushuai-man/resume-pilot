@@ -163,7 +163,7 @@ export default function ProjectsBlock({
             </button>
 
             {openAccordion === item.id && (
-              <div className="px-3 pb-3 space-y-3">
+              <div className="px-3 pb-3 pt-1 space-y-4">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="text-xs font-medium text-gray-600 mb-1 block">
@@ -244,14 +244,28 @@ export default function ProjectsBlock({
                     {techStack(item).map((tech, index) => (
                       <div
                         key={index}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-full"
+                        className="w-[140px] flex items-center pl-2 pr-1 py-1 bg-gray-50 border border-gray-200 rounded-full"
                       >
-                        <span className="font-medium text-sm">
-                          {tech || '添加技术'}
-                        </span>
+                        <input
+                          type="text"
+                          value={tech}
+                          onChange={(e) => {
+                            const newTechStack = [...(item.techStack || [])];
+                            newTechStack[index] = e.target.value;
+                            onChange(
+                              data.map((d) =>
+                                d.id === item.id
+                                  ? { ...d, techStack: newTechStack }
+                                  : d
+                              )
+                            );
+                          }}
+                          className="flex-1 min-w-0 font-medium text-sm bg-transparent outline-none truncate"
+                          placeholder="技术栈"
+                        />
                         <button
                           onClick={() => handleRemoveTech(item.id, index)}
-                          className="ml-1 p-0.5 hover:bg-gray-200 rounded-full transition-colors"
+                          className="flex-shrink-0 hover:bg-gray-200 rounded-full transition-colors p-0.5"
                         >
                           <Trash2 size={12} className="text-gray-400" />
                         </button>

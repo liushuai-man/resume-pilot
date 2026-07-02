@@ -132,7 +132,7 @@ export default function CampusExperienceBlock({
             </button>
 
             {openAccordion === item.id && (
-              <div className="px-3 pb-3 space-y-3">
+              <div className="px-3 pb-3 pt-1 space-y-4">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="text-xs font-medium text-gray-600 mb-1 block">

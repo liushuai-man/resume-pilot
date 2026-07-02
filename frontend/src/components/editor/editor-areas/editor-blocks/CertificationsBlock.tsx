@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, Input, Button, Badge } from '@mantine/core';
+import { Card, Input, Button } from '@mantine/core';
 import { Award, Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import type { Certification } from '@/types/resume';
 
@@ -44,18 +44,6 @@ export default function CertificationsBlock({
 
   return (
     <Card className="mb-4 border-none shadow-sm">
-      <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-pink-50 flex items-center justify-center">
-            <Award size={18} className="text-pink-600" />
-          </div>
-          <span className="font-medium text-gray-800">证书荣誉</span>
-          <Badge variant="outline" size="sm" className="text-gray-500">
-            {data.length}
-          </Badge>
-        </div>
-      </div>
-
       <div className="space-y-2">
         {data.map((item) => (
           <div

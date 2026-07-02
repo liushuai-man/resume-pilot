@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Card, Input, Button, Avatar } from '@mantine/core';
 import { Plus, X } from 'lucide-react';
 import type { BasicInfo } from '@/types/resume';
@@ -12,9 +11,7 @@ export default function BasicInfoBlock({
   data = {} as BasicInfo,
   onChange,
 }: BasicInfoBlockProps) {
-  const [customFields, setCustomFields] = useState<
-    { id: string; label: string; value: string }[]
-  >([]);
+  const customFields = data.customFields || [];
 
   const handleChange = (field: keyof BasicInfo, value: string) => {
     onChange({ ...data, [field]: value });
@@ -26,7 +23,7 @@ export default function BasicInfoBlock({
       label: '',
       value: '',
     };
-    setCustomFields([...customFields, newField]);
+    onChange({ ...data, customFields: [...customFields, newField] });
   };
 
   const handleCustomFieldChange = (
@@ -35,12 +32,15 @@ export default function BasicInfoBlock({
     value: string
   ) => {
     const newFields = [...customFields];
-    newFields[index][field] = value;
-    setCustomFields(newFields);
+    newFields[index] = { ...newFields[index], [field]: value };
+    onChange({ ...data, customFields: newFields });
   };
 
   const handleRemoveCustomField = (index: number) => {
-    setCustomFields(customFields.filter((_, i) => i !== index));
+    onChange({
+      ...data,
+      customFields: customFields.filter((_, i) => i !== index),
+    });
   };
 
   return (

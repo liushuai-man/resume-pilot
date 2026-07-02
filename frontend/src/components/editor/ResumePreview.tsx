@@ -1,5 +1,6 @@
 import { Card } from '@mantine/core';
 import type { ResumeContent } from '@/types/resume';
+import { useResumeStore } from '@/store/useResumeStore';
 
 interface ResumePreviewProps {
   content: ResumeContent;
@@ -12,6 +13,20 @@ export default function ResumePreview({
   highlightSection,
   variant = 'editor',
 }: ResumePreviewProps) {
+  const { formatConfig } = useResumeStore();
+
+  const previewStyle: React.CSSProperties = {
+    fontFamily: formatConfig.fontFamily,
+    fontSize: `${formatConfig.fontSize}px`,
+    lineHeight: formatConfig.lineHeight,
+    textAlign: formatConfig.textAlign,
+  };
+
+  const paddingStyle: React.CSSProperties =
+    variant === 'card'
+      ? { padding: `${formatConfig.margin}px` }
+      : { padding: `${formatConfig.margin}px` };
+
   // 检查内容是否为空
   const isEmpty =
     !content.basicInfo?.name &&
@@ -30,13 +45,16 @@ export default function ResumePreview({
       : 'bg-white shadow-lg min-h-[calc(80vh)]';
 
   return (
-    <Card className={cardClassName}>
+    <Card className={cardClassName} style={previewStyle}>
       {isEmpty ? (
-        <div className="min-h-[calc(100vh-10rem)] p-8 flex items-center justify-center text-gray-400">
+        <div
+          className="min-h-[calc(100vh-10rem)] flex items-center justify-center text-gray-400"
+          style={paddingStyle}
+        >
           <p className="text-center">暂无简历内容，请在左侧编辑区域填写信息</p>
         </div>
       ) : (
-        <div className="p-8 ">
+        <div style={paddingStyle}>
           {/* 基本信息 */}
           {content.basicInfo && (
             <div
@@ -48,7 +66,7 @@ export default function ResumePreview({
               <p className="text-gray-500">
                 {content.basicInfo.title || '您的职位'}
               </p>
-              <div className="flex justify-center gap-4 mt-3 text-sm text-gray-600">
+              <div className="flex justify-center gap-4 mt-3 text-gray-600">
                 {content.basicInfo.email && (
                   <span>{content.basicInfo.email}</span>
                 )}
@@ -60,10 +78,24 @@ export default function ResumePreview({
                 )}
               </div>
               {content.basicInfo.summary && (
-                <p className="mt-4 text-gray-600 text-sm leading-relaxed">
+                <p className="mt-4 text-gray-600 leading-relaxed">
                   {content.basicInfo.summary}
                 </p>
               )}
+              {content.basicInfo.customFields &&
+                content.basicInfo.customFields.length > 0 && (
+                  <div className="flex justify-center gap-4 mt-2 text-gray-600">
+                    {content.basicInfo.customFields.map(
+                      (field) =>
+                        field.label &&
+                        field.value && (
+                          <span key={field.id}>
+                            {field.label}: {field.value}
+                          </span>
+                        )
+                    )}
+                  </div>
+                )}
             </div>
           )}
 
@@ -83,16 +115,14 @@ export default function ResumePreview({
                       <h3 className="font-medium text-gray-800">
                         {item.school}
                       </h3>
-                      <p className="text-sm text-gray-500">{item.major}</p>
+                      <p className="text-gray-500">{item.major}</p>
                     </div>
-                    <span className="text-sm text-gray-400">
+                    <span className="text-gray-400">
                       {item.startDate} - {item.endDate}
                     </span>
                   </div>
                   {item.gpa && (
-                    <p className="text-sm text-gray-500 mt-1">
-                      GPA: {item.gpa}
-                    </p>
+                    <p className="text-gray-500 mt-1">GPA: {item.gpa}</p>
                   )}
                 </div>
               ))}
@@ -115,20 +145,20 @@ export default function ResumePreview({
                       <h3 className="font-medium text-gray-800">
                         {item.company}
                       </h3>
-                      <p className="text-sm text-gray-500">{item.position}</p>
+                      <p className="text-gray-500">{item.position}</p>
                     </div>
-                    <span className="text-sm text-gray-400">
+                    <span className="text-gray-400">
                       {item.startDate} - {item.endDate || '至今'}
                     </span>
                   </div>
                   {item.description && (
                     <div
-                      className="text-sm text-gray-600 mt-2 prose prose-sm max-w-none"
+                      className="text-gray-600 mt-2 prose prose-sm max-w-none"
                       dangerouslySetInnerHTML={{ __html: item.description }}
                     />
                   )}
                   {(item.achievements || []).length > 0 && (
-                    <ul className="mt-2 text-sm text-gray-600">
+                    <ul className="mt-2 text-gray-600">
                       {(item.achievements || []).map((achievement, index) => (
                         <li key={index} className="flex items-start mt-1">
                           <span className="text-blue-500 mr-2">•</span>
@@ -156,15 +186,15 @@ export default function ResumePreview({
                   <div className="flex justify-between">
                     <div>
                       <h3 className="font-medium text-gray-800">{item.name}</h3>
-                      <p className="text-sm text-gray-500">{item.role}</p>
+                      <p className="text-gray-500">{item.role}</p>
                     </div>
-                    <span className="text-sm text-gray-400">
+                    <span className="text-gray-400">
                       {item.startDate} - {item.endDate || '至今'}
                     </span>
                   </div>
                   {item.description && (
                     <div
-                      className="text-sm text-gray-600 mt-2 prose prose-sm max-w-none"
+                      className="text-gray-600 mt-2 prose prose-sm max-w-none"
                       dangerouslySetInnerHTML={{ __html: item.description }}
                     />
                   )}
@@ -173,7 +203,7 @@ export default function ResumePreview({
                       {(item.techStack || []).map((tech, index) => (
                         <span
                           key={index}
-                          className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded"
+                          className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded"
                         >
                           {tech}
                         </span>
@@ -181,7 +211,7 @@ export default function ResumePreview({
                     </div>
                   )}
                   {(item.achievements || []).length > 0 && (
-                    <ul className="mt-2 text-sm text-gray-600">
+                    <ul className="mt-2 text-gray-600">
                       {(item.achievements || []).map((achievement, index) => (
                         <li key={index} className="flex items-start mt-1">
                           <span className="text-blue-500 mr-2">•</span>
@@ -206,7 +236,7 @@ export default function ResumePreview({
               </h2>
               <ul className="list-disc list-inside space-y-1">
                 {content.skills.map((item) => (
-                  <li key={item.id} className="text-gray-700 text-sm">
+                  <li key={item.id} className="text-gray-700">
                     {item.name}
                   </li>
                 ))}
@@ -227,12 +257,10 @@ export default function ResumePreview({
                 <div key={item.id} className="mb-3 last:mb-0">
                   <div className="flex justify-between">
                     <h3 className="font-medium text-gray-800">{item.name}</h3>
-                    <span className="text-sm text-gray-400">{item.date}</span>
+                    <span className="text-gray-400">{item.date}</span>
                   </div>
                   {item.description && (
-                    <p className="text-sm text-gray-500 mt-1">
-                      {item.description}
-                    </p>
+                    <p className="text-gray-500 mt-1">{item.description}</p>
                   )}
                 </div>
               ))}
@@ -257,17 +285,15 @@ export default function ResumePreview({
                           {item.name}
                         </h3>
                         {item.position && (
-                          <p className="text-sm text-gray-500">
-                            {item.position}
-                          </p>
+                          <p className="text-gray-500">{item.position}</p>
                         )}
                       </div>
-                      <span className="text-sm text-gray-400">
+                      <span className="text-gray-400">
                         {item.startDate} - {item.endDate || '至今'}
                       </span>
                     </div>
                     {(item.achievements || []).length > 0 && (
-                      <ul className="mt-2 text-sm text-gray-600">
+                      <ul className="mt-2 text-gray-600">
                         {(item.achievements || []).map((achievement, index) => (
                           <li key={index} className="flex items-start mt-1">
                             <span className="text-blue-500 mr-2">•</span>
@@ -295,7 +321,7 @@ export default function ResumePreview({
                 职业目标
               </h2>
               <div
-                className="text-sm text-gray-600 prose prose-sm max-w-none"
+                className="text-gray-600 prose prose-sm max-w-none"
                 dangerouslySetInnerHTML={{ __html: content.careerObjective }}
               />
             </div>
