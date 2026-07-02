@@ -20,6 +20,7 @@ export interface InterviewState {
   resumeId: string;
   resumeContent: any;
   targetPosition?: string;
+  maxQuestions: number;
   currentSection: string;
   questions: Question[];
   answers: Answer[];

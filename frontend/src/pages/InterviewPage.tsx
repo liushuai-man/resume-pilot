@@ -10,17 +10,30 @@ import {
   Box,
   Paper,
   Group,
-  Space,
   Stack,
   Title,
+  TextInput,
+  Progress,
+  RingProgress,
 } from '@mantine/core';
-import { ArrowLeft, Send, User, Bot } from 'lucide-react';
+import {
+  ArrowLeft,
+  Send,
+  User,
+  Bot,
+  Trophy,
+  CheckCircle,
+  AlertCircle,
+  Lightbulb,
+  History,
+} from 'lucide-react';
 import { useResumeStore } from '@/store/useResumeStore';
 import { useUserStore } from '@/store/useUserStore';
 import { resumeApi } from '@/api/home.api';
 import { interviewApi, Question, Answer } from '@/api/interview.api';
 import ResumePreview from '@/components/editor/ResumePreview';
 import { notifications } from '@mantine/notifications';
+import { formatDateTime } from '@/utils/format';
 
 const RESUME_WIDTH = 850;
 const MIN_SCALE = 0.4;
@@ -38,6 +51,8 @@ const InterviewPage = () => {
 
   const [resumes, setResumes] = useState<any[]>([]);
   const [selectedResumeId, setSelectedResumeId] = useState<string | null>(null);
+  const [targetPosition, setTargetPosition] = useState('');
+  const [questionCount, setQuestionCount] = useState<string>('5');
 
   // 面试状态
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -45,7 +60,7 @@ const InterviewPage = () => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [currentAnswer, setCurrentAnswer] = useState('');
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const [feedbacks, setFeedbacks] = useState<Record<string, string>>({});
   const [isFinished, setIsFinished] = useState(false);
   const [interviewResult, setInterviewResult] = useState<any>(null);
 
@@ -135,10 +150,15 @@ const InterviewPage = () => {
 
     setStarting(true);
     try {
-      const result = await interviewApi.startInterview(selectedResumeId);
+      const result = await interviewApi.startInterview(
+        selectedResumeId,
+        targetPosition || undefined,
+        parseInt(questionCount)
+      );
       setSessionId(result.sessionId);
       setCurrentQuestion(result.firstQuestion);
       setQuestions([result.firstQuestion]);
+      setFeedbacks({});
     } catch (error) {
       console.error('开始面试失败:', error);
       notifications.show({
@@ -162,13 +182,11 @@ const InterviewPage = () => {
 
     setSubmitting(true);
     try {
-      // 保存当前答案
       const newAnswer: Answer = {
         questionId: currentQuestion.id,
         content: currentAnswer,
       };
 
-      // 提交答案
       const result = await interviewApi.submitAnswer(
         sessionId,
         currentQuestion,
@@ -176,19 +194,19 @@ const InterviewPage = () => {
         selectedResumeId
       );
 
-      // 更新状态
       setAnswers((prev) => [...prev, newAnswer]);
-      setFeedback(result.feedback);
+      // 按 questionId 存储每题的独立反馈
+      setFeedbacks((prev) => ({
+        ...prev,
+        [currentQuestion.id]: result.feedback,
+      }));
 
       if (result.isFinished || !result.nextQuestion) {
-        // 面试结束
         await handleFinishInterview();
       } else {
-        // 继续下一题
         setCurrentQuestion(result.nextQuestion);
         setQuestions((prev) => [...prev, result.nextQuestion!]);
         setCurrentAnswer('');
-        setFeedback(null);
       }
     } catch (error) {
       console.error('提交答案失败:', error);
@@ -247,13 +265,26 @@ const InterviewPage = () => {
     return names[sectionKey] || sectionKey;
   };
 
+  const getScoreColor = (score: number) => {
+    if (score >= 8) return 'green';
+    if (score >= 6) return 'yellow';
+    return 'red';
+  };
+
+  const getScoreLabel = (score: number) => {
+    if (score >= 9) return '优秀';
+    if (score >= 7) return '良好';
+    if (score >= 6) return '及格';
+    return '需改进';
+  };
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   useEffect(() => {
     scrollToBottom();
-  }, [questions, answers, feedback]);
+  }, [questions, answers, feedbacks]);
 
   if (loading) {
     return (
@@ -284,21 +315,21 @@ const InterviewPage = () => {
           </div>
 
           {!sessionId && (
-            <Select
-              placeholder="选择简历"
-              data={resumes.map((r) => ({ label: r.title, value: r.id }))}
-              value={selectedResumeId}
-              onChange={setSelectedResumeId}
-              className="w-64"
+            <Button
+              variant="subtle"
               size="xs"
-            />
+              leftSection={<History size={14} />}
+              onClick={() => navigate('/resume/interview/history')}
+            >
+              面试记录
+            </Button>
           )}
         </div>
       </div>
 
       {/* 主内容 */}
       <div className="flex flex-1 overflow-hidden">
-        {/* 左侧：简历预览 - flex-1 自适应，内部内容固定宽度并缩放 */}
+        {/* 左侧：简历预览 */}
         <div
           ref={previewContainerRef}
           className="flex-1 flex-shrink-0 border-r border-gray-200 overflow-hidden bg-gray-100"
@@ -328,116 +359,238 @@ const InterviewPage = () => {
           </div>
         </div>
 
-        {/* 右侧：AI 面试官对话 - flex-1 自适应 */}
+        {/* 右侧：AI 面试官对话 */}
         <div className="flex-1 flex flex-col bg-white">
           <div className="flex-1 overflow-y-auto p-4">
             {!sessionId ? (
               /* 未开始面试：显示开始界面 */
               <div className="flex flex-col items-center justify-center h-full">
-                <Stack align="center" gap="md">
-                  <Title order={2}>AI 模拟面试</Title>
-                  <Text c="dimmed">
-                    基于你的简历内容，AI 面试官将提出针对性的问题
-                  </Text>
-                  <Button
-                    variant="filled"
-                    size="lg"
-                    onClick={handleStartInterview}
-                    loading={starting}
-                    disabled={!selectedResumeId}
-                  >
-                    开始面试
-                  </Button>
-                </Stack>
+                <Card
+                  shadow="sm"
+                  padding="xl"
+                  radius="md"
+                  withBorder
+                  className="w-full max-w-md"
+                >
+                  <Stack align="center" gap="lg">
+                    <Bot size={48} className="text-blue-500" />
+                    <Title order={3}>AI 模拟面试</Title>
+                    <Text c="dimmed" size="sm" className="text-center">
+                      基于你的简历内容，AI
+                      面试官将提出针对性的问题，帮助你准备真实面试
+                    </Text>
+
+                    <div className="w-full">
+                      <Select
+                        label="选择简历"
+                        placeholder="请选择要面试的简历"
+                        data={resumes.map((r) => ({
+                          label: r.title,
+                          value: r.id,
+                        }))}
+                        value={selectedResumeId}
+                        onChange={setSelectedResumeId}
+                        size="sm"
+                        mb="md"
+                      />
+
+                      <TextInput
+                        label="目标岗位"
+                        placeholder="如：前端开发工程师（可选）"
+                        value={targetPosition}
+                        onChange={(e) =>
+                          setTargetPosition(e.currentTarget.value)
+                        }
+                        size="sm"
+                        mb="md"
+                      />
+
+                      <Select
+                        label="面试题数"
+                        data={[
+                          { label: '3 题（快速）', value: '3' },
+                          { label: '5 题（标准）', value: '5' },
+                          { label: '8 题（详细）', value: '8' },
+                          { label: '10 题（全面）', value: '10' },
+                        ]}
+                        value={questionCount}
+                        onChange={(val) => setQuestionCount(val || '5')}
+                        size="sm"
+                        mb="xl"
+                      />
+
+                      <Button
+                        variant="filled"
+                        size="lg"
+                        fullWidth
+                        onClick={handleStartInterview}
+                        loading={starting}
+                        disabled={!selectedResumeId}
+                      >
+                        开始面试
+                      </Button>
+                    </div>
+                  </Stack>
+                </Card>
               </div>
             ) : isFinished && interviewResult ? (
               /* 面试结束：显示报告 */
               <div className="max-w-3xl mx-auto">
-                <Card shadow="sm" padding="xl" radius="md" withBorder>
-                  <Stack gap="lg">
-                    <div className="text-center">
-                      <Title order={2} c="blue">
-                        面试完成！
-                      </Title>
-                      <Text size="xl" fw={600} mt="md">
-                        综合评分：{interviewResult.score}/10
+                {/* 报告头部 */}
+                <Card shadow="sm" padding="xl" radius="md" withBorder mb="md">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Group mb="xs">
+                        <Trophy size={24} className="text-yellow-500" />
+                        <Title order={2}>面试报告</Title>
+                      </Group>
+                      <Text c="dimmed" size="sm">
+                        {interviewResult.position || '面试评估'} ·{' '}
+                        {formatDateTime(interviewResult.created_at)}
                       </Text>
                     </div>
-
-                    <Space />
-
-                    <div>
-                      <Title order={4} mb="md">
-                        优点
-                      </Title>
-                      <ul className="list-disc list-inside space-y-1">
-                        {interviewResult.report?.strengths?.map(
-                          (s: string, i: number) => (
-                            <li key={i} className="text-green-700">
-                              {s}
-                            </li>
-                          )
-                        )}
-                      </ul>
+                    <div className="text-center">
+                      <RingProgress
+                        size={100}
+                        thickness={10}
+                        sections={[
+                          {
+                            value: (interviewResult.score || 0) * 10,
+                            color: getScoreColor(interviewResult.score || 0),
+                          },
+                        ]}
+                        label={
+                          <div className="text-center">
+                            <Text fw={700} size="xl">
+                              {interviewResult.score || 0}
+                            </Text>
+                            <Text size="xs" c="dimmed">
+                              /10
+                            </Text>
+                          </div>
+                        }
+                      />
+                      <Text size="sm" fw={500} mt={4}>
+                        {getScoreLabel(interviewResult.score || 0)}
+                      </Text>
                     </div>
+                  </div>
+                </Card>
 
-                    <div>
-                      <Title order={4} mb="md">
-                        需要改进
-                      </Title>
-                      <ul className="list-disc list-inside space-y-1">
-                        {interviewResult.report?.weaknesses?.map(
-                          (w: string, i: number) => (
-                            <li key={i} className="text-orange-700">
-                              {w}
-                            </li>
-                          )
-                        )}
-                      </ul>
-                    </div>
-
-                    <div>
-                      <Title order={4} mb="md">
-                        改进建议
-                      </Title>
-                      <ul className="list-disc list-inside space-y-1">
-                        {interviewResult.report?.improvements?.map(
-                          (i: string, idx: number) => (
-                            <li key={idx} className="text-blue-700">
-                              {i}
-                            </li>
-                          )
-                        )}
-                      </ul>
-                    </div>
-
-                    <Group justify="center" mt="xl">
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          setSessionId(null);
-                          setCurrentQuestion(null);
-                          setQuestions([]);
-                          setAnswers([]);
-                          setIsFinished(false);
-                          setInterviewResult(null);
-                        }}
-                      >
-                        重新面试
-                      </Button>
-                      <Button onClick={() => navigate('/')}>返回首页</Button>
-                    </Group>
+                {/* 优点 */}
+                <Card shadow="sm" padding="lg" radius="md" withBorder mb="md">
+                  <Group mb="md">
+                    <CheckCircle size={18} className="text-green-500" />
+                    <Text fw={600}>优点</Text>
+                  </Group>
+                  <Stack gap="xs">
+                    {(interviewResult.report?.strengths || []).map(
+                      (s: string, i: number) => (
+                        <Paper
+                          key={i}
+                          p="sm"
+                          radius="sm"
+                          bg="green.0"
+                          className="border-l-3 border-green-500"
+                        >
+                          <Text size="sm">{s}</Text>
+                        </Paper>
+                      )
+                    )}
                   </Stack>
                 </Card>
+
+                {/* 需要改进 */}
+                <Card shadow="sm" padding="lg" radius="md" withBorder mb="md">
+                  <Group mb="md">
+                    <AlertCircle size={18} className="text-orange-500" />
+                    <Text fw={600}>需要改进</Text>
+                  </Group>
+                  <Stack gap="xs">
+                    {(interviewResult.report?.weaknesses || []).map(
+                      (w: string, i: number) => (
+                        <Paper
+                          key={i}
+                          p="sm"
+                          radius="sm"
+                          bg="orange.0"
+                          className="border-l-3 border-orange-500"
+                        >
+                          <Text size="sm">{w}</Text>
+                        </Paper>
+                      )
+                    )}
+                  </Stack>
+                </Card>
+
+                {/* 改进建议 */}
+                <Card shadow="sm" padding="lg" radius="md" withBorder mb="md">
+                  <Group mb="md">
+                    <Lightbulb size={18} className="text-blue-500" />
+                    <Text fw={600}>改进建议</Text>
+                  </Group>
+                  <Stack gap="xs">
+                    {(interviewResult.report?.suggestions || []).map(
+                      (s: string, i: number) => (
+                        <Paper
+                          key={i}
+                          p="sm"
+                          radius="sm"
+                          bg="blue.0"
+                          className="border-l-3 border-blue-500"
+                        >
+                          <Text size="sm">{s}</Text>
+                        </Paper>
+                      )
+                    )}
+                  </Stack>
+                </Card>
+
+                {/* 操作按钮 */}
+                <Group justify="center" mt="xl">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSessionId(null);
+                      setCurrentQuestion(null);
+                      setQuestions([]);
+                      setAnswers([]);
+                      setFeedbacks({});
+                      setIsFinished(false);
+                      setInterviewResult(null);
+                    }}
+                  >
+                    重新面试
+                  </Button>
+                  <Button onClick={() => navigate('/')}>返回首页</Button>
+                </Group>
               </div>
             ) : (
               /* 面试进行中：显示对话 */
               <Stack gap="md" className="max-w-3xl mx-auto">
+                {/* 进度条 */}
+                <Paper p="sm" radius="md" bg="gray.50" withBorder>
+                  <Group justify="apart" mb={4}>
+                    <Text size="xs" c="dimmed">
+                      面试进度
+                    </Text>
+                    <Text size="xs" c="dimmed">
+                      {answers.length} / {parseInt(questionCount)} 题
+                    </Text>
+                  </Group>
+                  <Progress
+                    value={(answers.length / parseInt(questionCount)) * 100}
+                    size="sm"
+                    radius="xl"
+                  />
+                </Paper>
+
                 {/* 历史对话 */}
-                {questions.map((question, index) => {
+                {questions.map((question) => {
                   const answer = answers.find(
                     (a) => a.questionId === question.id
                   );
+                  const questionFeedback = feedbacks[question.id];
 
                   return (
                     <div key={question.id}>
@@ -462,22 +615,22 @@ const InterviewPage = () => {
                                 你的回答
                               </Text>
                             </Group>
-                            <Text>{answer.content}</Text>
+                            <Text size="sm">{answer.content}</Text>
                           </Paper>
 
-                          {/* 反馈 */}
-                          {index < answers.length - 1 && (
-                            <Paper p="md" radius="md" bg="green.50" mt="md">
-                              <Text size="sm" c="dimmed">
-                                反馈
+                          {/* 每题独立反馈 */}
+                          {questionFeedback && (
+                            <Paper p="md" radius="md" bg="green.50" mt="sm">
+                              <Text size="xs" c="dimmed" mb={4}>
+                                AI 反馈
                               </Text>
-                              <Text c="green.700">{feedback}</Text>
+                              <Text size="sm" c="green.700">
+                                {questionFeedback}
+                              </Text>
                             </Paper>
                           )}
                         </Box>
                       )}
-
-                      <Space h="md" />
                     </div>
                   );
                 })}
@@ -495,16 +648,6 @@ const InterviewPage = () => {
                       </Group>
                       <Text fw={500}>{currentQuestion.content}</Text>
                     </Paper>
-
-                    {/* 显示前一题的反馈 */}
-                    {feedback && (
-                      <Paper p="md" radius="md" bg="green.50" mb="md">
-                        <Text size="sm" c="dimmed">
-                          反馈
-                        </Text>
-                        <Text c="green.700">{feedback}</Text>
-                      </Paper>
-                    )}
 
                     <Textarea
                       placeholder="请输入你的回答..."

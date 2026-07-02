@@ -21,6 +21,10 @@ export interface InterviewResult {
   report: any;
   created_at: string;
   updated_at: string;
+  resume?: {
+    id: string;
+    title: string;
+  };
 }
 
 export interface StartInterviewResponse {
@@ -38,8 +42,16 @@ export interface FinishInterviewResponse extends InterviewResult {}
 
 export const interviewApi = {
   // 开始面试
-  startInterview: async (resumeId: string): Promise<StartInterviewResponse> => {
-    return request.post('/api/interview/start', { resumeId });
+  startInterview: async (
+    resumeId: string,
+    targetPosition?: string,
+    questionCount?: number
+  ): Promise<StartInterviewResponse> => {
+    return request.post('/api/interview/start', {
+      resumeId,
+      targetPosition,
+      questionCount,
+    });
   },
 
   // 提交答案

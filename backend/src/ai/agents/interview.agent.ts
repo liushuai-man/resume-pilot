@@ -178,12 +178,14 @@ export class InterviewAgent {
   async startInterview(
     resumeId: string,
     resumeContent: any,
-    targetPosition?: string
+    targetPosition?: string,
+    questionCount?: number
   ): Promise<{
     sessionData: InterviewState;
     firstQuestion: Question;
   }> {
     console.log('=== 初始化面试 ===');
+    const maxQuestions = questionCount || 5;
     const analysis = await this.analyzeResume(resumeContent);
 
     // 确定要提问的主要部分
@@ -229,6 +231,7 @@ export class InterviewAgent {
       resumeId,
       resumeContent,
       targetPosition: targetPosition || '通用岗位',
+      maxQuestions,
       currentSection: mainSection,
       questions,
       answers: [],
@@ -269,7 +272,7 @@ export class InterviewAgent {
 
     const newEvaluations = [...state.evaluations, evaluateResult];
     const newIndex = state.currentQuestionIndex + 1;
-    const isFinished = newIndex >= Math.min(state.questions.length + 1, 5);
+    const isFinished = newIndex >= Math.min(state.questions.length + 1, state.maxQuestions);
 
     let nextQuestion: Question | null = null;
     let finalReport = null;

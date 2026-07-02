@@ -12,7 +12,7 @@ import { success, error } from '../utils/response';
 export const startInterviewHandler = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
-    const { resumeId, targetPosition } = req.body;
+    const { resumeId, targetPosition, questionCount } = req.body;
 
     if (!userId) {
       return error(res, '需要登录', 401);
@@ -22,7 +22,12 @@ export const startInterviewHandler = async (req: Request, res: Response) => {
       return error(res, '请提供简历ID', 400);
     }
 
-    const result = await startInterview(userId, resumeId, targetPosition);
+    const result = await startInterview(
+      userId,
+      resumeId,
+      targetPosition,
+      questionCount
+    );
     return success(res, result, '面试已开始');
   } catch (err) {
     console.error('开始面试失败:', err);

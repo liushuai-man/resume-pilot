@@ -1,11 +1,14 @@
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
-export const exportToPdf = async (element: HTMLElement, filename: string): Promise<void> => {
+export const exportToPdf = async (
+  element: HTMLElement,
+  filename: string
+): Promise<void> => {
   try {
     const originalTransform = element.style.transform;
     const originalTransformOrigin = element.style.transformOrigin;
-    
+
     element.style.transform = 'scale(1)';
     element.style.transformOrigin = 'top center';
 

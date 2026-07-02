@@ -171,7 +171,7 @@ export default function HomePage() {
               variant="outline"
               size="sm"
               className="h-9 px-4 border-blue-400 text-blue-500 bg-white hover:bg-blue-50 hover:border-blue-600 hover:text-blue-700 flex-shrink-0"
-              onClick={() => navigate('/interview')}
+              onClick={() => navigate('/resume/interview')}
             >
               <FileText size={14} className="mr-2" />
               在线面试

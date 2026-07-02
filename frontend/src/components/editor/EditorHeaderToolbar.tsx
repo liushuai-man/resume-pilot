@@ -86,17 +86,15 @@ export default function EditorHeaderToolbar({
       {/* 右侧：操作按钮 */}
       <div className="flex items-center gap-2">
         <Button
-          variant="outline"
+          variant="filled"
           size="xs"
           className="h-7 px-3"
-          onClick={() => {
-            onSave();
-            navigate(`/resume/interview/${resumeId}`);
-          }}
+          onClick={onSave}
           disabled={isSaving}
+          loading={isSaving}
         >
-          <Bot size={12} className="mr-1" />
-          在线面试
+          <Save size={12} className="mr-1" />
+          {isSaving ? '保存中' : '保存'}
         </Button>
         <Button
           variant="outline"
@@ -109,15 +107,17 @@ export default function EditorHeaderToolbar({
           导出PDF
         </Button>
         <Button
-          variant="filled"
+          variant="outline"
           size="xs"
           className="h-7 px-3"
-          onClick={onSave}
+          onClick={() => {
+            onSave();
+            navigate(`/resume/interview/${resumeId}`);
+          }}
           disabled={isSaving}
-          loading={isSaving}
         >
-          <Save size={12} className="mr-1" />
-          {isSaving ? '保存中' : '保存'}
+          <Bot size={12} className="mr-1" />
+          在线面试
         </Button>
       </div>
     </div>

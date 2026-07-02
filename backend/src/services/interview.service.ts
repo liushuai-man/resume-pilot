@@ -9,7 +9,8 @@ const sessionStore = new Map<string, InterviewState>();
 export async function startInterview(
   userId: string,
   resumeId: string,
-  targetPosition?: string
+  targetPosition?: string,
+  questionCount?: number
 ): Promise<{
   sessionId: string;
   firstQuestion: Question;
@@ -35,7 +36,8 @@ export async function startInterview(
   const { sessionData, firstQuestion } = await interviewAgent.startInterview(
     resumeId,
     resume.content,
-    targetPosition
+    targetPosition,
+    questionCount
   );
 
   // 存储会话状态
