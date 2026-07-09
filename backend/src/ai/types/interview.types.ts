@@ -3,6 +3,7 @@ export interface Question {
   content: string;
   section: string;
   sectionKey: string;
+  isIntroduction?: boolean;
 }
 
 export interface Answer {
@@ -32,6 +33,7 @@ export interface InterviewState {
 
 export interface InterviewReport {
   overallScore: number;
+  introductionEvaluation?: string;
   strengths: string[];
   weaknesses: string[];
   suggestions: string[];

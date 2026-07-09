@@ -13,7 +13,145 @@ import {
 } from '../types/interview.types';
 
 export class InterviewAgent {
-  private llm = createLLM({ temperature: 0.7, maxTokens: 1000 });
+  private llm = createLLM({ temperature: 0.7, maxTokens: 4000 });
+
+  /**
+   * 清理AI返回的JSON字符串，移除markdown代码块标记
+   */
+  private cleanJsonString(str: string): string {
+    if (!str) return '';
+
+    // 移除markdown代码块标记
+    let cleaned = str.trim();
+
+    // 尝试提取JSON数组
+    const jsonArrayMatch = cleaned.match(/\[[\s\S]*?\]/);
+    if (jsonArrayMatch) {
+      try {
+        JSON.parse(jsonArrayMatch[0]);
+        return jsonArrayMatch[0];
+      } catch {
+        // 数组不完整，继续尝试其他方法
+      }
+    }
+
+    // 尝试提取JSON对象
+    const jsonMatch = cleaned.match(/\{[\s\S]*?\}/);
+    if (jsonMatch) {
+      try {
+        JSON.parse(jsonMatch[0]);
+        return jsonMatch[0];
+      } catch {
+        // 对象不完整，继续尝试其他方法
+      }
+    }
+
+    // 移除代码块标记
+    if (cleaned.startsWith('```json')) {
+      cleaned = cleaned.substring(7);
+    } else if (cleaned.startsWith('```')) {
+      cleaned = cleaned.substring(3);
+    }
+    if (cleaned.endsWith('```')) {
+      cleaned = cleaned.substring(0, cleaned.length - 3);
+    }
+
+    cleaned = cleaned.trim();
+
+    // 尝试修复常见JSON格式问题
+    // 1. 修复截断的JSON - 找到最后一个完整的位置并截断
+    const lastCompleteObject = this.findLastCompleteJson(cleaned);
+    if (lastCompleteObject) {
+      return lastCompleteObject;
+    }
+
+    return cleaned;
+  }
+
+  /**
+   * 查找最后一个完整的JSON结构
+   */
+  private findLastCompleteJson(str: string): string | null {
+    // 尝试找到最后一个完整的对象或数组
+    let braceCount = 0;
+    let bracketCount = 0;
+    let lastValidEnd = -1;
+    let inString = false;
+    let escape = false;
+
+    for (let i = 0; i < str.length; i++) {
+      const ch = str[i];
+
+      if (escape) {
+        escape = false;
+        continue;
+      }
+
+      if (ch === '\\' && inString) {
+        escape = true;
+        continue;
+      }
+
+      if (ch === '"') {
+        inString = !inString;
+        continue;
+      }
+
+      if (inString) continue;
+
+      if (ch === '{') braceCount++;
+      if (ch === '}') {
+        braceCount--;
+        if (braceCount === 0 && bracketCount === 0) {
+          lastValidEnd = i;
+        }
+      }
+      if (ch === '[') bracketCount++;
+      if (ch === ']') {
+        bracketCount--;
+        if (braceCount === 0 && bracketCount === 0) {
+          lastValidEnd = i;
+        }
+      }
+    }
+
+    if (lastValidEnd > 0) {
+      const candidate = str.substring(0, lastValidEnd + 1);
+      try {
+        JSON.parse(candidate);
+        return candidate;
+      } catch {
+        // 不是有效JSON
+      }
+    }
+
+    // 尝试修复截断的JSON：逐步截断到最近的完整元素
+    for (let i = str.length - 1; i > 0; i--) {
+      const ch = str[i];
+      if (ch === ',' || ch === '}' || ch === ']') {
+        let candidate = str.substring(0, i + 1);
+        // 补全缺失的闭合符号
+        const openBraces =
+          (candidate.match(/\{/g) || []).length -
+          (candidate.match(/\}/g) || []).length;
+        const openBrackets =
+          (candidate.match(/\[/g) || []).length -
+          (candidate.match(/\]/g) || []).length;
+        // 去掉末尾可能的截断字符串
+        candidate = candidate.replace(/,\s*$/, '');
+        for (let j = 0; j < openBrackets; j++) candidate += ']';
+        for (let j = 0; j < openBraces; j++) candidate += '}';
+        try {
+          JSON.parse(candidate);
+          return candidate;
+        } catch {
+          // 继续尝试
+        }
+      }
+    }
+
+    return null;
+  }
 
   /**
    * 分析简历内容
@@ -32,7 +170,19 @@ export class InterviewAgent {
       const result = await chain.invoke({
         resumeContent: JSON.stringify(resumeContent, null, 2),
       });
-      return JSON.parse(result);
+      console.log('AI返回的简历分析结果:', result);
+      const cleanedResult = this.cleanJsonString(result);
+      console.log('清理后的JSON:', cleanedResult);
+
+      if (!cleanedResult) {
+        console.warn('AI返回了空内容');
+        return {
+          sections: [],
+          keySkills: [],
+        };
+      }
+
+      return JSON.parse(cleanedResult);
     } catch (error) {
       console.error('简历分析失败:', error);
       return {
@@ -47,15 +197,26 @@ export class InterviewAgent {
    */
   private async generateQuestions(
     resumeContent: any,
-    sectionKey: string,
     targetPosition: string = '通用岗位',
-    count: number = 2
+    count: number = 1,
+    qaHistory: { question: string; answer: string; feedback?: string }[] = []
   ): Promise<Question[]> {
-    const sectionContent = JSON.stringify(
-      resumeContent[sectionKey] || {},
-      null,
-      2
-    );
+    const resumeStr = JSON.stringify(resumeContent, null, 2);
+
+    // 格式化问答历史
+    let qaHistorySection = '';
+    if (qaHistory.length > 0) {
+      qaHistorySection =
+        '之前的问答历史：\n' +
+        qaHistory
+          .map(
+            (qa, i) =>
+              `问题${i + 1}: ${qa.question}\n回答: ${qa.answer}\n${qa.feedback ? `反馈: ${qa.feedback}` : ''}`
+          )
+          .join('\n\n');
+    } else {
+      qaHistorySection = '这是面试的开始，还没有问答历史。';
+    }
 
     const chain = RunnableSequence.from([
       GENERATE_QUESTIONS_PROMPT,
@@ -65,17 +226,24 @@ export class InterviewAgent {
 
     try {
       const result = await chain.invoke({
-        sectionKey,
-        sectionContent,
+        resumeContent: resumeStr,
         targetPosition,
         count: count.toString(),
+        qaHistorySection,
       });
-      const parsed = JSON.parse(result);
-      return parsed.questions.map((q: any, index: number) => ({
+
+      const cleanedResult = this.cleanJsonString(result);
+      console.log('生成问题的AI返回:', cleanedResult);
+
+      const parsed = JSON.parse(cleanedResult);
+      const questionsList = Array.isArray(parsed)
+        ? parsed
+        : parsed.questions || [];
+      return questionsList.map((q: any, index: number) => ({
         id: `q-${Date.now()}-${index}`,
         content: q.content,
-        section: sectionKey,
-        sectionKey,
+        section: 'general',
+        sectionKey: 'general',
       }));
     } catch (error) {
       console.error('问题生成失败:', error);
@@ -109,7 +277,7 @@ export class InterviewAgent {
         answer,
         resumeSectionContent,
       });
-      const parsed = JSON.parse(result);
+      const parsed = JSON.parse(this.cleanJsonString(result));
       return {
         questionId: question.id,
         score: parsed.score,
@@ -135,10 +303,32 @@ export class InterviewAgent {
     evaluations: Evaluation[],
     targetPosition: string = '通用岗位'
   ): Promise<any> {
+    // 找到自我介绍相关的问题和回答
+    const introQuestion = questions.find((q) => q.isIntroduction);
+    const introAnswer = introQuestion
+      ? answers.find((a) => a.questionId === introQuestion.id)
+      : null;
+    const introEvaluation = introQuestion
+      ? evaluations.find((e) => e.questionId === introQuestion.id)
+      : null;
+
+    // 构建自我介绍评估部分
+    let introductionSection = '';
+    if (introQuestion) {
+      if (introAnswer && introAnswer.content.trim() !== '跳过') {
+        introductionSection = `自我介绍内容：
+${introAnswer.content}`;
+      } else {
+        introductionSection = '候选人选择跳过自我介绍。';
+      }
+    }
+
     const qaHistory = questions
       .map((q, i) => {
         const answer = answers.find((a) => a.questionId === q.id);
         const evaluation = evaluations.find((e) => e.questionId === q.id);
+        // 跳过自我介绍，因为已经在introductionSection中处理
+        if (q.isIntroduction) return '';
         return `
 问题 ${i + 1}: ${q.content}
 回答: ${answer?.content || '未回答'}
@@ -146,6 +336,7 @@ export class InterviewAgent {
 反馈: ${evaluation?.feedback || ''}
 `;
       })
+      .filter(Boolean)
       .join('\n');
 
     const chain = RunnableSequence.from([
@@ -159,12 +350,14 @@ export class InterviewAgent {
         targetPosition,
         resumeContent: JSON.stringify(resumeContent, null, 2),
         qaHistory,
+        introductionSection,
       });
-      return JSON.parse(result);
+      return JSON.parse(this.cleanJsonString(result));
     } catch (error) {
       console.error('报告生成失败:', error);
       return {
         overallScore: 60,
+        introductionEvaluation: '无法生成自我介绍评估',
         strengths: [],
         weaknesses: [],
         suggestions: [],
@@ -188,51 +381,24 @@ export class InterviewAgent {
     const maxQuestions = questionCount || 5;
     const analysis = await this.analyzeResume(resumeContent);
 
-    // 确定要提问的主要部分
-    let mainSection = 'basicInfo';
-    const sectionsToTry = [
-      'experience',
-      'projects',
-      'skills',
-      'education',
-      'basicInfo',
-    ];
+    // 第一个问题：自我介绍（可跳过）
+    const firstQuestion: Question = {
+      id: `q-${Date.now()}-intro`,
+      content:
+        '请简单介绍一下你自己，包括你的教育背景、技术栈和项目经验。（如果不想自我介绍，可以直接说"跳过"）',
+      section: 'introduction',
+      sectionKey: 'introduction',
+      isIntroduction: true,
+    };
 
-    for (const section of sectionsToTry) {
-      const hasContent =
-        resumeContent[section] &&
-        (Array.isArray(resumeContent[section])
-          ? resumeContent[section].length > 0
-          : Object.keys(resumeContent[section]).length > 0);
-      if (hasContent) {
-        mainSection = section;
-        break;
-      }
-    }
-
-    // 生成初始问题
-    const questions = await this.generateQuestions(
-      resumeContent,
-      mainSection,
-      targetPosition || '通用岗位'
-    );
-
-    // 如果没有生成问题，创建默认问题
-    if (questions.length === 0) {
-      questions.push({
-        id: `q-${Date.now()}-0`,
-        content: '请简单介绍一下你自己和你的主要工作经历。',
-        section: mainSection,
-        sectionKey: mainSection,
-      });
-    }
+    const questions = [firstQuestion];
 
     const sessionData: InterviewState = {
       resumeId,
       resumeContent,
       targetPosition: targetPosition || '通用岗位',
       maxQuestions,
-      currentSection: mainSection,
+      currentSection: 'introduction',
       questions,
       answers: [],
       evaluations: [],
@@ -242,7 +408,7 @@ export class InterviewAgent {
 
     return {
       sessionData,
-      firstQuestion: questions[0],
+      firstQuestion,
     };
   }
 
@@ -258,24 +424,60 @@ export class InterviewAgent {
     isFinished: boolean;
     report?: any;
   }> {
+    const currentQuestion = state.questions[state.currentQuestionIndex];
     const newAnswer: Answer = {
-      questionId: state.questions[state.currentQuestionIndex].id,
+      questionId: currentQuestion.id,
       content: answer,
     };
 
-    // 评估回答
-    const evaluateResult = await this.evaluateAnswer(
-      state.questions[state.currentQuestionIndex],
-      answer,
-      state.resumeContent
-    );
+    // 处理自我介绍（跳过）
+    const isSkipIntro =
+      currentQuestion.isIntroduction &&
+      (answer.trim() === '跳过' || answer.trim().toLowerCase() === 'skip');
+
+    let evaluateResult: Evaluation;
+    if (isSkipIntro) {
+      evaluateResult = {
+        questionId: currentQuestion.id,
+        score: 0,
+        feedback: '候选人选择跳过自我介绍',
+      };
+    } else {
+      // 评估回答
+      evaluateResult = await this.evaluateAnswer(
+        currentQuestion,
+        answer,
+        state.resumeContent
+      );
+    }
 
     const newEvaluations = [...state.evaluations, evaluateResult];
-    const newIndex = state.currentQuestionIndex + 1;
-    const isFinished = newIndex >= Math.min(state.questions.length + 1, state.maxQuestions);
+    // 自我介绍不计入面试题数量
+    const newIndex = currentQuestion.isIntroduction
+      ? state.currentQuestionIndex
+      : state.currentQuestionIndex + 1;
+    const isFinished = newIndex >= state.maxQuestions;
 
     let nextQuestion: Question | null = null;
     let finalReport = null;
+
+    // 构建问答历史（排除跳过的自我介绍）
+    const qaHistory = [
+      ...state.answers.map((a, i) => ({
+        question: state.questions[i]?.content || '',
+        answer: a.content,
+        feedback: state.evaluations[i]?.feedback,
+      })),
+      ...(isSkipIntro
+        ? []
+        : [
+            {
+              question: currentQuestion.content,
+              answer: answer,
+              feedback: evaluateResult.feedback,
+            },
+          ]),
+    ];
 
     if (isFinished) {
       // 生成报告
@@ -287,28 +489,24 @@ export class InterviewAgent {
         state.targetPosition
       );
     } else {
-      // 生成下一个问题
-      const sections = [
-        'experience',
-        'projects',
-        'skills',
-        'education',
-        'basicInfo',
-      ];
-      const currentSectionIndex = sections.indexOf(state.currentSection);
-      const nextSection = sections[(currentSectionIndex + 1) % sections.length];
-
+      // 基于问答历史生成下一个问题
       const newQuestions = await this.generateQuestions(
         state.resumeContent,
-        nextSection,
         state.targetPosition,
-        1
+        1,
+        qaHistory
       );
 
       if (newQuestions.length > 0) {
         nextQuestion = newQuestions[0];
-      } else if (newIndex < state.questions.length) {
-        nextQuestion = state.questions[newIndex];
+      } else {
+        // 如果没有生成问题，使用默认问题
+        nextQuestion = {
+          id: `q-${Date.now()}-default`,
+          content: '请谈谈你在项目中遇到的最大技术挑战以及你是如何解决的。',
+          section: 'general',
+          sectionKey: 'general',
+        };
       }
     }
 

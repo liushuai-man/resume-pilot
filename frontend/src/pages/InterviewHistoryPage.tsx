@@ -11,7 +11,12 @@ import {
   Badge,
   RingProgress,
 } from '@mantine/core';
-import { ArrowLeft, Calendar, FileText, ChevronRight } from 'lucide-react';
+import {
+  ArrowLeft,
+  Calendar,
+  FileText,
+  ChevronRight,
+} from 'lucide-react';
 import { interviewApi, InterviewResult } from '@/api/interview.api';
 import { formatDateTime } from '@/utils/format';
 import { notifications } from '@mantine/notifications';
@@ -105,9 +110,7 @@ const InterviewHistoryPage = () => {
                 radius="md"
                 withBorder
                 className="cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() =>
-                  navigate(`/resume/interview/result/${result.id}`)
-                }
+                onClick={() => navigate(`/resume/interview/result/${result.id}`)}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">

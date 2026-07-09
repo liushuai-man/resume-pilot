@@ -5,6 +5,7 @@ export interface Question {
   content: string;
   section: string;
   sectionKey: string;
+  isIntroduction?: boolean;
 }
 
 export interface Answer {
@@ -47,11 +48,12 @@ export const interviewApi = {
     targetPosition?: string,
     questionCount?: number
   ): Promise<StartInterviewResponse> => {
-    return request.post('/api/interview/start', {
+    const response: any = await request.post('/interview/start', {
       resumeId,
       targetPosition,
       questionCount,
     });
+    return response.data || response;
   },
 
   // 提交答案
@@ -61,12 +63,13 @@ export const interviewApi = {
     answer: string,
     resumeId: string
   ): Promise<SubmitAnswerResponse> => {
-    return request.post('/api/interview/answer', {
+    const response: any = await request.post('/interview/answer', {
       sessionId,
       question,
       answer,
       resumeId,
     });
+    return response.data || response;
   },
 
   // 完成面试
@@ -76,21 +79,23 @@ export const interviewApi = {
     questions: Question[],
     answers: Answer[]
   ): Promise<FinishInterviewResponse> => {
-    return request.post('/api/interview/finish', {
+    const response: any = await request.post('/interview/finish', {
       sessionId,
       resumeId,
       questions,
       answers,
     });
+    return response.data || response;
   },
 
   // 获取面试结果列表
   getInterviewResults: async (): Promise<InterviewResult[]> => {
-    return request.get('/api/interview/results');
+    const response: any = await request.get('/interview/results');
+    return response.data || response;
   },
 
   // 获取单个面试结果详情
   getInterviewResult: async (id: string): Promise<InterviewResult> => {
-    return request.get(`/api/interview/results/${id}`);
+    return request.get(`/interview/results/${id}`);
   },
 };

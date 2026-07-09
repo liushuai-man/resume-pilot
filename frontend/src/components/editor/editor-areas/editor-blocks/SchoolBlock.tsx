@@ -7,7 +7,6 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
-import RichTextEditor from '../RichTextEditor';
 import type { CampusExperience } from '@/types/resume';
 
 interface CampusExperienceBlockProps {
@@ -189,19 +188,6 @@ export default function CampusExperienceBlock({
                     />
                   </div>
                 </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-600 mb-2 block">
-                    职责描述
-                  </label>
-                  <RichTextEditor
-                    value={item.description || ''}
-                    onChange={(value) =>
-                      handleChange(item.id, 'description', value)
-                    }
-                    placeholder="描述你的职责和贡献..."
-                  />
-                </div>
-
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-2 block">
                     主要贡献
