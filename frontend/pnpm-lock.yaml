@@ -41,6 +41,9 @@ importers:
       '@tiptap/starter-kit':
         specifier: ^2.2.4
         version: 2.27.2
+      '@weiruo/tiptap-extension-indent':
+        specifier: 2.0.4-1
+        version: 2.0.4-1(@tiptap/core@2.27.2(@tiptap/pm@2.27.2))(@tiptap/pm@2.27.2)
       axios:
         specifier: ^1.6.7
         version: 1.17.0
@@ -841,6 +844,12 @@ packages:
     engines: {node: ^14.18.0 || >=16.0.0}
     peerDependencies:
       vite: ^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0
+
+  '@weiruo/tiptap-extension-indent@2.0.4-1':
+    resolution: {integrity: sha512-veE9Euwwp3Z8RtWUDqeHt/hWPINpUzXhs0LCcljgEyvko7Ez0O80fm2cSf9gwkhz7bt0FGPVnHN4BVmfRfKSlg==}
+    peerDependencies:
+      '@tiptap/core': ^2.0.0
+      '@tiptap/pm': ^2.0.0
 
   acorn-jsx@5.3.2:
     resolution: {integrity: sha512-rq9s+JNhf0IChjtDXxllJ7g41oZk5SlXtp0LHwyA5cejwn7vKmKp4pPri6YEePv2PU65sAsegbXtIinmDFDXgQ==}
@@ -2882,6 +2891,11 @@ snapshots:
       vite: 5.4.21(@types/node@25.9.3)
     transitivePeerDependencies:
       - supports-color
+
+  '@weiruo/tiptap-extension-indent@2.0.4-1(@tiptap/core@2.27.2(@tiptap/pm@2.27.2))(@tiptap/pm@2.27.2)':
+    dependencies:
+      '@tiptap/core': 2.27.2(@tiptap/pm@2.27.2)
+      '@tiptap/pm': 2.27.2
 
   acorn-jsx@5.3.2(acorn@8.17.0):
     dependencies:

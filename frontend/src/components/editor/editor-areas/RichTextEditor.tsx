@@ -5,6 +5,7 @@ import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
+import { Indent } from '@weiruo/tiptap-extension-indent';
 import { Sparkles, CheckCircle2, Loader2 } from 'lucide-react';
 import TextareaToolbar from './TextareaToolbar';
 import { useAI } from '@/hooks/useAI';
@@ -53,6 +54,11 @@ export default function RichTextEditor({
       }),
       Placeholder.configure({
         placeholder: placeholder || '请输入内容...',
+      }),
+      Indent.configure({
+        types: ['listItem', 'paragraph'],
+        minLevel: 0,
+        maxLevel: 8,
       }),
     ],
     content: value,
@@ -138,57 +144,11 @@ export default function RichTextEditor({
           editor.chain().focus().unsetAllMarks().run();
           break;
         case 'indentDecrease': {
-          // 尝试减少列表缩进
-          if (editor.isActive('listItem')) {
-            editor.chain().focus().liftListItem('listItem').run();
-          } else {
-            // 对于普通段落，减少缩进
-            // 获取当前光标所在的DOM元素
-            const { view } = editor;
-            const { from } = view.state.selection;
-            const domAtPos = view.domAtPos(from);
-            let element = domAtPos.node as HTMLElement;
-            if (element.nodeType === Node.TEXT_NODE) {
-              element = element.parentElement!;
-            }
-            // 找到最近的块级元素
-            const block = element.closest('p') as HTMLElement;
-            if (block) {
-              const currentMargin = parseInt(block.style.marginLeft) || 0;
-              if (currentMargin > 0) {
-                block.style.marginLeft = Math.max(0, currentMargin - 32) + 'px';
-                // 触发内容更新
-                onChange(editor.getHTML());
-              }
-            }
-          }
+          editor.chain().focus().outdent().run();
           break;
         }
         case 'indentIncrease': {
-          // 尝试增加列表缩进
-          if (editor.isActive('listItem')) {
-            editor.chain().focus().sinkListItem('listItem').run();
-          } else {
-            // 对于普通段落，增加缩进
-            // 获取当前光标所在的DOM元素
-            const { view } = editor;
-            const { from } = view.state.selection;
-            const domAtPos = view.domAtPos(from);
-            let element = domAtPos.node as HTMLElement;
-            if (element.nodeType === Node.TEXT_NODE) {
-              element = element.parentElement!;
-            }
-            // 找到最近的块级元素
-            const block = element.closest('p') as HTMLElement;
-            if (block) {
-              const currentMargin = parseInt(block.style.marginLeft) || 0;
-              if (currentMargin < 160) {
-                block.style.marginLeft = currentMargin + 32 + 'px';
-                // 触发内容更新
-                onChange(editor.getHTML());
-              }
-            }
-          }
+          editor.chain().focus().indent().run();
           break;
         }
         default:
