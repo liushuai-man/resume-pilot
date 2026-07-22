@@ -92,6 +92,25 @@ export default function HomePage() {
     return result;
   }, [resumes, searchKeyword, sortBy, sortOrder]);
 
+  const templateMap = useMemo(() => {
+    const map: Record<string, Template> = {};
+    templates.forEach((t) => {
+      map[t.id] = t;
+    });
+    return map;
+  }, [templates]);
+
+  const getTemplateStyle = (templateId: string) => {
+    const template = templateMap[templateId];
+    const defaultTemplate = templates[0];
+    const targetTemplate = template || defaultTemplate;
+    if (!targetTemplate) return { style: null, layout: 'classic' };
+    return {
+      style: targetTemplate.style_config,
+      layout: targetTemplate.schema?.layout || targetTemplate.style_config?.layout || 'classic',
+    };
+  };
+
   // 使用默认模板创建简历（空内容）
   const handleCreateEmpty = async () => {
     if (!isLoggedIn) {
@@ -234,13 +253,18 @@ export default function HomePage() {
 
           {/* 用户历史简历 */}
           {filteredResumes.length > 0 ? (
-            filteredResumes.map((resume) => (
-              <HistoryResume
-                key={resume.id}
-                resume={resume}
-                onDelete={handleDeleteResume}
-              />
-            ))
+            filteredResumes.map((resume) => {
+              const { style, layout } = getTemplateStyle(resume.template_id);
+              return (
+                <HistoryResume
+                  key={resume.id}
+                  resume={resume}
+                  onDelete={handleDeleteResume}
+                  templateStyle={style}
+                  templateLayout={layout}
+                />
+              );
+            })
           ) : searchKeyword && resumes.length > 0 ? (
             <div className="col-span-full flex flex-col items-center justify-center py-8">
               <Search size={32} className="text-gray-300 mb-2" />

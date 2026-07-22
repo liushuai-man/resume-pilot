@@ -1,6 +1,11 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { Resume, ResumeContent, Template, StyleConfig } from '@/types/resume';
+import type {
+  Resume,
+  ResumeContent,
+  Template,
+  StyleConfig,
+} from '@/types/resume';
 import { emptyResumeContent } from '@/utils/emptyResumeContent';
 import { resumeApi } from '@/api/home.api';
 import { notification } from '@/components/common/Notification';
@@ -197,7 +202,8 @@ export const useResumeStore = create<ResumeState>()(
           if (response.code === 200 && response.data) {
             const template = response.data;
             const styleConfig = template.style_config || defaultTemplateStyle;
-            const layout = template.schema?.layout || styleConfig.layout || 'classic';
+            const layout =
+              template.schema?.layout || styleConfig.layout || 'classic';
             set({
               template,
               templateStyle: styleConfig,
@@ -271,13 +277,19 @@ export const useResumeStore = create<ResumeState>()(
     {
       name: 'resume-storage',
       storage: createJSONStorage(() => localStorage),
+      version: 2,
+      migrate: (persistedState: any, version) => {
+        if (version < 2) {
+          delete persistedState.templateStyle;
+          delete persistedState.templateLayout;
+        }
+        return persistedState;
+      },
       partialize: (state) => ({
         resume: state.resume,
         content: state.content,
         lastSaved: state.lastSaved,
         initialized: state.initialized,
-        templateStyle: state.templateStyle,
-        templateLayout: state.templateLayout,
       }),
     }
   )

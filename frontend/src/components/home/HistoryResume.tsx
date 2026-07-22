@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { Card, Text, Button, Group, Modal } from '@mantine/core';
 import { Eye, Edit3, Download, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import type { Resume } from '@/types/resume';
+import type { Resume, StyleConfig } from '@/types/resume';
 import { notification } from '@/components/common/Notification';
 import ResumePreview from '@/components/editor/ResumePreview';
 import { resumeApi } from '@/api/home.api';
@@ -13,11 +13,15 @@ import ConfirmModal from '@/components/common/ConfirmModal';
 interface HistoryResumeProps {
   resume: Resume;
   onDelete?: (id: string) => void;
+  templateStyle?: StyleConfig | null;
+  templateLayout?: string;
 }
 
 export default function HistoryResume({
   resume,
   onDelete,
+  templateStyle,
+  templateLayout,
 }: HistoryResumeProps) {
   const { id, title, content, updated_at } = resume;
   const navigate = useNavigate();
@@ -26,6 +30,11 @@ export default function HistoryResume({
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+
+  const previewProps = {
+    templateStyle,
+    templateLayout,
+  };
 
   const handlePreview = () => {
     setPreviewModalOpen(true);
@@ -112,7 +121,7 @@ export default function HistoryResume({
           transform: 'translate(-100%, -100%)',
         }}
       >
-        <ResumePreview content={content} variant="card" />
+        <ResumePreview content={content} variant="card" {...previewProps} />
       </div>
 
       <Card className="aspect-[5/6] flex flex-col overflow-hidden border-2 border-gray-200 rounded-md p-0">
@@ -127,7 +136,11 @@ export default function HistoryResume({
         <div className="flex-1 mx-3 border-2 border-gray-200 rounded-md overflow-hidden bg-white">
           <div className="w-full h-full overflow-hidden">
             <div className="transform scale-[0.30] origin-top-left">
-              <ResumePreview content={content} variant="card" />
+              <ResumePreview
+                content={content}
+                variant="card"
+                {...previewProps}
+              />
             </div>
           </div>
         </div>
@@ -191,7 +204,11 @@ export default function HistoryResume({
             style={{ maxHeight: '70vh' }}
           >
             <div className="min-h-full flex justify-center">
-              <ResumePreview content={content} variant="card" />
+              <ResumePreview
+                content={content}
+                variant="card"
+                {...previewProps}
+              />
             </div>
           </div>
 
