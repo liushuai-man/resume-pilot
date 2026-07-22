@@ -100,8 +100,11 @@ export default function HomePage() {
     }
     setIsCreating(true);
     try {
+      const defaultTemplate = templates[0];
+      const templateId = defaultTemplate?.id || 'classic-blue';
+
       const response = await resumeApi.createResume({
-        template_id: 'default',
+        template_id: templateId,
         title: '我的简历',
         content: emptyResumeContent,
       });
@@ -118,7 +121,7 @@ export default function HomePage() {
     }
   };
 
-  // 使用指定模板创建简历（空内容）
+  // 使用指定模板创建简历（使用模板示例内容）
   const handleSelectTemplate = async (templateId: string) => {
     if (!isLoggedIn) {
       notification.error('请先登录');
@@ -130,10 +133,13 @@ export default function HomePage() {
 
     setIsCreating(true);
     try {
+      const initialContent =
+        template.schema?.defaultContent || emptyResumeContent;
+
       const response = await resumeApi.createResume({
         template_id: templateId,
         title: `基于${template.name}的简历`,
-        content: emptyResumeContent,
+        content: initialContent,
       });
 
       if (response.data) {

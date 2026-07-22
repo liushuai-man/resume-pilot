@@ -1,11 +1,10 @@
-import { RunnableSequence, RunnablePassthrough } from '@langchain/core/runnables';
+import { RunnableSequence } from '@langchain/core/runnables';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { ChatPromptTemplate, MessagesPlaceholder } from '@langchain/core/prompts';
-import { HumanMessage, AIMessage, SystemMessage } from '@langchain/core/messages';
+import { HumanMessage, AIMessage } from '@langchain/core/messages';
 import { createLLM } from '../providers/llm.provider';
 import { vectorMemoryManager } from '../memory/vector-memory';
-import { CHAT_SYSTEM_PROMPT } from '../prompts/chat/system.prompt';
-import { AIChatRequest, ChatMessage } from '../types/chat.types';
+import { AIChatRequest } from '../types/chat.types';
 
 export class ChatAgent {
   private llm = createLLM({ temperature: 0.7, maxTokens: 1000 });

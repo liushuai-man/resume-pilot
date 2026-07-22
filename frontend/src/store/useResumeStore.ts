@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { Resume, ResumeContent } from '@/types/resume';
+import type { Resume, ResumeContent, Template, StyleConfig } from '@/types/resume';
 import { emptyResumeContent } from '@/utils/emptyResumeContent';
 import { resumeApi } from '@/api/home.api';
 import { notification } from '@/components/common/Notification';
@@ -11,7 +11,9 @@ interface ResumeState {
   isSaving: boolean;
   lastSaved: Date | null;
   initialized: boolean;
-  // 格式配置
+  template: Template | null;
+  templateStyle: StyleConfig | null;
+  templateLayout: string;
   formatConfig: {
     fontFamily: string;
     fontSize: string;
@@ -27,10 +29,22 @@ interface ResumeState {
   updateTitle: (title: string) => void;
   saveResume: (resumeId?: string, title?: string) => Promise<void>;
   loadResume: (id: string) => Promise<void>;
+  loadTemplate: (templateId: string) => Promise<void>;
   createResume: (title: string) => Promise<void>;
   reset: () => void;
   updateFormatConfig: (config: Partial<ResumeState['formatConfig']>) => void;
 }
+
+const defaultTemplateStyle: StyleConfig = {
+  primaryColor: '#2563EB',
+  secondaryColor: '#64748B',
+  fontSize: 14,
+  fontFamily: "'Microsoft YaHei', Arial, sans-serif",
+  backgroundColor: '#FFFFFF',
+  sectionTitleColor: '#2563EB',
+  sectionTitleSize: 16,
+  lineColor: '#E2E8F0',
+};
 
 export const useResumeStore = create<ResumeState>()(
   persist(
@@ -40,6 +54,9 @@ export const useResumeStore = create<ResumeState>()(
       isSaving: false,
       lastSaved: null,
       initialized: false,
+      template: null,
+      templateStyle: defaultTemplateStyle,
+      templateLayout: 'classic',
       formatConfig: {
         fontFamily: '微软雅黑',
         fontSize: '16',
@@ -48,10 +65,7 @@ export const useResumeStore = create<ResumeState>()(
         textAlign: 'left',
       },
 
-      // 初始化 store
       initStore: () => {
-        // persist middleware 会自动从 localStorage 恢复状态
-        // 这里只需要设置初始化标志
         set({ initialized: true });
       },
 
@@ -76,7 +90,6 @@ export const useResumeStore = create<ResumeState>()(
               resume: { ...state.resume, title },
             };
           }
-          // 如果 resume 不存在，创建一个临时的 resume 对象来保存标题
           return {
             resume: {
               id: '',
@@ -103,14 +116,12 @@ export const useResumeStore = create<ResumeState>()(
 
         if (isSaving) return;
 
-        // 优先使用传入的 resumeId，否则使用 store 中的 resume.id
         const targetId = resumeId || resume?.id;
         if (!targetId) {
           console.warn('无法保存：没有简历数据', { resumeId, resume });
           return;
         }
 
-        // 优先使用传入的标题，然后是 store 中的标题，最后是默认值
         const currentTitle = title || resume?.title || '我的简历';
 
         console.log('准备保存简历:', {
@@ -122,7 +133,6 @@ export const useResumeStore = create<ResumeState>()(
         set({ isSaving: true });
 
         try {
-          // 更新现有简历
           const response = await resumeApi.updateResume(targetId, {
             title: currentTitle,
             content,
@@ -131,10 +141,9 @@ export const useResumeStore = create<ResumeState>()(
           if (response.code === 200) {
             set({
               resume: response.data,
-              content: response.data.content, // 确保 content 也从响应中更新
+              content: response.data.content,
               lastSaved: new Date(),
             });
-            // 设置后检查 localStorage
             setTimeout(() => {
               const storage = localStorage.getItem('resume-storage');
               console.log('保存后 localStorage:', storage);
@@ -167,6 +176,10 @@ export const useResumeStore = create<ResumeState>()(
               lastSaved: new Date(),
               initialized: true,
             });
+
+            if (response.data.template_id) {
+              await get().loadTemplate(response.data.template_id);
+            }
           } else {
             notification.error(response.message || '加载简历失败');
           }
@@ -178,11 +191,30 @@ export const useResumeStore = create<ResumeState>()(
         }
       },
 
+      loadTemplate: async (templateId) => {
+        try {
+          const response = await resumeApi.getTemplateById(templateId);
+          if (response.code === 200 && response.data) {
+            const template = response.data;
+            const styleConfig = template.style_config || defaultTemplateStyle;
+            const layout = template.schema?.layout || styleConfig.layout || 'classic';
+            set({
+              template,
+              templateStyle: styleConfig,
+              templateLayout: layout,
+            });
+            console.log('模板加载成功:', { templateId, styleConfig, layout });
+          }
+        } catch (error) {
+          console.error('加载模板失败:', error);
+        }
+      },
+
       createResume: async (title) => {
         set({ isSaving: true });
         try {
           const response = await resumeApi.createResume({
-            template_id: 'default',
+            template_id: 'classic-blue',
             title,
             content: emptyResumeContent,
           });
@@ -193,6 +225,11 @@ export const useResumeStore = create<ResumeState>()(
               lastSaved: new Date(),
               initialized: true,
             });
+
+            if (response.data.template_id) {
+              await get().loadTemplate(response.data.template_id);
+            }
+
             notification.success('简历创建成功');
           } else {
             notification.error('创建失败');
@@ -212,6 +249,9 @@ export const useResumeStore = create<ResumeState>()(
           isSaving: false,
           lastSaved: null,
           initialized: false,
+          template: null,
+          templateStyle: defaultTemplateStyle,
+          templateLayout: 'classic',
           formatConfig: {
             fontFamily: '微软雅黑',
             fontSize: '16',
@@ -236,6 +276,8 @@ export const useResumeStore = create<ResumeState>()(
         content: state.content,
         lastSaved: state.lastSaved,
         initialized: state.initialized,
+        templateStyle: state.templateStyle,
+        templateLayout: state.templateLayout,
       }),
     }
   )

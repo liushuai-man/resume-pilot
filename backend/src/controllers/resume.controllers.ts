@@ -64,7 +64,6 @@ export const updateResume = async (req: Request, res: Response) => {
       return error(res, '无权操作', 403);
     }
 
-
     const resume = await prisma.resume.update({
       where: { id },
       data: {
@@ -142,9 +141,10 @@ export const getResumeById = async (req: Request, res: Response) => {
 
     // Prisma Json 类型会自动解析，不需要手动 JSON.parse
     // 但为了兼容可能存在的旧数据（双重序列化），进行检查
-    const content = typeof resume.content === 'string' 
-      ? JSON.parse(resume.content) 
-      : resume.content;
+    const content =
+      typeof resume.content === 'string'
+        ? JSON.parse(resume.content)
+        : resume.content;
 
     return res.json({
       code: 200,
@@ -200,6 +200,41 @@ export const getTemplates = async (req: Request, res: Response) => {
     return res.json({ code: 200, message: 'Success', data: templates });
   } catch (err: any) {
     console.error('获取模板列表失败:', err);
+    return error(res, '获取失败');
+  }
+};
+
+export const getTemplateById = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const template = await prisma.template.findUnique({
+      where: { id, is_deleted: false },
+    });
+
+    if (!template) {
+      return error(res, '模板不存在', 404);
+    }
+
+    const schema =
+      typeof template.schema === 'string'
+        ? JSON.parse(template.schema)
+        : template.schema;
+    const styleConfig =
+      typeof template.style_config === 'string'
+        ? JSON.parse(template.style_config)
+        : template.style_config;
+
+    return res.json({
+      code: 200,
+      message: 'Success',
+      data: {
+        ...template,
+        schema,
+        style_config: styleConfig,
+      },
+    });
+  } catch (err: any) {
+    console.error('获取模板失败:', err);
     return error(res, '获取失败');
   }
 };

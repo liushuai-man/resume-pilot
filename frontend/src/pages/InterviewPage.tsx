@@ -13,7 +13,7 @@ import { notifications } from '@mantine/notifications';
 const InterviewPage = () => {
   const navigate = useNavigate();
   const { resumeId: paramResumeId } = useParams<{ resumeId?: string }>();
-  const { resume, setResume } = useResumeStore();
+  const { resume, setResume, loadTemplate } = useResumeStore();
   const { user } = useUserStore();
 
   const [loading, setLoading] = useState(true);
@@ -37,6 +37,14 @@ const InterviewPage = () => {
   const [interviewResult, setInterviewResult] = useState<any>(null);
   const [isThinking, setIsThinking] = useState(false);
 
+  // 加载简历及其模板样式
+  const loadResumeWithTemplate = useCallback(async (resumeData: any) => {
+    setResume(resumeData);
+    if (resumeData.template_id) {
+      await loadTemplate(resumeData.template_id);
+    }
+  }, [setResume, loadTemplate]);
+
   // 获取用户的所有简历
   const fetchResumes = useCallback(async () => {
     if (!user?.id) return;
@@ -55,18 +63,18 @@ const InterviewPage = () => {
           (r: any) => r.id === paramResumeId
         );
         if (selectedResume) {
-          setResume(selectedResume);
+          await loadResumeWithTemplate(selectedResume);
         }
       } else if (userResumes.length > 0) {
         setSelectedResumeId(userResumes[0].id);
-        setResume(userResumes[0]);
+        await loadResumeWithTemplate(userResumes[0]);
       }
     } catch (error) {
       console.error('获取简历失败:', error);
     } finally {
       setLoading(false);
     }
-  }, [user?.id, paramResumeId, setResume]);
+  }, [user?.id, paramResumeId, loadResumeWithTemplate]);
 
   useEffect(() => {
     fetchResumes();
@@ -221,10 +229,10 @@ const InterviewPage = () => {
     if (selectedResumeId && resumes.length > 0) {
       const selected = resumes.find((r) => r.id === selectedResumeId);
       if (selected) {
-        setResume(selected);
+        loadResumeWithTemplate(selected);
       }
     }
-  }, [selectedResumeId, resumes, setResume]);
+  }, [selectedResumeId, resumes, loadResumeWithTemplate]);
 
   if (loading) {
     return (

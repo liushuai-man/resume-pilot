@@ -5,14 +5,117 @@ export interface ResumeBlock {
 }
 
 export interface ResumeContent {
-  blocks: ResumeBlock[];
+  blocks?: ResumeBlock[];
+  basicInfo?: any;
+  education?: any[];
+  experience?: any[];
+  projects?: any[];
+  skills?: any[];
+  careerObjective?: string;
+  certifications?: any[];
+  campusExperiences?: any[];
+}
+
+function isFlatStructure(content: ResumeContent): boolean {
+  return !!(content.basicInfo || content.education || content.experience);
+}
+
+function flatToBlocks(content: ResumeContent): ResumeBlock[] {
+  const blocks: ResumeBlock[] = [];
+
+  if (content.basicInfo) {
+    blocks.push({
+      id: 'basic',
+      type: 'basic',
+      data: {
+        ...content.basicInfo,
+        summary: content.basicInfo.bio || content.basicInfo.summary,
+      },
+    });
+  }
+
+  if (content.careerObjective) {
+    blocks.push({
+      id: 'objective',
+      type: 'objective',
+      data: { objective: content.careerObjective },
+    });
+  }
+
+  if (content.education && content.education.length > 0) {
+    blocks.push({
+      id: 'education',
+      type: 'education',
+      data: content.education,
+    });
+  }
+
+  if (content.experience && content.experience.length > 0) {
+    blocks.push({
+      id: 'experience',
+      type: 'experience',
+      data: content.experience,
+    });
+  }
+
+  if (content.projects && content.projects.length > 0) {
+    blocks.push({
+      id: 'projects',
+      type: 'projects',
+      data: content.projects,
+    });
+  }
+
+  if (content.skills && content.skills.length > 0) {
+    const skillNames = content.skills.map((s: any) =>
+      typeof s === 'string' ? s : s.name
+    );
+    blocks.push({
+      id: 'skills',
+      type: 'skills',
+      data: skillNames,
+    });
+  }
+
+  if (content.certifications && content.certifications.length > 0) {
+    const certList = content.certifications.map((c: any) => ({
+      name: c.name,
+      date: c.date || '',
+    }));
+    blocks.push({
+      id: 'certifications',
+      type: 'certifications',
+      data: { certifications: certList },
+    });
+  }
+
+  if (content.campusExperiences && content.campusExperiences.length > 0) {
+    blocks.push({
+      id: 'organizations',
+      type: 'organizations',
+      data: content.campusExperiences.map((c: any) => ({
+        ...c,
+        name: c.name,
+        role: c.role || c.position,
+      })),
+    });
+  }
+
+  return blocks;
 }
 
 export const generateResumeHtml = (
   content: ResumeContent,
   styleConfig?: any
 ): string => {
-  const blocks = content?.blocks || [];
+  let blocks: ResumeBlock[];
+
+  if (isFlatStructure(content)) {
+    blocks = flatToBlocks(content);
+  } else {
+    blocks = content.blocks || [];
+  }
+
   const layout = styleConfig?.layout || 'classic';
 
   const styles = {
@@ -81,7 +184,16 @@ function generateClassicLayout(blocks: ResumeBlock[], styles: any): string {
               ${data.email ? `${data.email} | ` : ''}
               ${data.location ? `${data.location}` : ''}
             </div>
-            ${data.summary ? `<div style="margin-top: 15px; font-size: 13px; color: #555; line-height: 1.6; text-align: left;">${data.summary}</div>` : ''}
+            ${data.summary || data.bio ? `<div style="margin-top: 15px; font-size: 13px; color: #555; line-height: 1.6; text-align: left;">${data.summary || data.bio}</div>` : ''}
+          </div>
+        `;
+        break;
+      }
+      case 'objective': {
+        html += `
+          <div class="section">
+            <div class="section-title">职业目标</div>
+            <div class="item-desc">${block.data?.objective || ''}</div>
           </div>
         `;
         break;
@@ -90,14 +202,17 @@ function generateClassicLayout(blocks: ResumeBlock[], styles: any): string {
         const items = Array.isArray(block.data) ? block.data : [];
         html += `<div class="section"><div class="section-title">工作经历</div>`;
         items.forEach((item: any) => {
+          const desc = Array.isArray(item.description)
+            ? item.description.join('<br>')
+            : item.description || '';
           html += `
             <div class="item">
               <div class="item-header">
                 <span class="item-title">${item.company}</span>
-                <span class="item-date">${item.startDate} - ${item.endDate}</span>
+                <span class="item-date">${item.startDate} - ${item.endDate || '至今'}</span>
               </div>
-              <div class="item-subtitle">${item.position} | ${item.location || ''}</div>
-              ${item.description ? `<div class="item-desc">${Array.isArray(item.description) ? item.description.join('<br>') : item.description}</div>` : ''}
+              <div class="item-subtitle">${item.position}${item.location ? ` | ${item.location}` : ''}</div>
+              ${desc ? `<div class="item-desc">${desc}</div>` : ''}
             </div>
           `;
         });
@@ -108,14 +223,17 @@ function generateClassicLayout(blocks: ResumeBlock[], styles: any): string {
         const items = Array.isArray(block.data) ? block.data : [];
         html += `<div class="section"><div class="section-title">项目经验</div>`;
         items.forEach((item: any) => {
+          const desc = Array.isArray(item.description)
+            ? item.description.join('<br>')
+            : item.description || '';
           html += `
             <div class="item">
               <div class="item-header">
                 <span class="item-title">${item.name}</span>
-                <span class="item-date">${item.startDate} - ${item.endDate}</span>
+                <span class="item-date">${item.startDate} - ${item.endDate || '至今'}</span>
               </div>
-              <div class="item-subtitle">${item.role} | ${item.location || ''}</div>
-              ${item.description ? `<div class="item-desc">${Array.isArray(item.description) ? item.description.join('<br>') : item.description}</div>` : ''}
+              <div class="item-subtitle">${item.role}${item.location ? ` | ${item.location}` : ''}</div>
+              ${desc ? `<div class="item-desc">${desc}</div>` : ''}
               ${item.techStack ? `<div class="skills">${item.techStack.map((t: string) => `<span class="skill-tag">${t}</span>`).join('')}</div>` : ''}
             </div>
           `;
@@ -127,14 +245,17 @@ function generateClassicLayout(blocks: ResumeBlock[], styles: any): string {
         const items = Array.isArray(block.data) ? block.data : [];
         html += `<div class="section"><div class="section-title">社团和组织经历</div>`;
         items.forEach((item: any) => {
+          const desc = Array.isArray(item.description)
+            ? item.description.join('<br>')
+            : item.description || '';
           html += `
             <div class="item">
               <div class="item-header">
                 <span class="item-title">${item.name}</span>
-                <span class="item-date">${item.startDate} - ${item.endDate}</span>
+                <span class="item-date">${item.startDate} - ${item.endDate || '至今'}</span>
               </div>
-              <div class="item-subtitle">${item.role} | ${item.location || ''}</div>
-              ${item.description ? `<div class="item-desc">${Array.isArray(item.description) ? item.description.join('<br>') : item.description}</div>` : ''}
+              <div class="item-subtitle">${item.role || item.position}${item.location ? ` | ${item.location}` : ''}</div>
+              ${desc ? `<div class="item-desc">${desc}</div>` : ''}
             </div>
           `;
         });
@@ -170,6 +291,9 @@ function generateClassicLayout(blocks: ResumeBlock[], styles: any): string {
         const items = Array.isArray(block.data) ? block.data : [];
         html += `<div class="section"><div class="section-title">教育背景</div>`;
         items.forEach((item: any) => {
+          const desc = Array.isArray(item.description)
+            ? item.description.join('<br>')
+            : item.description || '';
           html += `
             <div class="item">
               <div class="item-header">
@@ -177,7 +301,8 @@ function generateClassicLayout(blocks: ResumeBlock[], styles: any): string {
                 <span class="item-date">${item.startDate} - ${item.endDate}</span>
               </div>
               <div class="item-subtitle">${item.major} | ${item.degree}</div>
-              ${item.description ? `<div class="item-desc">${Array.isArray(item.description) ? item.description.join('<br>') : item.description}</div>` : ''}
+              ${item.gpa ? `<div class="item-desc">GPA: ${item.gpa}</div>` : ''}
+              ${desc ? `<div class="item-desc">${desc}</div>` : ''}
             </div>
           `;
         });
@@ -186,12 +311,19 @@ function generateClassicLayout(blocks: ResumeBlock[], styles: any): string {
       }
       case 'certifications': {
         const data = block.data;
-        const certifications = data?.certifications || [];
+        const certifications = data?.certifications || data || [];
+        const certList = Array.isArray(certifications)
+          ? certifications
+          : [];
         html += `
           <div class="section">
             <div class="section-title">证书荣誉</div>
             <div class="skills">
-              ${certifications.map((cert: any) => `<span class="skill-tag">${cert.name} ${cert.date}</span>`).join('')}
+              ${certList.map((cert: any) => {
+                const name = typeof cert === 'string' ? cert : cert.name;
+                const date = typeof cert === 'string' ? '' : cert.date || '';
+                return `<span class="skill-tag">${name} ${date}</span>`;
+              }).join('')}
             </div>
           </div>
         `;
@@ -246,56 +378,76 @@ function generateSidebarLayout(blocks: ResumeBlock[], styles: any): string {
     <div class="sidebar">
 `;
 
-  for (const block of blocks) {
-    switch (block.type) {
-      case 'basic': {
-        const data = block.data;
-        html += `
-          <div class="name">${data.name || '姓名'}</div>
-          <div class="title">${data.title || ''}</div>
-          <div style="margin-top: 20px;">
-            ${data.phone ? `<div class="contact-item">📱 ${data.phone}</div>` : ''}
-            ${data.email ? `<div class="contact-item">📧 ${data.email}</div>` : ''}
-            ${data.location ? `<div class="contact-item">📍 ${data.location}</div>` : ''}
+  const basicBlock = blocks.find((b) => b.type === 'basic');
+  const skillsBlock = blocks.find((b) => b.type === 'skills');
+  const certsBlock = blocks.find((b) => b.type === 'certifications');
+  const awardsBlock = blocks.find((b) => b.type === 'awards');
+  const educationBlock = blocks.find((b) => b.type === 'education');
+
+  if (basicBlock) {
+    const data = basicBlock.data;
+    html += `
+      <div class="name">${data.name || '姓名'}</div>
+      <div class="title">${data.title || ''}</div>
+      <div style="margin-top: 20px;">
+        ${data.phone ? `<div class="contact-item">📱 ${data.phone}</div>` : ''}
+        ${data.email ? `<div class="contact-item">📧 ${data.email}</div>` : ''}
+        ${data.location ? `<div class="contact-item">📍 ${data.location}</div>` : ''}
+      </div>
+    `;
+  }
+
+  if (skillsBlock) {
+    const skills = Array.isArray(skillsBlock.data) ? skillsBlock.data : [];
+    html += `
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">专业技能</div>
+        <div>
+          ${skills.map((skill: string) => `<span class="sidebar-skill-tag">${skill}</span>`).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  if (educationBlock) {
+    const items = Array.isArray(educationBlock.data) ? educationBlock.data : [];
+    html += `
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">教育背景</div>
+        ${items.map((item: any) => `
+          <div class="sidebar-item">
+            <div style="font-weight: bold; color: ${styles.sidebarTextColor};">${item.school}</div>
+            <div>${item.major} · ${item.degree}</div>
           </div>
-        `;
-        break;
-      }
-      case 'skills': {
-        const skills = Array.isArray(block.data) ? block.data : [];
-        html += `
-          <div class="sidebar-section">
-            <div class="sidebar-section-title">专业技能</div>
-            <div>
-              ${skills.map((skill: string) => `<span class="sidebar-skill-tag">${skill}</span>`).join('')}
-            </div>
-          </div>
-        `;
-        break;
-      }
-      case 'certifications': {
-        const data = block.data;
-        const certifications = data?.certifications || [];
-        html += `
-          <div class="sidebar-section">
-            <div class="sidebar-section-title">证书荣誉</div>
-            ${certifications.map((cert: any) => `<div class="sidebar-item">${cert.name} ${cert.date}</div>`).join('')}
-          </div>
-        `;
-        break;
-      }
-      case 'awards': {
-        const data = block.data;
-        const awards = data?.awards || [];
-        html += `
-          <div class="sidebar-section">
-            <div class="sidebar-section-title">荣誉奖项</div>
-            ${awards.map((award: string) => `<div class="sidebar-item">• ${award}</div>`).join('')}
-          </div>
-        `;
-        break;
-      }
-    }
+        `).join('')}
+      </div>
+    `;
+  }
+
+  if (certsBlock) {
+    const data = certsBlock.data;
+    const certifications = data?.certifications || data || [];
+    const certList = Array.isArray(certifications) ? certifications : [];
+    html += `
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">证书荣誉</div>
+        ${certList.map((cert: any) => {
+          const name = typeof cert === 'string' ? cert : cert.name;
+          return `<div class="sidebar-item">• ${name}</div>`;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  if (awardsBlock) {
+    const data = awardsBlock.data;
+    const awards = data?.awards || [];
+    html += `
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">荣誉奖项</div>
+        ${awards.map((award: string) => `<div class="sidebar-item">• ${award}</div>`).join('')}
+      </div>
+    `;
   }
 
   html += `
@@ -303,32 +455,40 @@ function generateSidebarLayout(blocks: ResumeBlock[], styles: any): string {
     <div class="main-content">
 `;
 
-  for (const block of blocks) {
+  const mainBlocks = blocks.filter(
+    (b) =>
+      b.type === 'objective' ||
+      b.type === 'experience' ||
+      b.type === 'projects' ||
+      b.type === 'organizations'
+  );
+
+  for (const block of mainBlocks) {
     switch (block.type) {
-      case 'basic': {
-        const data = block.data;
-        if (data.summary) {
-          html += `
-            <div class="section">
-              <div class="section-title">个人总结</div>
-              <div class="item-desc">${data.summary}</div>
-            </div>
-          `;
-        }
+      case 'objective': {
+        html += `
+          <div class="section">
+            <div class="section-title">职业目标</div>
+            <div class="item-desc">${block.data?.objective || ''}</div>
+          </div>
+        `;
         break;
       }
       case 'experience': {
         const items = Array.isArray(block.data) ? block.data : [];
         html += `<div class="section"><div class="section-title">工作经历</div>`;
         items.forEach((item: any) => {
+          const desc = Array.isArray(item.description)
+            ? item.description.join('<br>')
+            : item.description || '';
           html += `
             <div class="item">
               <div class="item-header">
                 <span class="item-title">${item.company}</span>
-                <span class="item-date">${item.startDate} - ${item.endDate}</span>
+                <span class="item-date">${item.startDate} - ${item.endDate || '至今'}</span>
               </div>
-              <div class="item-subtitle">${item.position} | ${item.location || ''}</div>
-              ${item.description ? `<div class="item-desc">${Array.isArray(item.description) ? item.description.join('<br>') : item.description}</div>` : ''}
+              <div class="item-subtitle">${item.position}${item.location ? ` | ${item.location}` : ''}</div>
+              ${desc ? `<div class="item-desc">${desc}</div>` : ''}
             </div>
           `;
         });
@@ -339,14 +499,17 @@ function generateSidebarLayout(blocks: ResumeBlock[], styles: any): string {
         const items = Array.isArray(block.data) ? block.data : [];
         html += `<div class="section"><div class="section-title">项目经验</div>`;
         items.forEach((item: any) => {
+          const desc = Array.isArray(item.description)
+            ? item.description.join('<br>')
+            : item.description || '';
           html += `
             <div class="item">
               <div class="item-header">
                 <span class="item-title">${item.name}</span>
-                <span class="item-date">${item.startDate} - ${item.endDate}</span>
+                <span class="item-date">${item.startDate} - ${item.endDate || '至今'}</span>
               </div>
-              <div class="item-subtitle">${item.role} | ${item.location || ''}</div>
-              ${item.description ? `<div class="item-desc">${Array.isArray(item.description) ? item.description.join('<br>') : item.description}</div>` : ''}
+              <div class="item-subtitle">${item.role}${item.location ? ` | ${item.location}` : ''}</div>
+              ${desc ? `<div class="item-desc">${desc}</div>` : ''}
               ${item.techStack ? `<div class="skills">${item.techStack.map((t: string) => `<span class="skill-tag">${t}</span>`).join('')}</div>` : ''}
             </div>
           `;
@@ -358,32 +521,17 @@ function generateSidebarLayout(blocks: ResumeBlock[], styles: any): string {
         const items = Array.isArray(block.data) ? block.data : [];
         html += `<div class="section"><div class="section-title">社团和组织经历</div>`;
         items.forEach((item: any) => {
+          const desc = Array.isArray(item.description)
+            ? item.description.join('<br>')
+            : item.description || '';
           html += `
             <div class="item">
               <div class="item-header">
                 <span class="item-title">${item.name}</span>
-                <span class="item-date">${item.startDate} - ${item.endDate}</span>
+                <span class="item-date">${item.startDate} - ${item.endDate || '至今'}</span>
               </div>
-              <div class="item-subtitle">${item.role} | ${item.location || ''}</div>
-              ${item.description ? `<div class="item-desc">${Array.isArray(item.description) ? item.description.join('<br>') : item.description}</div>` : ''}
-            </div>
-          `;
-        });
-        html += '</div>';
-        break;
-      }
-      case 'education': {
-        const items = Array.isArray(block.data) ? block.data : [];
-        html += `<div class="section"><div class="section-title">教育背景</div>`;
-        items.forEach((item: any) => {
-          html += `
-            <div class="item">
-              <div class="item-header">
-                <span class="item-title">${item.school}</span>
-                <span class="item-date">${item.startDate} - ${item.endDate}</span>
-              </div>
-              <div class="item-subtitle">${item.major} | ${item.degree}</div>
-              ${item.description ? `<div class="item-desc">${Array.isArray(item.description) ? item.description.join('<br>') : item.description}</div>` : ''}
+              <div class="item-subtitle">${item.role || item.position}${item.location ? ` | ${item.location}` : ''}</div>
+              ${desc ? `<div class="item-desc">${desc}</div>` : ''}
             </div>
           `;
         });
@@ -391,6 +539,18 @@ function generateSidebarLayout(blocks: ResumeBlock[], styles: any): string {
         break;
       }
     }
+  }
+
+  if (basicBlock?.data?.summary || basicBlock?.data?.bio) {
+    html = html.replace(
+      '<div class="main-content">',
+      `<div class="main-content">
+        <div class="section">
+          <div class="section-title">个人总结</div>
+          <div class="item-desc">${basicBlock.data.summary || basicBlock.data.bio}</div>
+        </div>
+      `
+    );
   }
 
   html += `
@@ -447,7 +607,16 @@ function generateMinimalLayout(blocks: ResumeBlock[], styles: any): string {
               ${data.email ? `${data.email} · ` : ''}
               ${data.location ? `${data.location}` : ''}
             </div>
-            ${data.summary ? `<div style="margin-top: 20px; font-size: 12px; color: #777; line-height: 1.8; max-width: 80%;">${data.summary}</div>` : ''}
+            ${data.summary || data.bio ? `<div style="margin-top: 20px; font-size: 12px; color: #777; line-height: 1.8; max-width: 80%;">${data.summary || data.bio}</div>` : ''}
+          </div>
+        `;
+        break;
+      }
+      case 'objective': {
+        html += `
+          <div class="section">
+            <div class="section-title">职业目标</div>
+            <div class="item-desc">${block.data?.objective || ''}</div>
           </div>
         `;
         break;
@@ -456,14 +625,17 @@ function generateMinimalLayout(blocks: ResumeBlock[], styles: any): string {
         const items = Array.isArray(block.data) ? block.data : [];
         html += `<div class="section"><div class="section-title">工作经历</div>`;
         items.forEach((item: any) => {
+          const desc = Array.isArray(item.description)
+            ? item.description.join('<br>')
+            : item.description || '';
           html += `
             <div class="item">
               <div class="item-header">
                 <span class="item-title">${item.company}</span>
-                <span class="item-date">${item.startDate} - ${item.endDate}</span>
+                <span class="item-date">${item.startDate} - ${item.endDate || '至今'}</span>
               </div>
               <div class="item-subtitle">${item.position}</div>
-              ${item.description ? `<div class="item-desc">${Array.isArray(item.description) ? item.description.join('<br>') : item.description}</div>` : ''}
+              ${desc ? `<div class="item-desc">${desc}</div>` : ''}
             </div>
           `;
         });
@@ -474,14 +646,17 @@ function generateMinimalLayout(blocks: ResumeBlock[], styles: any): string {
         const items = Array.isArray(block.data) ? block.data : [];
         html += `<div class="section"><div class="section-title">项目经验</div>`;
         items.forEach((item: any) => {
+          const desc = Array.isArray(item.description)
+            ? item.description.join('<br>')
+            : item.description || '';
           html += `
             <div class="item">
               <div class="item-header">
                 <span class="item-title">${item.name}</span>
-                <span class="item-date">${item.startDate} - ${item.endDate}</span>
+                <span class="item-date">${item.startDate} - ${item.endDate || '至今'}</span>
               </div>
               <div class="item-subtitle">${item.role}</div>
-              ${item.description ? `<div class="item-desc">${Array.isArray(item.description) ? item.description.join('<br>') : item.description}</div>` : ''}
+              ${desc ? `<div class="item-desc">${desc}</div>` : ''}
               ${item.techStack ? `<div class="skills">${item.techStack.map((t: string) => `<span class="skill-tag">${t}</span>`).join('')}</div>` : ''}
             </div>
           `;
@@ -493,14 +668,17 @@ function generateMinimalLayout(blocks: ResumeBlock[], styles: any): string {
         const items = Array.isArray(block.data) ? block.data : [];
         html += `<div class="section"><div class="section-title">社团和组织经历</div>`;
         items.forEach((item: any) => {
+          const desc = Array.isArray(item.description)
+            ? item.description.join('<br>')
+            : item.description || '';
           html += `
             <div class="item">
               <div class="item-header">
                 <span class="item-title">${item.name}</span>
-                <span class="item-date">${item.startDate} - ${item.endDate}</span>
+                <span class="item-date">${item.startDate} - ${item.endDate || '至今'}</span>
               </div>
-              <div class="item-subtitle">${item.role}</div>
-              ${item.description ? `<div class="item-desc">${Array.isArray(item.description) ? item.description.join('<br>') : item.description}</div>` : ''}
+              <div class="item-subtitle">${item.role || item.position}</div>
+              ${desc ? `<div class="item-desc">${desc}</div>` : ''}
             </div>
           `;
         });
@@ -536,6 +714,9 @@ function generateMinimalLayout(blocks: ResumeBlock[], styles: any): string {
         const items = Array.isArray(block.data) ? block.data : [];
         html += `<div class="section"><div class="section-title">教育背景</div>`;
         items.forEach((item: any) => {
+          const desc = Array.isArray(item.description)
+            ? item.description.join('<br>')
+            : item.description || '';
           html += `
             <div class="item">
               <div class="item-header">
@@ -543,7 +724,7 @@ function generateMinimalLayout(blocks: ResumeBlock[], styles: any): string {
                 <span class="item-date">${item.startDate} - ${item.endDate}</span>
               </div>
               <div class="item-subtitle">${item.major} | ${item.degree}</div>
-              ${item.description ? `<div class="item-desc">${Array.isArray(item.description) ? item.description.join('<br>') : item.description}</div>` : ''}
+              ${desc ? `<div class="item-desc">${desc}</div>` : ''}
             </div>
           `;
         });
@@ -552,12 +733,19 @@ function generateMinimalLayout(blocks: ResumeBlock[], styles: any): string {
       }
       case 'certifications': {
         const data = block.data;
-        const certifications = data?.certifications || [];
+        const certifications = data?.certifications || data || [];
+        const certList = Array.isArray(certifications)
+          ? certifications
+          : [];
         html += `
           <div class="section">
             <div class="section-title">证书荣誉</div>
             <div class="skills">
-              ${certifications.map((cert: any) => `<span class="skill-tag">${cert.name} ${cert.date}</span>`).join('')}
+              ${certList.map((cert: any) => {
+                const name = typeof cert === 'string' ? cert : cert.name;
+                const date = typeof cert === 'string' ? '' : cert.date || '';
+                return `<span class="skill-tag">${name} ${date}</span>`;
+              }).join('')}
             </div>
           </div>
         `;

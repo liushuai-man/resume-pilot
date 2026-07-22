@@ -168,7 +168,8 @@ export interface Resume {
 }
 
 export interface TemplateSchema {
-  blocks: ResumeBlock[];
+  defaultContent: ResumeContent;
+  layout: 'classic' | 'sidebar' | 'minimal';
 }
 
 export interface StyleConfig {
@@ -180,6 +181,9 @@ export interface StyleConfig {
   sectionTitleColor?: string;
   sectionTitleSize?: number;
   lineColor?: string;
+  sidebarColor?: string;
+  sidebarTextColor?: string;
+  layout?: 'classic' | 'sidebar' | 'minimal';
 }
 
 export interface Template {

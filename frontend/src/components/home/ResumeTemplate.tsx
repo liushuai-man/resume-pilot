@@ -1,7 +1,8 @@
 import { Card, Text, Button, Group, Modal, Badge } from '@mantine/core';
 import { Eye, Plus } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import type { Template } from '@/types/resume';
+import { generateThumbnailFromResume } from '@/utils/thumbnail';
 
 interface ResumeTemplateProps {
   templates: Template[];
@@ -27,6 +28,24 @@ export default function ResumeTemplate({
     setPreviewTemplate(null);
   };
 
+  const templateThumbnails = useMemo(() => {
+    const map: Record<string, string> = {};
+    templates.forEach((template) => {
+      if (template.thumbnail) {
+        map[template.id] = template.thumbnail;
+      } else {
+        const defaultContent = template.schema?.defaultContent || {};
+        const layout = template.schema?.layout || 'classic';
+        const styleConfig = template.style_config || {};
+        map[template.id] = generateThumbnailFromResume(defaultContent, {
+          layout: layout as 'classic' | 'sidebar' | 'minimal',
+          styleConfig,
+        });
+      }
+    });
+    return map;
+  }, [templates]);
+
   return (
     <>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
@@ -38,24 +57,18 @@ export default function ResumeTemplate({
             p={0}
           >
             <div
-              className="flex-1 relative overflow-hidden"
+              className="flex-1 relative overflow-hidden bg-white"
               style={{ minHeight: '200px' }}
             >
-              {template.thumbnail ? (
-                <img
-                  src={template.thumbnail}
-                  alt={template.name}
-                  className="w-full h-full"
-                  style={{
-                    objectFit: 'cover',
-                    objectPosition: 'top center',
-                  }}
-                />
-              ) : (
-                <div className="h-full flex items-center justify-center">
-                  暂无图片
-                </div>
-              )}
+              <img
+                src={templateThumbnails[template.id]}
+                alt={template.name}
+                className="w-full h-full"
+                style={{
+                  objectFit: 'cover',
+                  objectPosition: 'top center',
+                }}
+              />
             </div>
 
             <div className="px-2 pb-2 bg-white border-t border-gray-100">
@@ -129,31 +142,48 @@ export default function ResumeTemplate({
         className="max-w-4xl"
       >
         {previewTemplate && (
-          <div className="bg-white border-t-2 border-gray-200  overflow-hidden">
-              <div
-                className="rounded-lg  overflow-auto"
-                style={{
-                  maxHeight: '70vh',
-                  backgroundColor:
-                    previewTemplate.style_config.backgroundColor || '#FFFFFF',
-                }}
-              >
-                {previewTemplate.preview_image ? (
+          <div className="bg-white border-t-2 border-gray-200 overflow-hidden">
+            <div
+              className="rounded-lg overflow-auto"
+              style={{
+                maxHeight: '70vh',
+                backgroundColor:
+                  previewTemplate.style_config.backgroundColor || '#FFFFFF',
+              }}
+            >
+              {previewTemplate.preview_image ? (
+                <img
+                  src={previewTemplate.preview_image}
+                  alt={previewTemplate.name}
+                  className="w-full mt-4 border-gray-200"
+                  style={{
+                    objectFit: 'contain',
+                    objectPosition: 'top center',
+                  }}
+                />
+              ) : (
+                <div className="w-full flex items-center justify-center py-8">
                   <img
-                    src={previewTemplate.preview_image}
+                    src={
+                      templateThumbnails[previewTemplate.id] ||
+                      generateThumbnailFromResume(
+                        previewTemplate.schema?.defaultContent || {},
+                        {
+                          layout:
+                            (previewTemplate.schema?.layout as
+                              | 'classic'
+                              | 'sidebar'
+                              | 'minimal') || 'classic',
+                          styleConfig: previewTemplate.style_config || {},
+                        }
+                      )
+                    }
                     alt={previewTemplate.name}
-                    className="w-full mt-4  border-gray-200"
-                    style={{
-                      objectFit: 'contain',
-                      objectPosition: 'top center',
-                    }}
+                    style={{ width: '300px', height: '420px' }}
                   />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                 暂无预览图片
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
+            </div>
 
             <div className="p-4 border-t-2 flex justify-end">
               <Button

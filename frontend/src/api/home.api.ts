@@ -7,6 +7,10 @@ export const resumeApi = {
     return await request.get('/resume/templates');
   },
 
+  getTemplateById: async (id: string): Promise<ApiResponse<Template>> => {
+    return await request.get(`/resume/templates/${id}`);
+  },
+
   getUserResumes: async (): Promise<ApiResponse<Resume[]>> => {
     return await request.get('/resume');
   },

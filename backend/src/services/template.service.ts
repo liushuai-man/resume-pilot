@@ -1,6 +1,5 @@
 import { PrismaClient } from '@prisma/client';
 import { generateResumeHtml } from '../utils/resumeToHtml';
-import { defaultResume } from '../utils/defaultResume';
 import {
   generatePreviewImage,
   generateThumbnailFromPreview,
@@ -20,11 +19,25 @@ export interface TemplateWithImages {
   category: string;
   thumbnail: string | null;
   preview_image: string | null;
-  schema: object;
-  style_config: object;
+  schema: any;
+  style_config: any;
   created_at: Date;
   updated_at: Date;
   is_deleted: boolean;
+}
+
+function getDefaultContent(schema: any): any {
+  if (schema?.defaultContent) {
+    return schema.defaultContent;
+  }
+  if (schema?.blocks) {
+    return schema;
+  }
+  return { basicInfo: {}, education: [], experience: [], projects: [], skills: [], certifications: [], campusExperiences: [], careerObjective: '' };
+}
+
+function getLayout(styleConfig: any, schema: any): string {
+  return styleConfig?.layout || schema?.layout || 'classic';
 }
 
 export async function getTemplatesWithImages(): Promise<TemplateWithImages[]> {
@@ -45,7 +58,6 @@ export async function getTemplatesWithImages(): Promise<TemplateWithImages[]> {
         ? JSON.parse(template.style_config)
         : template.style_config;
 
-    // 检查文件是否存在
     const thumbnailPath = path.join(
       __dirname,
       '../uploads/templates',
@@ -79,7 +91,12 @@ export async function getTemplatesWithImages(): Promise<TemplateWithImages[]> {
       try {
         await ensureTemplateDirExists(template.id);
 
-        const html = generateResumeHtml(defaultResume, styleConfig);
+        const defaultContent = getDefaultContent(schema);
+        const layout = getLayout(styleConfig, schema);
+        const html = generateResumeHtml(defaultContent, {
+          ...styleConfig,
+          layout,
+        });
 
         const previewTempPath = path.join(
           __dirname,
@@ -108,7 +125,7 @@ export async function getTemplatesWithImages(): Promise<TemplateWithImages[]> {
         const sharp = (await import('sharp')).default;
 
         await sharp(previewTempPath)
-          .resize({ width: 1200, height: 1697, fit: 'cover' })
+          .resize({ width: 1200, height: 1697, fit: 'cover', position: 'top' })
           .webp({ quality: 90 })
           .toFile(previewOutputPath);
         console.log(`Preview webp generated successfully`);
@@ -185,7 +202,12 @@ export async function generateTemplateImages(
 
   await ensureTemplateDirExists(templateId);
 
-  const html = generateResumeHtml(defaultResume, styleConfig);
+  const defaultContent = getDefaultContent(schema);
+  const layout = getLayout(styleConfig, schema);
+  const html = generateResumeHtml(defaultContent, {
+    ...styleConfig,
+    layout,
+  });
 
   const previewTempPath = path.join(
     __dirname,
@@ -208,6 +230,12 @@ export async function generateTemplateImages(
 
   await generatePreviewImage(html, previewTempPath);
   await generateThumbnailFromPreview(previewTempPath, thumbnailOutputPath);
+
+  const sharp = (await import('sharp')).default;
+  await sharp(previewTempPath)
+    .resize({ width: 1200, height: 1697, fit: 'cover', position: 'top' })
+    .webp({ quality: 90 })
+    .toFile(previewOutputPath);
 
   const thumbnailUrl = `/uploads/templates/${templateId}/thumbnail.webp`;
   const previewUrl = `/uploads/templates/${templateId}/preview.webp`;
