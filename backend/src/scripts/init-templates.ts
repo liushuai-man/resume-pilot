@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../database/prisma';
 import crypto from 'crypto';
-
-const prisma = new PrismaClient();
 
 const defaultFlatContent = {
   basicInfo: {

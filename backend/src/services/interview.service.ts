@@ -1,9 +1,16 @@
 import { prisma } from '../database/prisma';
 import { interviewAgent } from '../ai/agents/interview.agent';
+import {
+  startLangGraphInterview,
+  submitLangGraphAnswer,
+  LangGraphInterviewState,
+} from '../ai/agents/langgraph.interview.agent';
 import { InterviewState, Question, Answer } from '../ai/types/interview.types';
 
-// 会话状态存储（实际项目中应该使用 Redis）
-const sessionStore = new Map<string, InterviewState>();
+const sessionStore = new Map<
+  string,
+  LangGraphInterviewState | InterviewState
+>();
 
 // 主流程：面试工作流
 export async function startInterview(
@@ -14,7 +21,7 @@ export async function startInterview(
 ): Promise<{
   sessionId: string;
   firstQuestion: Question;
-  sessionData: InterviewState;
+  sessionData: LangGraphInterviewState;
 }> {
   console.log('=== 使用 LangGraph 开始面试 ===');
 
@@ -32,8 +39,8 @@ export async function startInterview(
     },
   });
 
-  // 使用 InterviewAgent 开始面试
-  const { sessionData, firstQuestion } = await interviewAgent.startInterview(
+  // 使用 LangGraph 面试 Agent 开始面试
+  const { sessionData, firstQuestion } = await startLangGraphInterview(
     resumeId,
     resume.content,
     targetPosition,
@@ -65,35 +72,23 @@ export async function submitAnswer(
   console.log('=== 使用 LangGraph 提交回答 ===');
 
   // 获取会话状态
-  let state = sessionStore.get(sessionId);
+  const state = sessionStore.get(sessionId) as LangGraphInterviewState;
   if (!state) {
     throw new Error('会话不存在');
   }
 
-  // 使用 InterviewAgent 处理回答
-  const result = await interviewAgent.submitAnswer(state, answer);
+  // 使用 LangGraph 面试 Agent 处理回答
+  const result = await submitLangGraphAnswer(state, answer);
 
   // 更新会话状态
-  if (result.nextQuestion) {
-    state = {
-      ...state,
-      answers: [...state.answers, { questionId: question.id, content: answer }],
-      currentQuestionIndex: state.currentQuestionIndex + 1,
-      questions: [...state.questions, result.nextQuestion],
-      currentSection: result.nextQuestion.sectionKey,
-    };
-  } else {
-    state = {
-      ...state,
-      answers: [...state.answers, { questionId: question.id, content: answer }],
-      isFinished: true,
-      finalReport: result.report,
-    };
-  }
+  sessionStore.set(sessionId, result.updatedState);
 
-  sessionStore.set(sessionId, state);
-
-  return result;
+  return {
+    feedback: result.feedback,
+    nextQuestion: result.nextQuestion,
+    isFinished: result.isFinished,
+    report: result.report,
+  };
 }
 
 export async function finishInterview(
@@ -106,7 +101,7 @@ export async function finishInterview(
 ): Promise<any> {
   console.log('=== 使用 LangGraph 完成面试 ===');
 
-  const state = sessionStore.get(sessionId);
+  const state = sessionStore.get(sessionId) as LangGraphInterviewState;
   if (!state) {
     throw new Error('会话不存在');
   }
@@ -117,9 +112,9 @@ export async function finishInterview(
       user_id: userId,
       session_id: sessionId,
       resume_id: resumeId,
-      position: '面试评估',
-      score: state.finalReport?.overallScore || 60,
-      report: state.finalReport as any,
+      position: state.targetPosition,
+      score: state.report?.overallScore || 60,
+      report: state.report as any,
     },
   });
 

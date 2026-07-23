@@ -1,13 +1,11 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../database/prisma';
 import {
   generateThumbnail,
   ensureThumbnailDirExists,
   getThumbnailPath,
 } from '../services/thumbnail.service';
 import { success, error } from '../utils/response';
-
-const prisma = new PrismaClient();
 
 export const createResume = async (req: Request, res: Response) => {
   try {

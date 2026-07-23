@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../database/prisma';
 import { generateResumeHtml } from '../utils/resumeToHtml';
 import {
   generatePreviewImage,
@@ -11,8 +11,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-const prisma = new PrismaClient();
 
 async function generateTemplateThumbnails() {
   console.log('开始为模板生成预览图和缩略图...');

@@ -1,11 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Select, Loader, Text } from '@mantine/core';
-import { ArrowLeft, History, Play, Square, Bot } from 'lucide-react';
+import { ArrowLeft, History, Play, Square, Bot, Upload } from 'lucide-react';
 import { useResumeStore } from '@/store/useResumeStore';
 import { useUserStore } from '@/store/useUserStore';
 import { resumeApi } from '@/api/home.api';
 import { interviewApi, Question, Answer } from '@/api/interview.api';
+import { uploadApi } from '@/api/upload.api';
 import ResizableResumePreview from '@/components/editor/ResizableResumePreview';
 import { InterviewReport, InterviewChat } from '@/components/interview';
 import { notifications } from '@mantine/notifications';
@@ -13,7 +14,7 @@ import { notifications } from '@mantine/notifications';
 const InterviewPage = () => {
   const navigate = useNavigate();
   const { resumeId: paramResumeId } = useParams<{ resumeId?: string }>();
-  const { resume, setResume, loadTemplate } = useResumeStore();
+  const { resume, setResume, setContent, loadTemplate } = useResumeStore();
   const { user } = useUserStore();
 
   const [loading, setLoading] = useState(true);
@@ -36,14 +37,20 @@ const InterviewPage = () => {
   const [isFinished, setIsFinished] = useState(false);
   const [interviewResult, setInterviewResult] = useState<any>(null);
   const [isThinking, setIsThinking] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 加载简历及其模板样式
-  const loadResumeWithTemplate = useCallback(async (resumeData: any) => {
-    setResume(resumeData);
-    if (resumeData.template_id) {
-      await loadTemplate(resumeData.template_id);
-    }
-  }, [setResume, loadTemplate]);
+  const loadResumeWithTemplate = useCallback(
+    async (resumeData: any) => {
+      setResume(resumeData);
+      setContent(resumeData.content);
+      if (resumeData.template_id) {
+        await loadTemplate(resumeData.template_id);
+      }
+    },
+    [setResume, setContent, loadTemplate]
+  );
 
   // 获取用户的所有简历
   const fetchResumes = useCallback(async () => {
@@ -224,6 +231,51 @@ const InterviewPage = () => {
     setInterviewResult(null);
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = [
+      'application/pdf',
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+    ];
+    if (!allowedTypes.includes(file.type)) {
+      notifications.show({
+        title: '错误',
+        message: '不支持的文件类型，仅支持PDF和图片格式',
+        color: 'red',
+      });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const result = await uploadApi.uploadResume(file);
+
+      setResumes((prev) => [result.resume, ...prev]);
+      setSelectedResumeId(result.resume.id);
+
+      notifications.show({
+        title: '成功',
+        message: `简历导入成功，识别了${result.fileInfo.pageCount || 1}页内容`,
+        color: 'green',
+      });
+    } catch (error) {
+      console.error('上传简历失败:', error);
+      notifications.show({
+        title: '失败',
+        message: '上传简历失败，请重试',
+        color: 'red',
+      });
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
+  };
+
   // 更新选中的简历
   useEffect(() => {
     if (selectedResumeId && resumes.length > 0) {
@@ -301,6 +353,23 @@ const InterviewPage = () => {
 
           {/* 操作按钮 */}
           <div className="flex items-center gap-2 flex-shrink-0">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              accept=".pdf,.jpg,.jpeg,.png,.gif,.webp"
+              className="hidden"
+            />
+            <Button
+              variant="outline"
+              size="xs"
+              leftSection={<Upload size={14} />}
+              onClick={() => fileInputRef.current?.click()}
+              loading={uploading}
+              disabled={!!sessionId}
+            >
+              导入简历
+            </Button>
             {!sessionId ? (
               <>
                 <Button

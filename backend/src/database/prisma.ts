@@ -1,5 +1,16 @@
-import { PrismaClient } from '@prisma/client'
+let prismaInstance: any = null;
 
-export const prisma = new PrismaClient({
-  // log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-})
+export async function getPrisma() {
+  if (prismaInstance) {
+    return prismaInstance;
+  }
+  
+  const { PrismaClient } = await import('@prisma/client');
+  prismaInstance = new PrismaClient({
+    // log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  });
+  
+  return prismaInstance;
+}
+
+export const prisma = await getPrisma();
