@@ -4,12 +4,14 @@ export interface AICompleteRequest {
   text: string;
   context?: string;
   targetField?: string;
+  userId?: string;
 }
 
 export interface AIPolishRequest {
   text: string;
   targetField?: string;
   tone?: 'professional' | 'concise' | 'creative' | 'formal';
+  userId?: string;
 }
 
 export async function aiComplete(request: AICompleteRequest): Promise<string> {

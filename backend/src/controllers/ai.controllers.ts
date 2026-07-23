@@ -14,7 +14,7 @@ import {
 import { success, error } from '../utils/response';
 import { aiConfig } from '../config/ai';
 
-export const completeText = async (req: Request, res: Response) => {
+export const completeText = async (req: any, res: Response) => {
   try {
     console.log('=== AI补全请求 ===');
     console.log('使用模型:', aiConfig.provider);
@@ -24,12 +24,13 @@ export const completeText = async (req: Request, res: Response) => {
     });
 
     const { text, context, targetField }: AICompleteRequest = req.body;
+    const userId = req.user?.id;
 
     if (!text || text.trim() === '') {
       return error(res, '请提供需要补全的文本', 400);
     }
 
-    const result = await aiComplete({ text, context, targetField });
+    const result = await aiComplete({ text, context, targetField, userId });
     console.log('AI补全成功:', result?.substring(0, 50) + '...');
 
     return success(res, { content: result }, '补全成功');
@@ -46,7 +47,7 @@ export const completeText = async (req: Request, res: Response) => {
   }
 };
 
-export const polishText = async (req: Request, res: Response) => {
+export const polishText = async (req: any, res: Response) => {
   try {
     console.log('=== AI润色请求 ===');
     console.log('使用模型:', aiConfig.provider);
@@ -56,12 +57,13 @@ export const polishText = async (req: Request, res: Response) => {
     });
 
     const { text, targetField, tone }: AIPolishRequest = req.body;
+    const userId = req.user?.id;
 
     if (!text || text.trim() === '') {
       return error(res, '请提供需要润色的文本', 400);
     }
 
-    const result = await aiPolish({ text, targetField, tone });
+    const result = await aiPolish({ text, targetField, tone, userId });
     console.log('AI润色成功:', result?.substring(0, 50) + '...');
 
     return success(res, { content: result }, '润色成功');

@@ -6,6 +6,7 @@ import {
   PanelLeftOpen,
   PanelRightOpen,
 } from 'lucide-react';
+import ModelSelector from '@/components/common/ModelSelector';
 
 const RESUME_WIDTH = 850;
 const MIN_SCALE = 0.4;
@@ -85,6 +86,8 @@ export default function EditorLayout({
 
         {/* 右侧区域：开关按钮 */}
         <div className="flex items-center gap-2">
+          <ModelSelector variant="compact" />
+
           {/* 左侧面板开关 */}
           <Tooltip label={leftCollapsed ? '展开编辑区' : '收起编辑区'}>
             <Button

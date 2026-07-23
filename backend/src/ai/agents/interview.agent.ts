@@ -1,6 +1,6 @@
 import { RunnableSequence } from '@langchain/core/runnables';
 import { StringOutputParser } from '@langchain/core/output_parsers';
-import { createLLM } from '../providers/llm.provider';
+import { createUserLLM } from '../providers/llm.provider';
 import { ANALYZE_RESUME_PROMPT } from '../prompts/interview/analyze.prompt';
 import { GENERATE_QUESTIONS_PROMPT } from '../prompts/interview/generate.prompt';
 import { EVALUATE_ANSWER_PROMPT } from '../prompts/interview/evaluate.prompt';
@@ -13,8 +13,6 @@ import {
 } from '../types/interview.types';
 
 export class InterviewAgent {
-  private llm = createLLM({ temperature: 0.7, maxTokens: 4000 });
-
   /**
    * 清理AI返回的JSON字符串，移除markdown代码块标记
    */
@@ -156,13 +154,20 @@ export class InterviewAgent {
   /**
    * 分析简历内容
    */
-  private async analyzeResume(resumeContent: any): Promise<{
+  private async analyzeResume(
+    resumeContent: any,
+    userId?: string
+  ): Promise<{
     sections: { key: string; name: string; description: string }[];
     keySkills: string[];
   }> {
+    const llm = await createUserLLM(userId, {
+      temperature: 0.7,
+      maxTokens: 2000,
+    });
     const chain = RunnableSequence.from([
       ANALYZE_RESUME_PROMPT,
-      this.llm,
+      llm,
       new StringOutputParser(),
     ]);
 
@@ -199,7 +204,8 @@ export class InterviewAgent {
     resumeContent: any,
     targetPosition: string = '通用岗位',
     count: number = 1,
-    qaHistory: { question: string; answer: string; feedback?: string }[] = []
+    qaHistory: { question: string; answer: string; feedback?: string }[] = [],
+    userId?: string
   ): Promise<Question[]> {
     const resumeStr = JSON.stringify(resumeContent, null, 2);
 
@@ -218,9 +224,13 @@ export class InterviewAgent {
       qaHistorySection = '这是面试的开始，还没有问答历史。';
     }
 
+    const llm = await createUserLLM(userId, {
+      temperature: 0.7,
+      maxTokens: 2000,
+    });
     const chain = RunnableSequence.from([
       GENERATE_QUESTIONS_PROMPT,
-      this.llm,
+      llm,
       new StringOutputParser(),
     ]);
 
@@ -257,7 +267,8 @@ export class InterviewAgent {
   private async evaluateAnswer(
     question: Question,
     answer: string,
-    resumeContent: any
+    resumeContent: any,
+    userId?: string
   ): Promise<Evaluation> {
     const resumeSectionContent = JSON.stringify(
       resumeContent[question.sectionKey] || {},
@@ -265,9 +276,13 @@ export class InterviewAgent {
       2
     );
 
+    const llm = await createUserLLM(userId, {
+      temperature: 0.5,
+      maxTokens: 1000,
+    });
     const chain = RunnableSequence.from([
       EVALUATE_ANSWER_PROMPT,
-      this.llm,
+      llm,
       new StringOutputParser(),
     ]);
 
@@ -301,7 +316,8 @@ export class InterviewAgent {
     questions: Question[],
     answers: Answer[],
     evaluations: Evaluation[],
-    targetPosition: string = '通用岗位'
+    targetPosition: string = '通用岗位',
+    userId?: string
   ): Promise<any> {
     // 找到自我介绍相关的问题和回答
     const introQuestion = questions.find((q) => q.isIntroduction);
@@ -339,9 +355,13 @@ ${introAnswer.content}`;
       .filter(Boolean)
       .join('\n');
 
+    const llm = await createUserLLM(userId, {
+      temperature: 0.5,
+      maxTokens: 3000,
+    });
     const chain = RunnableSequence.from([
       GENERATE_REPORT_PROMPT,
-      this.llm,
+      llm,
       new StringOutputParser(),
     ]);
 
@@ -372,14 +392,15 @@ ${introAnswer.content}`;
     resumeId: string,
     resumeContent: any,
     targetPosition?: string,
-    questionCount?: number
+    questionCount?: number,
+    userId?: string
   ): Promise<{
     sessionData: InterviewState;
     firstQuestion: Question;
   }> {
     console.log('=== 初始化面试 ===');
     const maxQuestions = questionCount || 5;
-    const analysis = await this.analyzeResume(resumeContent);
+    const analysis = await this.analyzeResume(resumeContent, userId);
 
     // 第一个问题：自我介绍（可跳过）
     const firstQuestion: Question = {
@@ -404,6 +425,7 @@ ${introAnswer.content}`;
       evaluations: [],
       currentQuestionIndex: 0,
       isFinished: false,
+      userId,
     };
 
     return {
@@ -447,7 +469,8 @@ ${introAnswer.content}`;
       evaluateResult = await this.evaluateAnswer(
         currentQuestion,
         answer,
-        state.resumeContent
+        state.resumeContent,
+        state.userId
       );
     }
 
@@ -486,7 +509,8 @@ ${introAnswer.content}`;
         [...state.questions],
         [...state.answers, newAnswer],
         newEvaluations,
-        state.targetPosition
+        state.targetPosition,
+        state.userId
       );
     } else {
       // 基于问答历史生成下一个问题
@@ -494,7 +518,8 @@ ${introAnswer.content}`;
         state.resumeContent,
         state.targetPosition,
         1,
-        qaHistory
+        qaHistory,
+        state.userId
       );
 
       if (newQuestions.length > 0) {

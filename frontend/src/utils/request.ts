@@ -67,6 +67,11 @@ interface RequestMethods {
     data?: unknown,
     config?: AxiosRequestConfig
   ): Promise<T>;
+  patch<T = unknown>(
+    url: string,
+    data?: unknown,
+    config?: AxiosRequestConfig
+  ): Promise<T>;
   delete<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<T>;
 }
 
@@ -79,6 +84,9 @@ const request: RequestMethods = {
   },
   put(url, data, config) {
     return instance.put(url, data, config);
+  },
+  patch(url, data, config) {
+    return instance.patch(url, data, config);
   },
   delete(url, config) {
     return instance.delete(url, config);

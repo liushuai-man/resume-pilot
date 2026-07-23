@@ -29,6 +29,7 @@ export interface InterviewState {
   currentQuestionIndex: number;
   isFinished: boolean;
   finalReport?: any;
+  userId?: string;
 }
 
 export interface InterviewReport {

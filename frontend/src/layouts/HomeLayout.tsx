@@ -6,6 +6,7 @@ import { Mail } from 'lucide-react';
 import { useUserStore } from '@/store/useUserStore';
 import { logout } from '@/api/auth.api';
 import { notification } from '@/components/common/Notification';
+import ModelSelector from '@/components/common/ModelSelector';
 
 export default function HomeLayout() {
   const { user, clearUser, isLoggedIn, setUser } = useUserStore();
@@ -68,6 +69,8 @@ export default function HomeLayout() {
         </div>
 
         <div className="flex items-center gap-6">
+          <ModelSelector variant="full" />
+
           {/* 用户信息：登录后显示 */}
           {isLoggedIn && user && (
             <div className="flex items-center gap-2">

@@ -1,22 +1,19 @@
 import { RunnableSequence } from '@langchain/core/runnables';
 import { StringOutputParser } from '@langchain/core/output_parsers';
-import { createLLM } from '../providers/llm.provider';
+import { createUserLLM } from '../providers/llm.provider';
 import { COMPLETE_PROMPT } from '../prompts/resume/complete.prompt';
 import { POLISH_PROMPT, TONE_DESCRIPTIONS } from '../prompts/resume/polish.prompt';
 import { AICompleteRequest, AIPolishRequest } from '../types/resume.types';
 
 export class ResumeAgent {
-  private llm = createLLM({ temperature: 0.7, maxTokens: 500 });
+  async complete(request: AICompleteRequest & { userId?: string }): Promise<string> {
+    const { text, context = '', targetField = '某个部分', userId } = request;
 
-  /**
-   * AI 内容补全
-   */
-  async complete(request: AICompleteRequest): Promise<string> {
-    const { text, context = '', targetField = '某个部分' } = request;
+    const llm = await createUserLLM(userId, { temperature: 0.7, maxTokens: 500 });
 
     const chain = RunnableSequence.from([
       COMPLETE_PROMPT,
-      this.llm,
+      llm,
       new StringOutputParser(),
     ]);
 
@@ -33,16 +30,15 @@ export class ResumeAgent {
     }
   }
 
-  /**
-   * AI 内容润色
-   */
-  async polish(request: AIPolishRequest): Promise<string> {
-    const { text, targetField = '简历通用内容', tone = 'professional' } = request;
+  async polish(request: AIPolishRequest & { userId?: string }): Promise<string> {
+    const { text, targetField = '简历通用内容', tone = 'professional', userId } = request;
     const toneDescription = TONE_DESCRIPTIONS[tone];
+
+    const llm = await createUserLLM(userId, { temperature: 0.7, maxTokens: 500 });
 
     const chain = RunnableSequence.from([
       POLISH_PROMPT,
-      this.llm,
+      llm,
       new StringOutputParser(),
     ]);
 

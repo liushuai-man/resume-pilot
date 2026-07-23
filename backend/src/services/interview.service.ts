@@ -37,7 +37,8 @@ export async function startInterview(
     resumeId,
     resume.content,
     targetPosition,
-    questionCount
+    questionCount,
+    userId
   );
 
   // 存储会话状态

@@ -1,14 +1,15 @@
 import { RunnableSequence } from '@langchain/core/runnables';
 import { StringOutputParser } from '@langchain/core/output_parsers';
-import { ChatPromptTemplate, MessagesPlaceholder } from '@langchain/core/prompts';
+import {
+  ChatPromptTemplate,
+  MessagesPlaceholder,
+} from '@langchain/core/prompts';
 import { HumanMessage, AIMessage } from '@langchain/core/messages';
-import { createLLM } from '../providers/llm.provider';
+import { createUserLLM } from '../providers/llm.provider';
 import { vectorMemoryManager } from '../memory/vector-memory';
 import { AIChatRequest } from '../types/chat.types';
 
 export class ChatAgent {
-  private llm = createLLM({ temperature: 0.7, maxTokens: 1000 });
-
   async chat(request: AIChatRequest): Promise<string> {
     const {
       sessionId = `temp_${Date.now()}`,
@@ -22,7 +23,6 @@ export class ChatAgent {
     console.log(`=== 使用向量化记忆进行 AI 对话 - Session: ${sessionId} ===`);
 
     try {
-      // 如果有简历内容，先将其添加到记忆中
       if (resumeContent) {
         await vectorMemoryManager.addResumeContent(
           sessionId,
@@ -32,30 +32,30 @@ export class ChatAgent {
         );
       }
 
-      // 获取最新的用户问题
       const latestUserMessage = messages[messages.length - 1]?.content || '';
 
-      // 从向量记忆中检索相关信息
-      const relevantMemories = await vectorMemoryManager.retrieveRelevantMemories(
-        sessionId,
-        latestUserMessage
-      );
+      const relevantMemories =
+        await vectorMemoryManager.retrieveRelevantMemories(
+          sessionId,
+          latestUserMessage
+        );
 
-      // 构建完整的 Prompt
       const context = relevantMemories
         ? `\n相关对话历史：\n${relevantMemories}`
         : '';
 
-      // 将历史消息转换为 LangChain 消息格式
-      const historyMessages = messages.slice(0, -1).map((msg) =>
-        msg.role === 'user'
-          ? new HumanMessage(msg.content)
-          : new AIMessage(msg.content)
-      );
+      const historyMessages = messages
+        .slice(0, -1)
+        .map((msg) =>
+          msg.role === 'user'
+            ? new HumanMessage(msg.content)
+            : new AIMessage(msg.content)
+        );
 
-      // 创建聊天 Prompt 模板
       const chatPrompt = ChatPromptTemplate.fromMessages([
-        ['system', `你是一名专业的简历助手，擅长帮助用户优化和撰写简历。你的职责包括：
+        [
+          'system',
+          `你是一名专业的简历助手，擅长帮助用户优化和撰写简历。你的职责包括：
 1. 优化简历内容的表达方式
 2. 量化工作成果（用数据说话）
 3. 补全缺失的内容
@@ -66,19 +66,23 @@ export class ChatAgent {
 
 {context}
 
-用户当前正在编辑的模块：{currentField}`],
+用户当前正在编辑的模块：{currentField}`,
+        ],
         new MessagesPlaceholder('history'),
         ['human', '{input}'],
       ]);
 
-      // 构建链
+      const llm = await createUserLLM(userId, {
+        temperature: 0.7,
+        maxTokens: 1000,
+      });
+
       const chain = RunnableSequence.from([
         chatPrompt,
-        this.llm,
+        llm,
         new StringOutputParser(),
       ]);
 
-      // 调用链获取响应
       const response = await chain.invoke({
         context,
         currentField,
@@ -86,7 +90,6 @@ export class ChatAgent {
         input: latestUserMessage,
       });
 
-      // 将新的对话添加到记忆中
       await vectorMemoryManager.addUserMessage(
         sessionId,
         latestUserMessage,

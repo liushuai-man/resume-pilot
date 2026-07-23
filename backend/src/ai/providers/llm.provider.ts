@@ -1,9 +1,7 @@
 import { ChatOpenAI } from '@langchain/openai';
 import { aiConfig } from '../../config/ai';
+import { getDefaultModelConfig } from '../../services/model-config.service';
 
-/**
- * 创建兼容多种供应商的 LangChain LLM 实例
- */
 export function createLLM(options?: {
   temperature?: number;
   maxTokens?: number;
@@ -35,7 +33,6 @@ export function createLLM(options?: {
       break;
   }
 
-  // 设置环境变量供 LangChain 使用
   process.env.OPENAI_API_KEY = apiKeyValue;
   if (baseURL) {
     process.env.OPENAI_BASE_URL = baseURL;
@@ -47,4 +44,37 @@ export function createLLM(options?: {
     maxTokens,
     timeout: 100000,
   });
+}
+
+export async function createUserLLM(
+  userId?: string,
+  options?: {
+    temperature?: number;
+    maxTokens?: number;
+  }
+) {
+  const { temperature = 0.7, maxTokens = 1000 } = options || {};
+
+  if (userId) {
+    try {
+      const userConfig = await getDefaultModelConfig(userId);
+      if (userConfig) {
+        console.log(`用户 ${userId} 使用自定义模型: ${userConfig.provider}/${userConfig.model_name}`);
+        return new ChatOpenAI({
+          modelName: userConfig.model_name,
+          temperature,
+          maxTokens,
+          timeout: 100000,
+          configuration: {
+            apiKey: userConfig.api_key,
+            baseURL: userConfig.base_url || undefined,
+          },
+        });
+      }
+    } catch (error) {
+      console.warn('获取用户模型配置失败，使用全局默认模型:', error);
+    }
+  }
+
+  return createLLM({ temperature, maxTokens });
 }

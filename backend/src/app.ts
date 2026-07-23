@@ -8,6 +8,7 @@ import {
   resumeRouter,
   aiRouter,
   interviewRouter,
+  modelConfigRouter,
 } from './routes/index';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -43,3 +44,4 @@ app.use('/api/auth', authRouter);
 app.use('/api/resume', resumeRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/interview', interviewRouter);
+app.use('/api/model-config', modelConfigRouter);
