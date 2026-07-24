@@ -145,25 +145,4 @@ pnpm dev
 
 访问 http://localhost:5173
 
-## API 接口
 
-| 方法   | 路径                     | 说明         |
-| ------ | ------------------------ | ------------ |
-| POST   | `/api/auth/register`     | 注册         |
-| POST   | `/api/auth/login`        | 登录         |
-| GET    | `/api/auth/me`           | 获取当前用户 |
-| GET    | `/api/resumes`           | 获取简历列表 |
-| POST   | `/api/resumes`           | 创建简历     |
-| PUT    | `/api/resumes/:id`       | 更新简历     |
-| DELETE | `/api/resumes/:id`       | 删除简历     |
-| POST   | `/api/ai/polish`         | AI 润色      |
-| POST   | `/api/ai/complete`       | AI 补全      |
-| POST   | `/api/ai/chat`           | AI 对话      |
-| POST   | `/api/interview/start`   | 开始面试     |
-| POST   | `/api/interview/answer`  | 提交面试答案 |
-| POST   | `/api/interview/finish`  | 完成面试     |
-| GET    | `/api/interview/results` | 面试结果列表 |
-
-## License
-
-MIT

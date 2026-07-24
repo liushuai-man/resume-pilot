@@ -16,12 +16,32 @@ export const uploadResumeHandler = async (req: Request, res: Response) => {
         'image/png',
         'image/gif',
         'image/webp',
+        'text/markdown',
+        'text/plain',
+        'application/octet-stream',
       ];
 
-      if (allowedTypes.includes(file.mimetype)) {
+      const allowedExtensions = [
+        '.pdf',
+        '.jpg',
+        '.jpeg',
+        '.png',
+        '.gif',
+        '.webp',
+        '.md',
+        '.txt',
+      ];
+      const fileExtension = file.originalname
+        .toLowerCase()
+        .substring(file.originalname.lastIndexOf('.'));
+
+      if (
+        allowedTypes.includes(file.mimetype) ||
+        allowedExtensions.includes(fileExtension)
+      ) {
         cb(null, true);
       } else {
-        cb(new Error('不支持的文件类型，仅支持PDF和图片格式'));
+        cb(new Error('不支持的文件类型，仅支持PDF、图片和Markdown格式'));
       }
     },
   });

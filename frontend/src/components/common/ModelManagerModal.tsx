@@ -12,7 +12,16 @@ import {
   Stack,
   Loader,
 } from '@mantine/core';
-import { Trash2, Star, StarOff, Plus, Wifi, WifiOff } from 'lucide-react';
+import {
+  Trash2,
+  Star,
+  StarOff,
+  Plus,
+  Wifi,
+  WifiOff,
+  Eye,
+  EyeOff,
+} from 'lucide-react';
 import {
   modelConfigApi,
   ModelConfig,
@@ -50,6 +59,7 @@ export default function ModelManagerModal({
   const [testResult, setTestResult] = useState<TestConnectionResponse | null>(
     null
   );
+  const [showApiKey, setShowApiKey] = useState(false);
   const [formData, setFormData] = useState<CreateModelConfigRequest>({
     provider: 'openai',
     modelName: 'gpt-4o',
@@ -253,12 +263,21 @@ export default function ModelManagerModal({
               <TextInput
                 label="API Key"
                 placeholder="sk-..."
-                type="password"
+                type={showApiKey ? 'text' : 'password'}
                 value={formData.apiKey}
                 onChange={(e) =>
                   setFormData({ ...formData, apiKey: e.target.value })
                 }
                 size="sm"
+                rightSection={
+                  <ActionIcon
+                    size="xs"
+                    onClick={() => setShowApiKey(!showApiKey)}
+                    color="dimmed"
+                  >
+                    {showApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </ActionIcon>
+                }
               />
               <TextInput
                 label="Base URL（可选）"

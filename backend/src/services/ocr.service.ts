@@ -69,17 +69,27 @@ export class OCRService {
 
     try {
       const mimeType = file.mimetype.toLowerCase();
+      const fileName = file.originalname.toLowerCase();
 
-      if (mimeType.includes('pdf')) {
+      if (mimeType.includes('pdf') || fileName.endsWith('.pdf')) {
         return await this.extractTextFromPDF(tempFilePath);
       } else if (
         mimeType.includes('image') ||
-        mimeType.includes('jpg') ||
-        mimeType.includes('jpeg') ||
-        mimeType.includes('png') ||
-        mimeType.includes('gif')
+        fileName.match(/\.(jpg|jpeg|png|gif|webp)$/)
       ) {
         return await this.extractTextFromImage(tempFilePath);
+      } else if (
+        mimeType.includes('markdown') ||
+        fileName.endsWith('.md') ||
+        mimeType.includes('text') ||
+        fileName.endsWith('.txt')
+      ) {
+        const text = fs.readFileSync(tempFilePath, 'utf-8');
+        return {
+          text,
+          type: 'text',
+          fileName: file.originalname,
+        };
       } else {
         const text = fs.readFileSync(tempFilePath, 'utf-8');
         return {
@@ -89,7 +99,9 @@ export class OCRService {
         };
       }
     } finally {
-      fs.unlinkSync(tempFilePath);
+      if (fs.existsSync(tempFilePath)) {
+        fs.unlinkSync(tempFilePath);
+      }
     }
   }
 

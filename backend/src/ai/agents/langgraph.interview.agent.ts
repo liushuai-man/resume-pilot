@@ -395,8 +395,6 @@ export async function startLangGraphInterview(
 }> {
   console.log('=== 使用 LangGraph 架构开始面试 ===');
 
-  const analysis = await mainAgent.analyzeResume(resumeContent, userId);
-
   const firstQuestion: Question = {
     id: `q-${Date.now()}-intro`,
     content:
@@ -418,8 +416,17 @@ export async function startLangGraphInterview(
     isFinished: false,
     userId,
     askedQuestionTypes: { bagu: 0, project: 0 },
-    resumeAnalysis: analysis,
+    resumeAnalysis: { sections: [], keySkills: [] },
   };
+
+  setTimeout(async () => {
+    try {
+      const analysis = await mainAgent.analyzeResume(resumeContent, userId);
+      sessionData.resumeAnalysis = analysis;
+    } catch (error) {
+      console.error('后台简历分析失败:', error);
+    }
+  }, 100);
 
   return {
     sessionData,
@@ -488,12 +495,14 @@ export async function submitLangGraphAnswer(
       state.userId
     );
   } else {
-    nextQuestion = await mainAgent.generateNextQuestion({
+    const stateForNextQuestion = {
       ...state,
       answers: newAnswers,
       evaluations: newEvaluations,
       currentQuestionIndex: newIndex,
-    });
+    };
+
+    nextQuestion = await mainAgent.generateNextQuestion(stateForNextQuestion);
 
     newQuestions = [...state.questions, nextQuestion];
 
