@@ -154,6 +154,12 @@ export interface ResumeContent {
   campusExperiences: CampusExperience[];
   // 保持向后兼容性
   clubs?: Club[];
+  // 上传文件相关字段
+  isUploadedFile?: boolean;
+  fileUrl?: string;
+  fileType?: 'pdf' | 'image';
+  ocrText?: string;
+  pageCount?: number;
 }
 
 export interface Resume {

@@ -22,14 +22,16 @@ export class OCRService {
 
   public static async extractTextFromPDF(filePath: string): Promise<OCRResult> {
     const dataBuffer = fs.readFileSync(filePath);
-    const pdfParse = await import('pdf-parse');
-    const data = await (pdfParse as any).PDFParse(dataBuffer);
+    const { PDFParse } = await import('pdf-parse');
+
+    const pdfParser = new PDFParse({ data: dataBuffer });
+    const textResult = await pdfParser.getText();
 
     return {
-      text: data.text,
+      text: textResult.text || '',
       type: 'pdf',
       fileName: path.basename(filePath),
-      pageCount: data.numpages,
+      pageCount: textResult.total,
     };
   }
 

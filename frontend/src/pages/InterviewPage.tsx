@@ -409,11 +409,29 @@ const InterviewPage = () => {
       {/* 主内容 */}
       <div className="flex flex-1 overflow-hidden">
         {/* 左侧：简历预览 */}
-        <ResizableResumePreview
-          content={resume?.content || null}
-          highlightSection={currentQuestion?.sectionKey}
-          className="w-1/2 flex-shrink-0 border-r border-gray-200 bg-gray-100 p-4"
-        />
+        <div className="w-1/2 flex-shrink-0 border-r border-gray-200 bg-gray-100 p-4 overflow-auto">
+          {resume?.content?.isUploadedFile && resume.content.fileUrl ? (
+            resume.content.fileType === 'pdf' ? (
+              <iframe
+                src={`${import.meta.env.VITE_API_BASE_URL}${resume.content.fileUrl}`}
+                title="简历预览"
+                className="w-full h-full min-h-[600px] border-none rounded-lg"
+              />
+            ) : (
+              <img
+                src={`${import.meta.env.VITE_API_BASE_URL}${resume.content.fileUrl}`}
+                alt="简历预览"
+                className="max-w-full h-auto rounded-lg"
+              />
+            )
+          ) : (
+            <ResizableResumePreview
+              content={resume?.content || null}
+              highlightSection={currentQuestion?.sectionKey}
+              className="w-full h-full"
+            />
+          )}
+        </div>
 
         {/* 右侧：AI 面试官对话 */}
         <div className="flex-1 flex flex-col bg-white">

@@ -227,8 +227,13 @@ class MainAgent {
     ]);
 
     try {
+      let resumeText = JSON.stringify(resumeContent, null, 2);
+      if (resumeContent.isUploadedFile && resumeContent.ocrText) {
+        resumeText = `这是通过文件上传的简历，以下是OCR识别的文本内容：\n\n${resumeContent.ocrText}`;
+      }
+
       const result = await chain.invoke({
-        resumeContent: JSON.stringify(resumeContent, null, 2),
+        resumeContent: resumeText,
       });
 
       const cleaned = this.cleanJson(result);
