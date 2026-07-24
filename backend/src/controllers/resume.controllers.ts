@@ -166,8 +166,20 @@ export const getUserResumes = async (req: Request, res: Response) => {
       return error(res, '未授权', 401);
     }
 
+    const excludeUploaded = (req.query.excludeUploaded as string) === 'true';
+
+    const where: any = { user_id: userId, is_deleted: false };
+
+    if (excludeUploaded) {
+      where.content = {
+        not: {
+          isUploadedFile: true,
+        },
+      };
+    }
+
     const resumes = await prisma.resume.findMany({
-      where: { user_id: userId, is_deleted: false },
+      where,
       orderBy: { updated_at: 'desc' },
     });
 

@@ -11,8 +11,10 @@ export const resumeApi = {
     return await request.get(`/resume/templates/${id}`);
   },
 
-  getUserResumes: async (): Promise<ApiResponse<Resume[]>> => {
-    return await request.get('/resume');
+  getUserResumes: async (params?: {
+    excludeUploaded?: boolean;
+  }): Promise<ApiResponse<Resume[]>> => {
+    return await request.get('/resume', { params });
   },
 
   getResumeById: async (id: string): Promise<ApiResponse<Resume>> => {
@@ -35,12 +37,8 @@ export const resumeApi = {
   },
 
   deleteResume: async (id: string): Promise<ApiResponse<void>> => {
-      return await request.delete(`/resume/${id}`);
-    },
-  
-  
+    return await request.delete(`/resume/${id}`);
+  },
 };
-
-
 
 export default resumeApi;

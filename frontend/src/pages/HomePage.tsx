@@ -51,7 +51,7 @@ export default function HomePage() {
     if (!isLoggedIn) return;
     const fetchResumes = async () => {
       try {
-        const response = await resumeApi.getUserResumes();
+        const response = await resumeApi.getUserResumes({ excludeUploaded: true });
         if (response.code === 200 && response.data) {
           setResumes(response.data);
         }

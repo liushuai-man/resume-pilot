@@ -63,9 +63,18 @@ export const uploadResumeHandler = async (req: Request, res: Response) => {
     }
 
     try {
-      const fileExtension = file.originalname
+      let decodedOriginalName = file.originalname;
+      try {
+        decodedOriginalName = Buffer.from(file.originalname, 'latin1').toString(
+          'utf8'
+        );
+      } catch (e) {
+        console.warn('文件名解码失败:', e);
+      }
+
+      const fileExtension = decodedOriginalName
         .toLowerCase()
-        .substring(file.originalname.lastIndexOf('.'));
+        .substring(decodedOriginalName.lastIndexOf('.'));
       const storedFileName = `${Date.now()}${fileExtension}`;
       const storedFilePath = path.join(uploadsDir, storedFileName);
 
@@ -105,7 +114,7 @@ export const uploadResumeHandler = async (req: Request, res: Response) => {
       const newResume = await prisma.resume.create({
         data: {
           user_id: userId,
-          title: `导入简历 - ${file.originalname}`,
+          title: decodedOriginalName,
           content: resumeContent,
           template_id: 'classic-blue',
         },

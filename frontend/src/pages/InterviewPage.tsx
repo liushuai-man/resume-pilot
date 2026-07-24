@@ -1,7 +1,17 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Select, Loader, Text } from '@mantine/core';
-import { ArrowLeft, History, Play, Square, Bot, Upload } from 'lucide-react';
+import {
+  ArrowLeft,
+  History,
+  Play,
+  Square,
+  Bot,
+  Upload,
+  Trash2,
+  FileText,
+  ImageIcon,
+} from 'lucide-react';
 import { useResumeStore } from '@/store/useResumeStore';
 import { useUserStore } from '@/store/useUserStore';
 import { resumeApi } from '@/api/home.api';
@@ -24,6 +34,7 @@ const InterviewPage = () => {
 
   const [resumes, setResumes] = useState<any[]>([]);
   const [selectedResumeId, setSelectedResumeId] = useState<string | null>(null);
+  const [showResumeDropdown, setShowResumeDropdown] = useState(false);
   const [targetPosition, setTargetPosition] = useState('');
   const [questionCount, setQuestionCount] = useState<string>('5');
 
@@ -39,6 +50,7 @@ const InterviewPage = () => {
   const [isThinking, setIsThinking] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const interviewPreviewRef = useRef<HTMLDivElement>(null);
 
   // 加载简历及其模板样式
   const loadResumeWithTemplate = useCallback(
@@ -276,6 +288,33 @@ const InterviewPage = () => {
     }
   };
 
+  const handleDeleteResume = async (resumeId: string) => {
+    try {
+      await resumeApi.deleteResume(resumeId);
+      setResumes((prev) => prev.filter((r) => r.id !== resumeId));
+      if (selectedResumeId === resumeId) {
+        const remaining = resumes.filter((r) => r.id !== resumeId);
+        if (remaining.length > 0) {
+          setSelectedResumeId(remaining[0].id);
+        } else {
+          setSelectedResumeId(null);
+        }
+      }
+      notifications.show({
+        title: '成功',
+        message: '简历已删除',
+        color: 'green',
+      });
+    } catch (error) {
+      console.error('删除简历失败:', error);
+      notifications.show({
+        title: '失败',
+        message: '删除简历失败',
+        color: 'red',
+      });
+    }
+  };
+
   // 更新选中的简历
   useEffect(() => {
     if (selectedResumeId && resumes.length > 0) {
@@ -285,6 +324,24 @@ const InterviewPage = () => {
       }
     }
   }, [selectedResumeId, resumes, loadResumeWithTemplate]);
+
+  // 点击外部关闭下拉栏
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.resume-dropdown-container')) {
+        setShowResumeDropdown(false);
+      }
+    };
+
+    if (showResumeDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showResumeDropdown]);
 
   if (loading) {
     return (
@@ -316,18 +373,109 @@ const InterviewPage = () => {
 
           {/* 配置区域 */}
           <div className="flex items-center gap-3 flex-1 justify-center">
-            <Select
-              placeholder="选择简历"
-              data={resumes.map((r) => ({
-                label: r.title,
-                value: r.id,
-              }))}
-              value={selectedResumeId}
-              onChange={setSelectedResumeId}
-              size="xs"
-              className="w-48"
-              disabled={!!sessionId}
-            />
+            <div className="relative resume-dropdown-container">
+              <button
+                onClick={() => setShowResumeDropdown(!showResumeDropdown)}
+                disabled={!!sessionId}
+                className={`flex items-center justify-between w-56 h-7 px-3 text-xs border rounded-md transition-colors ${
+                  !!sessionId
+                    ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'border-gray-300 bg-white text-gray-700 hover:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-500'
+                }`}
+              >
+                <span className="truncate">
+                  {selectedResumeId
+                    ? resumes.find((r) => r.id === selectedResumeId)?.title ||
+                      '选择简历'
+                    : '选择简历'}
+                </span>
+                <svg
+                  className={`w-4 h-4 ml-2 transition-transform ${showResumeDropdown ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
+
+              {showResumeDropdown && (
+                <div className="absolute top-full left-0 mt-1 w-56 bg-white border border-gray-200 rounded-md shadow-lg z-50 overflow-hidden">
+                  <div className="max-h-64 overflow-y-auto">
+                    {resumes.map((r) => {
+                      const isUploaded = r.content?.isUploadedFile;
+                      const isSelected = r.id === selectedResumeId;
+                      return (
+                        <div
+                          key={r.id}
+                          onClick={() => {
+                            setSelectedResumeId(r.id);
+                            setShowResumeDropdown(false);
+                          }}
+                          className={`flex items-center justify-between px-3 py-2 cursor-pointer transition-colors ${
+                            isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            {isUploaded ? (
+                              <>
+                                <div className="flex-shrink-0 w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center">
+                                  {r.content?.fileType === 'pdf' ? (
+                                    <FileText
+                                      size={12}
+                                      className="text-amber-600"
+                                    />
+                                  ) : (
+                                    <ImageIcon
+                                      size={12}
+                                      className="text-amber-600"
+                                    />
+                                  )}
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <div className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center">
+                                  <FileText
+                                    size={12}
+                                    className="text-blue-600"
+                                  />
+                                </div>
+                              </>
+                            )}
+                            <span className="text-xs text-gray-800 truncate">
+                              {r.title}
+                            </span>
+                          </div>
+                          {isUploaded && !sessionId && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteResume(r.id);
+                              }}
+                              className="flex-shrink-0 p-1 text-gray-400 hover:text-red-500 transition-colors"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {resumes.length === 0 && (
+                      <div className="px-3 py-4 text-center text-xs text-gray-500">
+                        暂无简历，请先导入或创建
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <input
               type="text"
               placeholder="目标岗位（可选）"
@@ -409,19 +557,23 @@ const InterviewPage = () => {
       {/* 主内容 */}
       <div className="flex flex-1 overflow-hidden">
         {/* 左侧：简历预览 */}
-        <div className="w-1/2 flex-shrink-0 border-r border-gray-200 bg-gray-100 p-4 overflow-auto">
+        <div
+          ref={interviewPreviewRef}
+          className="w-1/2 flex-shrink-0 bg-white overflow-auto"
+        >
           {resume?.content?.isUploadedFile && resume.content.fileUrl ? (
             resume.content.fileType === 'pdf' ? (
               <iframe
                 src={`${import.meta.env.VITE_API_BASE_URL}${resume.content.fileUrl}`}
                 title="简历预览"
-                className="w-full h-full min-h-[600px] border-none rounded-lg"
+                className="w-full border-0"
+                style={{ height: '100%', minHeight: '600px' }}
               />
             ) : (
               <img
                 src={`${import.meta.env.VITE_API_BASE_URL}${resume.content.fileUrl}`}
                 alt="简历预览"
-                className="max-w-full h-auto rounded-lg"
+                className="w-full h-auto"
               />
             )
           ) : (
