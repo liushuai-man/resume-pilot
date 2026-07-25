@@ -4,6 +4,7 @@ import {
   Answer,
   LangGraphInterviewState,
 } from '../types/interview.types';
+import { getResumeText } from './interview/utils';
 
 const supervisorAgent = new InterviewSupervisorAgent();
 
@@ -30,9 +31,12 @@ export async function startLangGraphInterview(
     type: 'introduction',
   };
 
+  const resumeText = getResumeText(resumeContent);
+  
   const sessionData: LangGraphInterviewState = {
     resumeId,
     resumeContent,
+    resumeText,
     targetPosition: position,
     maxQuestions: questionCount || 5,
     questions: [firstQuestion],
@@ -105,7 +109,7 @@ export async function submitLangGraphAnswer(
     const result = await supervisorAgent.evaluateAnswer(
       currentQuestion,
       answer,
-      state.resumeContent,
+      state.resumeText,
       state.targetPosition,
       state.profile,
       state.userId
@@ -131,7 +135,7 @@ export async function submitLangGraphAnswer(
 
   if (isFinished) {
     report = await supervisorAgent.generateReport(
-      state.resumeContent,
+      state.resumeText,
       state.questions,
       newAnswers,
       newEvaluations,

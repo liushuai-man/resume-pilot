@@ -19,6 +19,7 @@ import {
   CandidateProfile,
   InterviewPlanItem,
 } from '../../types/interview.types';
+import { getResumeText, getRelevantResumeSection } from './utils';
 
 function cleanJson(str: string): string {
   let cleaned = str.trim();
@@ -27,13 +28,6 @@ function cleanJson(str: string): string {
   if (cleaned.endsWith('```'))
     cleaned = cleaned.substring(0, cleaned.length - 3);
   return cleaned.trim();
-}
-
-function getResumeText(resumeContent: any): string {
-  if (resumeContent.isUploadedFile && resumeContent.ocrText) {
-    return `这是通过文件上传的简历，以下是OCR识别的文本内容：\n\n${resumeContent.ocrText}`;
-  }
-  return JSON.stringify(resumeContent, null, 2);
 }
 
 export class InterviewSupervisorAgent {
@@ -73,9 +67,11 @@ export class InterviewSupervisorAgent {
       new StringOutputParser(),
     ]);
 
+    const resumeText = getResumeText(resumeContent);
+
     try {
       const result = await chain.invoke({
-        resumeContent: getResumeText(resumeContent),
+        resumeContent: resumeText,
       });
       return JSON.parse(cleanJson(result));
     } catch (error) {
@@ -128,7 +124,7 @@ export class InterviewSupervisorAgent {
     try {
       const result = await chain.invoke({
         targetPosition: state.targetPosition,
-        resumeContent: getResumeText(state.resumeContent),
+        resumeContent: state.resumeText,
         currentProgress: currentProgress.toString(),
         candidateProfile: JSON.stringify(state.profile, null, 2),
         interviewPlan: JSON.stringify(state.interviewPlan, null, 2),
@@ -176,7 +172,7 @@ export class InterviewSupervisorAgent {
   async evaluateAnswer(
     question: Question,
     answer: string,
-    resumeContent: any,
+    resumeText: string,
     targetPosition: string,
     profile: CandidateProfile,
     userId?: string
@@ -184,7 +180,7 @@ export class InterviewSupervisorAgent {
     const evaluation = await this.evaluationAgent.evaluate(
       question,
       answer,
-      resumeContent,
+      resumeText,
       targetPosition,
       userId
     );
@@ -195,7 +191,7 @@ export class InterviewSupervisorAgent {
   }
 
   async generateReport(
-    resumeContent: any,
+    resumeText: string,
     questions: Question[],
     answers: Answer[],
     evaluations: Evaluation[],
@@ -240,7 +236,7 @@ export class InterviewSupervisorAgent {
     try {
       const result = await chain.invoke({
         targetPosition,
-        resumeContent: getResumeText(resumeContent),
+        resumeContent: resumeText,
         qaHistory,
         introductionSection,
         profileSection,

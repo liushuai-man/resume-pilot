@@ -3,6 +3,7 @@ import { StringOutputParser } from '@langchain/core/output_parsers';
 import { createUserLLM } from '../../providers/llm.provider';
 import { EVALUATE_ANSWER_PROMPT } from '../../prompts/interview/evaluate.prompt';
 import { Question, Evaluation } from '../../types/interview.types';
+import { getRelevantResumeSection } from './utils';
 
 function cleanJson(str: string): string {
   let cleaned = str.trim();
@@ -17,7 +18,7 @@ export class EvaluationAgent {
   async evaluate(
     question: Question,
     answer: string,
-    resumeContent: any,
+    resumeText: string,
     targetPosition: string,
     userId?: string
   ): Promise<Evaluation> {
@@ -36,11 +37,7 @@ export class EvaluationAgent {
       const result = await chain.invoke({
         question: question.content,
         answer,
-        resumeSectionContent: JSON.stringify(
-          resumeContent[question.sectionKey] || resumeContent,
-          null,
-          2
-        ),
+        resumeSectionContent: resumeText,
       });
 
       const parsed = JSON.parse(cleanJson(result));

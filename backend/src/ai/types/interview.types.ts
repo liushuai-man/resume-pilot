@@ -105,6 +105,7 @@ export interface InterviewReport {
 export interface LangGraphInterviewState {
   resumeId: string;
   resumeContent: any;
+  resumeText: string;
   targetPosition: string;
   maxQuestions: number;
   questions: Question[];

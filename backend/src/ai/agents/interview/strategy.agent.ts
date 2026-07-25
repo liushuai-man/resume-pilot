@@ -10,6 +10,7 @@ import {
   InterviewPlanItem,
   Strategy,
 } from '../../types/interview.types';
+import { getResumeText } from './utils';
 
 function cleanJson(str: string): string {
   let cleaned = str.trim();
@@ -18,13 +19,6 @@ function cleanJson(str: string): string {
   if (cleaned.endsWith('```'))
     cleaned = cleaned.substring(0, cleaned.length - 3);
   return cleaned.trim();
-}
-
-function getResumeText(resumeContent: any): string {
-  if (resumeContent.isUploadedFile && resumeContent.ocrText) {
-    return `这是通过文件上传的简历，以下是OCR识别的文本内容：\n\n${resumeContent.ocrText}`;
-  }
-  return JSON.stringify(resumeContent, null, 2);
 }
 
 export class StrategyAgent {
