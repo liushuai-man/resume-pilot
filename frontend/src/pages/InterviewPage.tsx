@@ -1,12 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Button, Select, Loader, Text } from '@mantine/core';
+import { Button, Select, Loader, Text, Progress } from '@mantine/core';
 import {
   ArrowLeft,
   History,
   Play,
   Square,
-  Bot,
   Upload,
   Trash2,
   FileText,
@@ -169,6 +168,9 @@ const InterviewPage = () => {
       }));
 
       if (result.isFinished || !result.nextQuestion) {
+        if (result.report) {
+          setInterviewResult(result.report);
+        }
         await handleFinishInterview();
       } else {
         setCurrentQuestion(result.nextQuestion);
@@ -197,7 +199,10 @@ const InterviewPage = () => {
         sessionId,
         selectedResumeId,
         questions,
-        answers
+        answers,
+        typeof interviewResult === 'object' && !interviewResult.id
+          ? interviewResult
+          : undefined
       );
 
       setInterviewResult(result);
@@ -500,7 +505,26 @@ const InterviewPage = () => {
           </div>
 
           {/* 操作按钮 */}
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-3 flex-shrink-0">
+            {sessionId && (
+              <div className="w-32">
+                <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                  <span>进度</span>
+                  <span>
+                    {answers.length}/{questionCount}
+                  </span>
+                </div>
+                <Progress
+                  value={
+                    parseInt(questionCount) > 0
+                      ? (answers.length / parseInt(questionCount)) * 100
+                      : 0
+                  }
+                  size="xs"
+                  radius="xl"
+                />
+              </div>
+            )}
             <input
               type="file"
               ref={fileInputRef}
@@ -588,17 +612,7 @@ const InterviewPage = () => {
         {/* 右侧：AI 面试官对话 */}
         <div className="flex-1 flex flex-col bg-white">
           <div className="flex-1 overflow-y-auto p-4">
-            {!sessionId && !isFinished ? (
-              <div className="flex flex-col items-center justify-center h-full text-center">
-                <Bot size={48} className="text-blue-400 mb-4" />
-                <Text size="lg" fw={500} mb="sm">
-                  准备开始面试
-                </Text>
-                <Text c="dimmed" size="sm">
-                  请在顶部选择简历，然后点击"开始面试"按钮
-                </Text>
-              </div>
-            ) : isFinished ? (
+            {isFinished ? (
               <InterviewReport
                 result={interviewResult}
                 questions={questions}
@@ -615,12 +629,12 @@ const InterviewPage = () => {
                 feedbacks={feedbacks}
                 currentQuestion={currentQuestion}
                 currentAnswer={currentAnswer}
-                questionCount={parseInt(questionCount)}
                 submitting={submitting}
                 isThinking={isThinking}
                 onAnswerChange={setCurrentAnswer}
                 onSubmitAnswer={handleSubmitAnswer}
                 getSectionName={getSectionName}
+                sessionStarted={!!sessionId}
               />
             )}
           </div>

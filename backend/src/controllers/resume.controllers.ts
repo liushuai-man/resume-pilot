@@ -170,30 +170,28 @@ export const getUserResumes = async (req: Request, res: Response) => {
 
     const where: any = { user_id: userId, is_deleted: false };
 
-    if (excludeUploaded) {
-      where.content = {
-        not: {
-          isUploadedFile: true,
-        },
-      };
-    }
-
     const resumes = await prisma.resume.findMany({
       where,
       orderBy: { updated_at: 'desc' },
     });
 
-    const result = resumes.map((resume) => {
-      // 正确解析 JSON 字符串
-      const content =
-        typeof resume.content === 'string'
-          ? JSON.parse(resume.content)
-          : resume.content;
-      return {
-        ...resume,
-        content,
-      };
-    });
+    const result = resumes
+      .filter((r: any) => {
+        if (!excludeUploaded) return true;
+        const content =
+          typeof r.content === 'string' ? JSON.parse(r.content) : r.content;
+        return content.isUploadedFile !== true;
+      })
+      .map((resume: any) => {
+        const content =
+          typeof resume.content === 'string'
+            ? JSON.parse(resume.content)
+            : resume.content;
+        return {
+          ...resume,
+          content,
+        };
+      });
 
     return res.json({ code: 200, message: 'Success', data: result });
   } catch (err: any) {

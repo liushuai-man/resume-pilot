@@ -16,6 +16,7 @@ import {
   Calendar,
   FileText,
   ChevronRight,
+  Trash2,
 } from 'lucide-react';
 import { interviewApi, InterviewResult } from '@/api/interview.api';
 import { formatDateTime } from '@/utils/format';
@@ -45,16 +46,41 @@ const InterviewHistoryPage = () => {
     fetchResults();
   }, []);
 
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('确定要删除这条面试记录吗？')) {
+      return;
+    }
+
+    try {
+      await interviewApi.deleteInterviewResult(id);
+      setResults((prev) => prev.filter((r) => r.id !== id));
+      notifications.show({
+        title: '成功',
+        message: '面试记录已删除',
+        color: 'green',
+      });
+    } catch (error) {
+      console.error('删除面试记录失败:', error);
+      notifications.show({
+        title: '错误',
+        message: '删除面试记录失败',
+        color: 'red',
+      });
+    }
+  };
+
   const getScoreColor = (score: number) => {
-    if (score >= 8) return 'green';
-    if (score >= 6) return 'yellow';
+    const normalizedScore = score > 10 ? Math.round(score / 10) : score;
+    if (normalizedScore >= 8) return 'green';
+    if (normalizedScore >= 6) return 'yellow';
     return 'red';
   };
 
   const getScoreLabel = (score: number) => {
-    if (score >= 9) return '优秀';
-    if (score >= 7) return '良好';
-    if (score >= 6) return '及格';
+    const normalizedScore = score > 10 ? Math.round(score / 10) : score;
+    if (normalizedScore >= 9) return '优秀';
+    if (normalizedScore >= 7) return '良好';
+    if (normalizedScore >= 6) return '及格';
     return '需改进';
   };
 
@@ -110,7 +136,9 @@ const InterviewHistoryPage = () => {
                 radius="md"
                 withBorder
                 className="cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => navigate(`/resume/interview/result/${result.id}`)}
+                onClick={() =>
+                  navigate(`/resume/interview/result/${result.id}`)
+                }
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
@@ -119,14 +147,16 @@ const InterviewHistoryPage = () => {
                       thickness={6}
                       sections={[
                         {
-                          value: (result.score || 0) * 10,
+                          value: result.score || 0,
                           color: getScoreColor(result.score || 0),
                         },
                       ]}
                       label={
                         <div className="text-center">
                           <Text fw={700} size="sm">
-                            {result.score || 0}
+                            {result.score > 10
+                              ? Math.round((result.score || 0) / 10)
+                              : result.score || 0}
                           </Text>
                         </div>
                       }
@@ -160,7 +190,19 @@ const InterviewHistoryPage = () => {
                       </Group>
                     </div>
                   </div>
-                  <ChevronRight size={20} className="text-gray-400" />
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(result.id);
+                      }}
+                      className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      title="删除面试记录"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                    <ChevronRight size={20} className="text-gray-400" />
+                  </div>
                 </div>
               </Card>
             ))}

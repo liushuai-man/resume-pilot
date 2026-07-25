@@ -1,11 +1,14 @@
 import { prisma } from '../database/prisma';
-import { interviewAgent } from '../ai/agents/interview.agent';
 import {
   startLangGraphInterview,
   submitLangGraphAnswer,
+} from '../ai/agents/interview.agent';
+import {
+  InterviewState,
+  Question,
+  Answer,
   LangGraphInterviewState,
-} from '../ai/agents/langgraph.interview.agent';
-import { InterviewState, Question, Answer } from '../ai/types/interview.types';
+} from '../ai/types/interview.types';
 
 const sessionStore = new Map<
   string,
@@ -97,7 +100,8 @@ export async function finishInterview(
   resumeId: string,
   questions: Question[],
   answers: Answer[],
-  resumeContent: any
+  resumeContent: any,
+  report?: any
 ): Promise<any> {
   console.log('=== 使用 LangGraph 完成面试 ===');
 
@@ -106,19 +110,63 @@ export async function finishInterview(
     throw new Error('会话不存在');
   }
 
-  // 保存面试结果
+  let finalReport = report || state.report;
+
+  if (!finalReport) {
+    console.log('=== 报告为空，重新生成 ===');
+    const { InterviewSupervisorAgent } =
+      await import('../ai/agents/interview/supervisor.agent');
+    const supervisorAgent = new InterviewSupervisorAgent();
+    finalReport = await supervisorAgent.generateReport(
+      state.resumeContent,
+      questions.length > 0 ? questions : state.questions,
+      answers.length > 0 ? answers : state.answers,
+      state.evaluations,
+      state.targetPosition,
+      state.profile,
+      userId
+    );
+  }
+
+  let finalScore = finalReport?.overallScore;
+
+  if (finalScore === undefined || finalScore === null) {
+    const validEvaluations = state.evaluations.filter(
+      (e) => e.score !== undefined && e.score !== null
+    );
+    if (validEvaluations.length > 0) {
+      const totalScore = validEvaluations.reduce((sum, e) => sum + e.score, 0);
+      finalScore = Math.round((totalScore / validEvaluations.length) * 10);
+    } else {
+      const answeredCount =
+        answers.length > 0 ? answers.length : state.answers.length;
+      const totalQuestions =
+        questions.length > 0 ? questions.length : state.questions.length;
+      if (answeredCount === 0) {
+        finalScore = 0;
+      } else if (answeredCount === totalQuestions) {
+        finalScore = 50;
+      } else {
+        finalScore = Math.round((answeredCount / totalQuestions) * 40);
+      }
+    }
+  }
+
+  if (finalReport && !finalReport.overallScore) {
+    finalReport.overallScore = finalScore;
+  }
+
   const interviewResult = await prisma.interviewResult.create({
     data: {
       user_id: userId,
       session_id: sessionId,
       resume_id: resumeId,
       position: state.targetPosition,
-      score: state.report?.overallScore || 60,
-      report: state.report as any,
+      score: finalScore,
+      report: finalReport as any,
     },
   });
 
-  // 清理会话存储
   sessionStore.delete(sessionId);
 
   return interviewResult;
@@ -136,5 +184,12 @@ export async function getInterviewResult(resultId: string, userId: string) {
   return await prisma.interviewResult.findFirst({
     where: { id: resultId, user_id: userId, is_deleted: false },
     include: { resume: true },
+  });
+}
+
+export async function deleteInterviewResult(resultId: string, userId: string) {
+  return await prisma.interviewResult.update({
+    where: { id: resultId, user_id: userId, is_deleted: false },
+    data: { is_deleted: true },
   });
 }

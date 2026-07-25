@@ -12,6 +12,8 @@ export const BA_GU_QUESTION_PROMPT = PromptTemplate.fromTemplate(`
 - 框架原理（如 React、Vue、Spring 等）
 
 目标岗位：{targetPosition}
+当前考察主题：{topic}
+难度要求：{difficulty}
 简历内容：
 {resumeContent}
 
@@ -23,14 +25,18 @@ export const BA_GU_QUESTION_PROMPT = PromptTemplate.fromTemplate(`
 2. 问题要有深度，能够考察候选人对技术的理解程度
 3. 避免重复提问
 4. 如果简历中有明确的技术栈，优先围绕这些技术提问
+5. 难度要求：easy（基础概念）、medium（原理理解）、hard（深度分析）
+6. 问题应该围绕当前考察主题 {topic} 展开
 
 请只返回 JSON 格式，不要包含其他文本：
 {{
   "questions": [
-    {{ "content": "问题内容", "type": "network" }},
-    {{ "content": "问题内容", "type": "algorithm" }}
+    {{
+      "content": "问题内容",
+      "type": "technical",
+      "topic": "相关主题",
+      "difficulty": "easy|medium|hard"
+    }}
   ]
 }}
-
-类型可选值：network(计算机网络), algorithm(算法), database(数据库), language(编程语言), framework(框架), os(操作系统)
 `.trim());

@@ -64,7 +64,7 @@ export default function HomeLayout() {
             <Text fw="bold">RA</Text>
           </div>
           <Text size="lg" fw="bold">
-            ResumePilot
+           AI 简历助手
           </Text>
         </div>
 

@@ -5,6 +5,7 @@ import {
   finishInterview,
   getInterviewResults,
   getInterviewResult,
+  deleteInterviewResult,
 } from '../services/interview.service';
 import { prisma } from '../database/prisma';
 import { success, error } from '../utils/response';
@@ -66,7 +67,7 @@ export const submitAnswerHandler = async (req: Request, res: Response) => {
 export const finishInterviewHandler = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
-    const { sessionId, resumeId, questions, answers } = req.body;
+    const { sessionId, resumeId, questions, answers, report } = req.body;
 
     if (!userId) {
       return error(res, '需要登录', 401);
@@ -83,7 +84,8 @@ export const finishInterviewHandler = async (req: Request, res: Response) => {
       resumeId,
       questions,
       answers,
-      resume.content
+      resume.content,
+      report
     );
 
     return success(res, result, '面试已完成');
@@ -134,5 +136,30 @@ export const getInterviewResultHandler = async (
   } catch (err) {
     console.error('获取面试结果失败:', err);
     return error(res, '获取面试结果失败');
+  }
+};
+
+export const deleteInterviewResultHandler = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const userId = (req as any).user?.id;
+    const { id } = req.params;
+
+    if (!userId) {
+      return error(res, '需要登录', 401);
+    }
+
+    const result = await deleteInterviewResult(id, userId);
+
+    if (!result) {
+      return error(res, '未找到面试结果', 404);
+    }
+
+    return success(res, null, '删除成功');
+  } catch (err) {
+    console.error('删除面试结果失败:', err);
+    return error(res, '删除面试结果失败');
   }
 };

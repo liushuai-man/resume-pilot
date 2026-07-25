@@ -12,6 +12,8 @@ export const PROJECT_QUESTION_PROMPT = PromptTemplate.fromTemplate(`
 - 项目中的技术细节
 
 目标岗位：{targetPosition}
+当前考察主题：{topic}
+难度要求：{difficulty}
 简历内容：
 {resumeContent}
 
@@ -23,14 +25,19 @@ export const PROJECT_QUESTION_PROMPT = PromptTemplate.fromTemplate(`
 2. 问题要有针对性，能够了解候选人在项目中的真实贡献
 3. 避免重复提问
 4. 优先选择简历中描述最详细的项目进行提问
+5. 难度要求：easy（项目概述）、medium（技术细节）、hard（架构决策和权衡）
+6. 如果指定了考察主题 {topic}，问题应尽量与该主题相关
 
 请只返回 JSON 格式，不要包含其他文本：
 {{
   "questions": [
-    {{ "content": "问题内容", "projectIndex": 0 }},
-    {{ "content": "问题内容", "projectIndex": 1 }}
+    {{
+      "content": "问题内容",
+      "type": "project",
+      "topic": "相关主题",
+      "difficulty": "easy|medium|hard",
+      "projectName": "相关项目名称"
+    }}
   ]
 }}
-
-projectIndex 表示该问题针对简历中第几个项目（从0开始）
 `.trim());

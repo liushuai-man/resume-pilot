@@ -7,7 +7,7 @@ import axios, {
 
 const instance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL + '/api',
-  timeout: 120000, // 增加到 2 分钟
+  timeout: 300000, // 增加到 5 分钟
   withCredentials: true,
 });
 

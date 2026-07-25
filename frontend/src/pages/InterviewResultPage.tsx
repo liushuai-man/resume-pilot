@@ -50,15 +50,17 @@ const InterviewResultPage = () => {
   }, [id]);
 
   const getScoreColor = (score: number) => {
-    if (score >= 8) return 'green';
-    if (score >= 6) return 'yellow';
+    const normalizedScore = score > 10 ? Math.round(score / 10) : score;
+    if (normalizedScore >= 8) return 'green';
+    if (normalizedScore >= 6) return 'yellow';
     return 'red';
   };
 
   const getScoreLabel = (score: number) => {
-    if (score >= 9) return '优秀';
-    if (score >= 7) return '良好';
-    if (score >= 6) return '及格';
+    const normalizedScore = score > 10 ? Math.round(score / 10) : score;
+    if (normalizedScore >= 9) return '优秀';
+    if (normalizedScore >= 7) return '良好';
+    if (normalizedScore >= 6) return '及格';
     return '需改进';
   };
 
@@ -120,14 +122,16 @@ const InterviewResultPage = () => {
                 thickness={10}
                 sections={[
                   {
-                    value: (result.score || 0) * 10,
+                    value: result.score || 0,
                     color: getScoreColor(result.score || 0),
                   },
                 ]}
                 label={
                   <div className="text-center">
                     <Text fw={700} size="xl">
-                      {result.score || 0}
+                      {result.score > 10
+                        ? Math.round((result.score || 0) / 10)
+                        : result.score || 0}
                     </Text>
                     <Text size="xs" c="dimmed">
                       /10

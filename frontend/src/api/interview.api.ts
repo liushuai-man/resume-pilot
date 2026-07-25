@@ -37,6 +37,7 @@ export interface SubmitAnswerResponse {
   feedback: string;
   nextQuestion: Question | null;
   isFinished: boolean;
+  report?: any;
 }
 
 export interface FinishInterviewResponse extends InterviewResult {}
@@ -77,13 +78,15 @@ export const interviewApi = {
     sessionId: string,
     resumeId: string,
     questions: Question[],
-    answers: Answer[]
+    answers: Answer[],
+    report?: any
   ): Promise<FinishInterviewResponse> => {
     const response: any = await request.post('/interview/finish', {
       sessionId,
       resumeId,
       questions,
       answers,
+      report,
     });
     return response.data || response;
   },
@@ -97,5 +100,10 @@ export const interviewApi = {
   // 获取单个面试结果详情
   getInterviewResult: async (id: string): Promise<InterviewResult> => {
     return request.get(`/interview/results/${id}`);
+  },
+
+  // 删除面试结果
+  deleteInterviewResult: async (id: string): Promise<void> => {
+    await request.delete(`/interview/results/${id}`);
   },
 };

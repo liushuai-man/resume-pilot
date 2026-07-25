@@ -83,6 +83,10 @@ export const uploadResumeHandler = async (req: Request, res: Response) => {
       const fileUrl = `/uploads/${storedFileName}`;
       const fileType = fileExtension === '.pdf' ? 'pdf' : 'image';
 
+      const resumeTitle =
+        decodedOriginalName.replace(fileExtension, '') || '导入简历';
+      const fileDisplayName = decodedOriginalName;
+
       let ocrText = '';
       let pageCount = 1;
       try {
@@ -97,6 +101,7 @@ export const uploadResumeHandler = async (req: Request, res: Response) => {
         isUploadedFile: true,
         fileUrl,
         fileType,
+        fileName: fileDisplayName,
         ocrText,
         pageCount,
         basicInfo: {},
@@ -114,7 +119,7 @@ export const uploadResumeHandler = async (req: Request, res: Response) => {
       const newResume = await prisma.resume.create({
         data: {
           user_id: userId,
-          title: decodedOriginalName,
+          title: resumeTitle,
           content: resumeContent,
           template_id: 'classic-blue',
         },
