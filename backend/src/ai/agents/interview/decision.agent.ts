@@ -1,14 +1,12 @@
 import { RunnableSequence } from '@langchain/core/runnables';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { createUserLLM } from '../../providers/llm.provider';
+import { STRATEGY_PLAN_PROMPT } from '../../prompts/interview/strategy.prompt';
+import { NEXT_QUESTION_PROMPT } from '../../prompts/interview/next-question.prompt';
 import {
-  STRATEGY_PLAN_PROMPT,
-  STRATEGY_ADJUST_PROMPT,
-} from '../../prompts/interview/strategy.prompt';
-import {
+  Question,
   LangGraphInterviewState,
   InterviewPlanItem,
-  Strategy,
 } from '../../types/interview.types';
 import { getResumeText } from './utils';
 
@@ -21,8 +19,8 @@ function cleanJson(str: string): string {
   return cleaned.trim();
 }
 
-export class StrategyAgent {
-  async generatePlan(
+export class InterviewDecisionAgent {
+  async generateInterviewPlan(
     resumeContent: any,
     targetPosition: string,
     userId?: string
@@ -52,31 +50,34 @@ export class StrategyAgent {
         askedCount: 0,
       }));
     } catch (error) {
-      console.error('Strategy Agent 生成面试计划失败:', error);
+      console.error('InterviewDecisionAgent 生成面试计划失败:', error);
       return [];
     }
   }
 
-  async adjustStrategy(
-    state: LangGraphInterviewState,
-    userId?: string
-  ): Promise<Strategy> {
-    const llm = await createUserLLM(userId, {
-      temperature: 0.5,
-      maxTokens: 1000,
+  async generateNextQuestion(
+    state: LangGraphInterviewState
+  ): Promise<Question> {
+    const llm = await createUserLLM(state.userId, {
+      temperature: 0.7,
+      maxTokens: 1500,
     });
 
     const chain = RunnableSequence.from([
-      STRATEGY_ADJUST_PROMPT,
+      NEXT_QUESTION_PROMPT,
       llm,
       new StringOutputParser(),
     ]);
 
-    const evaluationHistory = state.evaluations
-      .map((e, i) => {
-        const q = state.questions[i];
-        return `问题${i + 1}: ${q?.content || ''}\n评分: ${e.score}\n反馈: ${e.feedback}\n知识缺口: ${e.knowledgeGap?.join(', ') || '无'}`;
+    const qaHistory = state.questions
+      .map((q, i) => {
+        const answer = state.answers[i];
+        const evaluation = state.evaluations[i];
+        if (!answer) return '';
+        const score = evaluation?.score || 0;
+        return `问题${i + 1}: ${q.content}\n回答: ${answer.content}\n评分: ${score}`;
       })
+      .filter(Boolean)
       .join('\n\n');
 
     const currentProgress = Math.round(
@@ -86,29 +87,47 @@ export class StrategyAgent {
     try {
       const result = await chain.invoke({
         targetPosition: state.targetPosition,
+        resumeContent: state.resumeText,
         currentProgress: currentProgress.toString(),
         candidateProfile: JSON.stringify(state.profile, null, 2),
         interviewPlan: JSON.stringify(state.interviewPlan, null, 2),
-        evaluationHistory: evaluationHistory || '暂无评估记录',
+        qaHistory: qaHistory || '暂无问答记录',
       });
 
       const parsed = JSON.parse(cleanJson(result));
+
+      let section = 'skills';
+      let sectionKey = 'skills';
+
+      if (parsed.type === 'project') {
+        section = 'projects';
+        sectionKey = 'projects';
+      } else if (parsed.type === 'followup') {
+        const lastQuestion = state.questions[state.questions.length - 1];
+        section = lastQuestion?.section || 'general';
+        sectionKey = lastQuestion?.sectionKey || 'general';
+      }
+
       return {
-        nextTopic: parsed.nextTopic,
-        difficulty: parsed.difficulty,
-        reason: parsed.reason,
-        questionType: parsed.questionType,
+        id: `q-${Date.now()}-${parsed.type || 'technical'}`,
+        content: parsed.question,
+        section,
+        sectionKey,
+        type: parsed.type || 'technical',
+        topic: parsed.topic || '综合技术',
+        difficulty: parsed.difficulty || 'medium',
+        projectName: parsed.projectName || '',
       };
     } catch (error) {
-      console.error('Strategy Agent 调整策略失败:', error);
-      const nextPlanItem = state.interviewPlan.find(
-        (p) => p.askedCount < p.count
-      );
+      console.error('InterviewDecisionAgent 生成下一题失败:', error);
       return {
-        nextTopic: nextPlanItem?.topic || '综合技术',
+        id: `q-${Date.now()}-default`,
+        content: '请谈谈你在工作中遇到的最大技术挑战以及你是如何解决的。',
+        section: 'general',
+        sectionKey: 'general',
+        type: 'technical',
+        topic: '综合技术',
         difficulty: 'medium',
-        reason: '降级策略：按计划顺序考察',
-        questionType: 'technical',
       };
     }
   }
