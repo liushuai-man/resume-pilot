@@ -48,7 +48,7 @@ export default function LoginPage() {
               </div>
 
               <Text fw={400} size="xl">
-                AI Resume Agent
+                AI 简历助手
               </Text>
             </div>
             <Button variant="subtle" color="gray" onClick={() => navigate('/')}>
