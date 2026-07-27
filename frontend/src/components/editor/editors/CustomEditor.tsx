@@ -1,0 +1,132 @@
+import { FormGroup, TextInput, TextArea } from './EditorCommon';
+import type { SectionEditorProps } from './EditorCommon';
+
+function generateItemId() {
+  return `item-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
+}
+
+export function CustomEditor({ data, onChange }: SectionEditorProps) {
+  const items = Array.isArray(data) ? data : [];
+
+  const addItem = () => {
+    const newItem = {
+      id: generateItemId(),
+      title: '',
+      subtitle: '',
+      date: '',
+      description: '',
+      tags: [] as string[],
+    };
+    onChange([...items, newItem]);
+  };
+
+  const updateItem = (index: number, updates: any) => {
+    const newItems = [...items];
+    newItems[index] = { ...newItems[index], ...updates };
+    onChange(newItems);
+  };
+
+  const removeItem = (index: number) => {
+    onChange(items.filter((_: any, i: number) => i !== index));
+  };
+
+  return (
+    <div>
+      <div style={{ marginBottom: '16px' }}>
+        <button
+          onClick={addItem}
+          style={{
+            width: '100%',
+            padding: '10px',
+            border: '2px dashed #d1d5db',
+            borderRadius: '6px',
+            backgroundColor: 'transparent',
+            color: '#6b7280',
+            fontSize: '13px',
+            cursor: 'pointer',
+          }}
+        >
+          + 添加条目
+        </button>
+      </div>
+
+      {items.map((item: any, index: number) => (
+        <div
+          key={item.id}
+          style={{
+            marginBottom: '20px',
+            padding: '12px',
+            border: '1px solid #e5e7eb',
+            borderRadius: '8px',
+            backgroundColor: '#fafafa',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '12px',
+            }}
+          >
+            <span
+              style={{ fontWeight: 500, fontSize: '14px', color: '#374151' }}
+            >
+              条目 {index + 1}
+            </span>
+            <button
+              onClick={() => removeItem(index)}
+              style={{
+                color: '#ef4444',
+                fontSize: '12px',
+                backgroundColor: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              删除
+            </button>
+          </div>
+
+          <FormGroup label="标题">
+            <TextInput
+              value={item.title}
+              onChange={(e) => updateItem(index, { title: e.target.value })}
+              placeholder="标题"
+            />
+          </FormGroup>
+
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <FormGroup label="副标题">
+              <TextInput
+                value={item.subtitle || ''}
+                onChange={(e) =>
+                  updateItem(index, { subtitle: e.target.value })
+                }
+                placeholder="副标题"
+              />
+            </FormGroup>
+            <FormGroup label="时间">
+              <TextInput
+                value={item.date || ''}
+                onChange={(e) => updateItem(index, { date: e.target.value })}
+                placeholder="2024.01"
+              />
+            </FormGroup>
+          </div>
+
+          <FormGroup label="描述">
+            <TextArea
+              value={item.description || ''}
+              onChange={(e) =>
+                updateItem(index, { description: e.target.value })
+              }
+              placeholder="描述..."
+              rows={3}
+            />
+          </FormGroup>
+        </div>
+      ))}
+    </div>
+  );
+}

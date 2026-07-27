@@ -207,3 +207,47 @@ export const testAIConnection = async (req: Request, res: Response) => {
     return error(res, `测试失败: ${err.message}`, 500);
   }
 };
+
+export const polishSection = async (req: any, res: Response) => {
+  try {
+    const { sectionType, sectionTitle, content, targetField, tone } = req.body;
+    const userId = req.user?.id;
+
+    if (!content || content.trim() === '') {
+      return error(res, '请提供需要润色的内容', 400);
+    }
+
+    const fieldName = targetField || `${sectionTitle}内容`;
+    const result = await aiPolish({
+      text: content,
+      targetField: fieldName,
+      tone: tone || 'professional',
+      userId,
+    });
+
+    return success(res, { result }, '润色成功');
+  } catch (err: any) {
+    console.error('Section润色失败:', err);
+    return error(res, `润色失败: ${err.message}`, 500);
+  }
+};
+
+export const completeSection = async (req: any, res: Response) => {
+  try {
+    const { sectionType, sectionTitle, existingContent, context } = req.body;
+    const userId = req.user?.id;
+
+    const fieldName = sectionTitle || `${sectionType}模块`;
+    const result = await aiComplete({
+      text: existingContent || '',
+      context: context || '',
+      targetField: fieldName,
+      userId,
+    });
+
+    return success(res, { result }, '补全成功');
+  } catch (err: any) {
+    console.error('Section补全失败:', err);
+    return error(res, `补全失败: ${err.message}`, 500);
+  }
+};

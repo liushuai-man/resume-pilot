@@ -1,205 +1,116 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import EditorLayout from '@/layouts/EditorLayout';
 import EditorToolbar from '@/components/editor/EditorHeaderToolbar';
-import FormatToolbar from '@/components/editor/FormatToolbar';
-import ResumePreview from '@/components/editor/ResumePreview';
-import AddModuleModal from '@/components/editor/editor-areas/AddModuleModal';
-import {
-  BasicInfoBlock,
-  EducationBlock,
-  ExperienceBlock,
-  ProjectsBlock,
-  SkillsBlock,
-  CareerObjectiveBlock,
-  CertificationsBlock,
-  CampusExperienceBlock,
-} from '@/components/editor/editor-areas/editor-blocks';
+import { SectionList } from '@/components/editor/SectionList';
+import { SectionEditorModal } from '@/components/editor/SectionEditorModal';
+import { DocumentPreview } from '@/components/preview/DocumentPreview';
+import { TemplateSettings } from '@/components/editor/TemplateSettings';
 import AIConversation from '@/components/editor/AIConversation';
 import { exportToPdf } from '@/utils/pdfExport';
 import { notification } from '@/components/common/Notification';
-import { Button, Card, Badge } from '@mantine/core';
-import {
-  User,
-  GraduationCap,
-  Briefcase,
-  FolderOpen,
-  Wrench,
-  Award,
-  Target,
-  Users,
-  ChevronRight,
-  Plus,
-} from 'lucide-react';
 import { useResumeStore } from '@/store/useResumeStore';
-import type {
-  BasicInfo,
-  Education,
-  Experience,
-  Project,
-  Skill,
-  Certification,
-  CampusExperience,
-} from '@/types/resume';
+import { useDocumentStore } from '@/store/useDocumentStore';
+import { contentToDocument, documentToContent } from '@/utils/resume-migration';
+import { resumeApi } from '@/api/home.api';
+import { useAutoSave } from '@/hooks/useAutoSave';
 
 export default function ResumeEditorPage() {
   const { id: resumeId } = useParams<{ id: string }>();
-  const [activeSection, setActiveSection] = useState('basic');
-  const [showAddModuleModal, setShowAddModuleModal] = useState(false);
+  const { resume, template, loadResume, initStore, loadTemplate } =
+    useResumeStore();
   const {
-    resume,
-    content,
+    document,
+    loadDocument,
     isSaving,
     lastSaved,
-    updateContent,
-    updateTitle,
-    saveResume,
-    loadResume,
-    createResume,
-    initStore,
-  } = useResumeStore();
+    setSaving,
+    setLastSaved,
+    setActiveSection,
+    reset,
+  } = useDocumentStore();
+  const [manualSaving, setManualSaving] = useState(false);
+  const [showTemplateSettings, setShowTemplateSettings] = useState(false);
+  const [editorModalOpen, setEditorModalOpen] = useState(false);
+
+  useAutoSave(resumeId || '');
 
   useEffect(() => {
-    // 如果有 resumeId，总是从服务器加载最新数据
-    // 覆盖 localStorage 中的缓存数据
     if (resumeId) {
-      // 先清除 localStorage，确保不会读取到旧数据
       localStorage.removeItem('resume-storage');
+      localStorage.removeItem('document-storage');
+      reset();
     }
 
-    // 初始化 store（persist middleware 会自动从 localStorage 恢复状态）
     initStore();
 
-    // 如果有 resumeId，从服务器加载数据
     if (resumeId) {
-      console.log('开始加载简历:', resumeId);
       loadResume(resumeId)
-        .then(() => {
+        .then(async () => {
           const currentResume = useResumeStore.getState().resume;
-          console.log('简历加载完成:', currentResume);
+          if (currentResume?.template_id) {
+            await loadTemplate(currentResume.template_id);
+          }
         })
         .catch((error) => {
           console.error('简历加载失败:', error);
         });
     }
-  }, [resumeId, loadResume, initStore]);
+  }, [resumeId, loadResume, initStore, loadTemplate, reset]);
 
-  // 页面卸载时（包括刷新）保存数据到本地存储
   useEffect(() => {
-    const handleBeforeUnload = () => {
-      // 页面刷新时数据会自动通过 Zustand persist 保存到 localStorage
-      // 不需要额外操作
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, []);
-
-  // 组件卸载时（导航离开）自动保存到服务器
-  useEffect(() => {
-    let isUnmounted = false;
-
-    const handleUnmount = async () => {
-      if (isUnmounted) return;
-      isUnmounted = true;
-
-      const currentResume = useResumeStore.getState().resume;
-      if (currentResume && currentResume.id) {
-        try {
-          await saveResume(currentResume.id);
-        } catch (error) {
-          console.error('自动保存失败:', error);
-        }
-      }
-      // 不需要清除 localStorage，Zustand persist 会自动处理
-      // 保留 localStorage 可以在页面刷新时快速恢复状态
-    };
-
-    return () => {
-      handleUnmount();
-    };
-  }, [saveResume]);
-
-  const handleUpdateBasicInfo = (data: BasicInfo) => {
-    updateContent({ basicInfo: data });
-  };
-
-  const handleUpdateEducation = (data: Education[]) => {
-    updateContent({ education: data });
-  };
-
-  const handleUpdateExperience = (data: Experience[]) => {
-    updateContent({ experience: data });
-  };
-
-  const handleUpdateProjects = (data: Project[]) => {
-    updateContent({ projects: data });
-  };
-
-  const handleUpdateSkills = (data: Skill[]) => {
-    updateContent({ skills: data });
-  };
-
-  const handleUpdateCareerObjective = (data: string) => {
-    updateContent({ careerObjective: data });
-  };
-
-  const handleUpdateCertifications = (data: Certification[]) => {
-    updateContent({ certifications: data });
-  };
-
-  const handleUpdateCampusExperiences = (data: CampusExperience[]) => {
-    updateContent({ campusExperiences: data });
-  };
-
-  // 处理AI对话中应用到简历的操作
-  const handleApplyToResume = (aiContent: string, field: string) => {
-    console.log('应用到简历:', { content: aiContent, field });
-    notification.success('内容已复制到剪贴板，请粘贴到对应的简历区域');
-
-    // 复制到剪贴板
-    navigator.clipboard.writeText(aiContent);
-
-    // 根据当前编辑的字段自动粘贴到对应位置
-    if (activeSection) {
-      switch (activeSection) {
-        case 'objective':
-          updateContent({ careerObjective: aiContent });
-          break;
-        default:
-          // 其他字段需要用户手动粘贴
-          break;
-      }
+    if (resume && template && !document) {
+      const doc = contentToDocument(
+        resume.content,
+        template.style_config,
+        template.style_config.layout || 'classic'
+      );
+      doc.id = resume.id;
+      doc.title = resume.title;
+      loadDocument(doc);
     }
+  }, [resume, template, document, loadDocument]);
+
+  const handleSectionClick = (sectionId: string) => {
+    setActiveSection(sectionId);
+    setEditorModalOpen(true);
   };
 
   const handleSave = async () => {
-    if (resumeId) {
-      // 如果 URL 中有 resumeId，说明是编辑现有简历
-      // 获取当前标题（优先从 resume，然后从编辑器输入）
-      const currentTitle =
-        resume?.title || content?.basicInfo?.title || '我的简历';
-      await saveResume(resumeId, currentTitle);
-    } else {
-      // 如果没有 resumeId，说明是新建简历
-      // 使用 store 中的标题（用户在顶部导航栏修改的标题）
-      // 如果没有设置，使用默认值 '我的简历'
-      const currentTitle =
-        resume?.title || content?.basicInfo?.title || '我的简历';
-      await createResume(currentTitle);
+    if (!resumeId || !document) return;
+    if (manualSaving || isSaving) return;
+
+    setManualSaving(true);
+    setSaving(true);
+    try {
+      const content = documentToContent(document);
+      const response = await resumeApi.updateResume(resumeId, {
+        title: document.title,
+        content: content as any,
+      });
+      if (response.code === 200) {
+        setLastSaved(new Date());
+        notification.success('简历保存成功');
+      } else {
+        notification.error(response.message || '保存失败');
+      }
+    } catch (error) {
+      console.error('保存简历失败:', error);
+      notification.error('保存失败，请稍后重试');
+    } finally {
+      setSaving(false);
+      setManualSaving(false);
     }
   };
 
   const handleExport = () => {
     notification.info('正在生成PDF简历...');
-    const resumeElement = document.querySelector(
+    const resumeElement = window.document.querySelector(
       '.resume-preview-container'
     ) as HTMLElement;
     if (resumeElement) {
-      exportToPdf(resumeElement, content.basicInfo.name || '我的简历')
+      const exportName = document?.title || '我的简历';
+      exportToPdf(resumeElement, exportName)
         .then(() => {
           notification.success('PDF简历导出成功');
         })
@@ -209,137 +120,14 @@ export default function ResumeEditorPage() {
     }
   };
 
-  const handleTitleChange = (title: string) => {
-    updateTitle(title);
-  };
-
-  const sections = [
-    { id: 'basic', label: '基础信息', icon: User, count: undefined },
-    {
-      id: 'education',
-      label: '教育经历',
-      icon: GraduationCap,
-      count: content.education?.length ?? 0,
-    },
-    {
-      id: 'experience',
-      label: '工作经历',
-      icon: Briefcase,
-      count: content.experience?.length ?? 0,
-    },
-    {
-      id: 'projects',
-      label: '项目经验',
-      icon: FolderOpen,
-      count: content.projects?.length ?? 0,
-    },
-    {
-      id: 'skills',
-      label: '专业技能',
-      icon: Wrench,
-      count: content.skills?.length ?? 0,
-    },
-    {
-      id: 'certifications',
-      label: '证书荣誉',
-      icon: Award,
-      count: content.certifications?.length ?? 0,
-    },
-    {
-      id: 'campus',
-      label: '校园经历',
-      icon: Users,
-      count: content.campusExperiences?.length ?? 0,
-    },
-    { id: 'objective', label: '职业目标', icon: Target, count: undefined },
-  ];
-
-  const renderSection = () => {
-    switch (activeSection) {
-      case 'basic':
-        return (
-          <BasicInfoBlock
-            data={content.basicInfo}
-            onChange={handleUpdateBasicInfo}
-          />
-        );
-      case 'education':
-        return (
-          <EducationBlock
-            data={content.education}
-            onChange={handleUpdateEducation}
-          />
-        );
-      case 'experience':
-        return (
-          <ExperienceBlock
-            data={content.experience}
-            onChange={handleUpdateExperience}
-          />
-        );
-      case 'projects':
-        return (
-          <ProjectsBlock
-            data={content.projects}
-            onChange={handleUpdateProjects}
-          />
-        );
-      case 'skills':
-        return (
-          <SkillsBlock data={content.skills} onChange={handleUpdateSkills} />
-        );
-      case 'objective':
-        return (
-          <CareerObjectiveBlock
-            data={content.careerObjective}
-            onChange={handleUpdateCareerObjective}
-          />
-        );
-      case 'certifications':
-        return (
-          <CertificationsBlock
-            data={content.certifications}
-            onChange={handleUpdateCertifications}
-          />
-        );
-      case 'campus':
-        return (
-          <CampusExperienceBlock
-            data={content.campusExperiences}
-            onChange={handleUpdateCampusExperiences}
-          />
-        );
-      default:
-        return (
-          <Card className="border-none shadow-sm">
-            <div className="flex flex-col items-center justify-center py-12 text-gray-400">
-              <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-                {(() => {
-                  const section = sections.find((s) => s.id === activeSection);
-                  if (section) {
-                    const Icon = section.icon;
-                    return <Icon size={24} />;
-                  }
-                  return null;
-                })()}
-              </div>
-              <p>即将开发</p>
-            </div>
-          </Card>
-        );
-    }
-  };
+  const handleTitleChange = (_title: string) => {};
 
   const formatLastSaved = (date: Date | null | string) => {
     if (!date) return '';
-
-    // 确保 date 是 Date 对象
     const lastSavedDate = typeof date === 'string' ? new Date(date) : date;
-
     const now = new Date();
     const diff = now.getTime() - lastSavedDate.getTime();
     const minutes = Math.floor(diff / 60000);
-
     if (minutes < 1) return '刚刚';
     if (minutes < 60) return `${minutes}分钟前`;
     const hours = Math.floor(minutes / 60);
@@ -347,115 +135,96 @@ export default function ResumeEditorPage() {
     return lastSavedDate.toLocaleDateString();
   };
 
-  return (
-    <EditorLayout
-      toolbar={
-        <EditorToolbar
-          title={resume?.title || content?.basicInfo?.title || '新建简历'}
-          resumeId={resumeId || ''}
-          onSave={handleSave}
-          onExport={handleExport}
-          lastModified={formatLastSaved(lastSaved)}
-          isSaving={isSaving}
-          onTitleChange={handleTitleChange}
-        />
-      }
-      formatToolbar={<FormatToolbar />}
-      leftPanel={
-        <div className="h-full flex flex-col overflow-hidden">
-          {/* 顶部工具栏 */}
-          <div className="p-3 border-b-2 border-gray-200 flex-shrink-0">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700">
-                编辑区域
-              </span>
-              <Button
-                variant="ghost"
-                size="xs"
-                className="text-blue-400 bg-white hover:bg-blue-50 hover:border-blue-400 hover:text-blue-500"
-                onClick={() => setShowAddModuleModal(true)}
-              >
-                <Plus size={14} /> 添加模块
-              </Button>
-            </div>
-          </div>
+  const leftPanelContent = showTemplateSettings ? (
+    <TemplateSettings />
+  ) : (
+    <SectionList onSectionClick={handleSectionClick} />
+  );
 
-          {/* 导航菜单与编辑内容 */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-1">
-            {sections.map((section) => (
-              <div key={section.id} className="rounded-lg overflow-hidden">
-                {/* 导航项 */}
-                <button
-                  onClick={() =>
-                    setActiveSection(
-                      activeSection === section.id ? '' : section.id
-                    )
-                  }
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                    activeSection === section.id
-                      ? 'bg-blue-50 text-blue-600'
-                      : 'text-gray-600 hover:bg-gray-50'
-                  }`}
-                >
-                  <div
-                    className={`w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center ${
-                      activeSection === section.id
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-gray-100 text-gray-500'
-                    }`}
-                  >
-                    <section.icon size={16} />
-                  </div>
-                  <span className="flex-1 text-left truncate">
-                    {section.label}
-                  </span>
-                  {section.count !== undefined && (
-                    <Badge
-                      variant="outline"
-                      size="xs"
-                      className="text-gray-400 flex-shrink-0"
-                    >
-                      {section.count}
-                    </Badge>
-                  )}
-                  <ChevronRight
-                    size={14}
-                    className={`text-gray-400 flex-shrink-0 transition-transform ${
-                      activeSection === section.id ? 'rotate-90' : ''
-                    }`}
-                  />
-                </button>
-
-                {/* 编辑内容区域 - 在对应导航项下方展开 */}
-                {activeSection === section.id && (
-                  <div className="border-t border-gray-100 bg-white">
-                    {renderSection()}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      }
-      rightPanel={
-        <AIConversation
-          currentField={activeSection}
-          onApplyToResume={handleApplyToResume}
-        />
-      }
+  const formatBar = (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        height: '100%',
+        width: '100%',
+      }}
     >
-      {/* 中间预览区 */}
-      <div className="resume-preview-container w-full h-full">
-        <ResumePreview content={content} />
-      </div>
-      {/* 添加模块模态框 */}
-      <AddModuleModal
-        isOpen={showAddModuleModal}
-        onClose={() => setShowAddModuleModal(false)}
-        onSelect={(moduleId) => {
-          setActiveSection(moduleId);
+      <div
+        style={{
+          display: 'flex',
+          gap: '8px',
+          alignItems: 'center',
         }}
+      >
+        <button
+          onClick={() => setShowTemplateSettings(false)}
+          style={{
+            padding: '4px 12px',
+            border: 'none',
+            borderRadius: '6px',
+            fontSize: '12px',
+            cursor: 'pointer',
+            backgroundColor: !showTemplateSettings ? '#e0e7ff' : 'transparent',
+            color: !showTemplateSettings ? '#4338ca' : '#6b7280',
+            fontWeight: !showTemplateSettings ? 500 : 400,
+          }}
+        >
+          内容模块
+        </button>
+        <button
+          onClick={() => setShowTemplateSettings(true)}
+          style={{
+            padding: '4px 12px',
+            border: 'none',
+            borderRadius: '6px',
+            fontSize: '12px',
+            cursor: 'pointer',
+            backgroundColor: showTemplateSettings ? '#e0e7ff' : 'transparent',
+            color: showTemplateSettings ? '#4338ca' : '#6b7280',
+            fontWeight: showTemplateSettings ? 500 : 400,
+          }}
+        >
+          模板设置
+        </button>
+      </div>
+      <div style={{ flex: 1 }} />
+      {document && !showTemplateSettings && (
+        <span style={{ fontSize: '12px', color: '#6b7280' }}>
+          模块: {document.sections.filter((s) => s.visible).length} /{' '}
+          {document.sections.length}
+        </span>
+      )}
+    </div>
+  );
+
+  return (
+    <>
+      <EditorLayout
+        toolbar={
+          <EditorToolbar
+            title={document?.title || resume?.title || '新建简历'}
+            resumeId={resumeId || ''}
+            onSave={handleSave}
+            onExport={handleExport}
+            lastModified={formatLastSaved(lastSaved)}
+            isSaving={isSaving}
+            onTitleChange={handleTitleChange}
+          />
+        }
+        formatToolbar={formatBar}
+        leftPanel={leftPanelContent}
+        rightPanel={
+          <AIConversation currentField="" onApplyToResume={() => {}} />
+        }
+      >
+        <DocumentPreview />
+      </EditorLayout>
+
+      <SectionEditorModal
+        isOpen={editorModalOpen}
+        onClose={() => setEditorModalOpen(false)}
       />
-    </EditorLayout>
+    </>
   );
 }
