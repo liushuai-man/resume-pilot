@@ -43,7 +43,7 @@ export default function AIConversation({
         {
           id: 'welcome',
           type: 'ai',
-          content: `你好！我是你的 AI 简历助手 🚀\n\n我可以帮你：\n• 优化简历内容与表达\n• 补全缺失的经历描述\n• 量化工作成果\n• 提升 ATS 通过率\n• 翻译简历为英文\n\n请告诉我你需要什么帮助？`,
+          content: `你好！我是你的 AI 助手 🚀\n\n我可以帮你：\n• 优化简历内容与表达\n• 补全缺失的经历描述\n• 量化工作成果\n• 提升 ATS 通过率\n• 翻译简历为英文\n\n请告诉我你需要什么帮助？`,
           timestamp: new Date(),
         },
       ]);
@@ -180,7 +180,7 @@ export default function AIConversation({
             <Sparkles size={16} className="text-white" />
           </div>
           <div>
-            <span className="font-medium text-gray-800">AI 简历助手</span>
+            <span className="font-medium text-gray-800">AI 助手</span>
             <Text size="xs" className="text-gray-400">
               {isLoading ? '正在思考...' : '在线'}
             </Text>

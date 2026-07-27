@@ -135,39 +135,32 @@ export default function ResumeEditorPage() {
     return lastSavedDate.toLocaleDateString();
   };
 
-  const leftPanelContent = showTemplateSettings ? (
-    <TemplateSettings />
-  ) : (
-    <SectionList onSectionClick={handleSectionClick} />
-  );
-
-  const formatBar = (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        height: '100%',
-        width: '100%',
-      }}
-    >
+  const leftPanelContent = (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {/* 选项卡头部 */}
       <div
         style={{
           display: 'flex',
-          gap: '8px',
-          alignItems: 'center',
+          borderBottom: '1px solid #e5e7eb',
+          backgroundColor: '#f9fafb',
         }}
       >
         <button
           onClick={() => setShowTemplateSettings(false)}
           style={{
-            padding: '4px 12px',
+            flex: 1,
+            padding: '12px 8px',
             border: 'none',
-            borderRadius: '6px',
-            fontSize: '12px',
-            cursor: 'pointer',
-            backgroundColor: !showTemplateSettings ? '#e0e7ff' : 'transparent',
+            backgroundColor: 'transparent',
+            fontSize: '13px',
+            fontWeight: !showTemplateSettings ? 600 : 400,
             color: !showTemplateSettings ? '#4338ca' : '#6b7280',
-            fontWeight: !showTemplateSettings ? 500 : 400,
+            cursor: 'pointer',
+            borderBottom: !showTemplateSettings
+              ? '2px solid #4f46e5'
+              : '2px solid transparent',
+            marginBottom: '-1px',
+            transition: 'all 0.15s',
           }}
         >
           内容模块
@@ -175,26 +168,33 @@ export default function ResumeEditorPage() {
         <button
           onClick={() => setShowTemplateSettings(true)}
           style={{
-            padding: '4px 12px',
+            flex: 1,
+            padding: '12px 8px',
             border: 'none',
-            borderRadius: '6px',
-            fontSize: '12px',
-            cursor: 'pointer',
-            backgroundColor: showTemplateSettings ? '#e0e7ff' : 'transparent',
+            backgroundColor: 'transparent',
+            fontSize: '13px',
+            fontWeight: showTemplateSettings ? 600 : 400,
             color: showTemplateSettings ? '#4338ca' : '#6b7280',
-            fontWeight: showTemplateSettings ? 500 : 400,
+            cursor: 'pointer',
+            borderBottom: showTemplateSettings
+              ? '2px solid #4f46e5'
+              : '2px solid transparent',
+            marginBottom: '-1px',
+            transition: 'all 0.15s',
           }}
         >
           模板设置
         </button>
       </div>
-      <div style={{ flex: 1 }} />
-      {document && !showTemplateSettings && (
-        <span style={{ fontSize: '12px', color: '#6b7280' }}>
-          模块: {document.sections.filter((s) => s.visible).length} /{' '}
-          {document.sections.length}
-        </span>
-      )}
+
+      {/* 选项卡内容 */}
+      <div style={{ flex: 1, overflow: 'hidden', display: 'flex' }}>
+        {showTemplateSettings ? (
+          <TemplateSettings />
+        ) : (
+          <SectionList onSectionClick={handleSectionClick} />
+        )}
+      </div>
     </div>
   );
 
@@ -212,7 +212,6 @@ export default function ResumeEditorPage() {
             onTitleChange={handleTitleChange}
           />
         }
-        formatToolbar={formatBar}
         leftPanel={leftPanelContent}
         rightPanel={
           <AIConversation currentField="" onApplyToResume={() => {}} />

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useDocumentStore } from '@/store/useDocumentStore';
 import { SECTION_TYPE_CONFIGS } from '@/types/resume-document';
 
@@ -17,6 +17,23 @@ export function SectionList({ onSectionClick }: SectionListProps) {
   } = useDocumentStore();
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowAddMenu(false);
+      }
+    };
+
+    if (showAddMenu) {
+      window.document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      window.document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showAddMenu]);
 
   if (!document) return null;
 
@@ -41,6 +58,9 @@ export function SectionList({ onSectionClick }: SectionListProps) {
     setShowAddMenu(false);
   };
 
+  const visibleCount = document.sections.filter((s) => s.visible).length;
+  const totalCount = document.sections.length;
+
   return (
     <div
       style={{
@@ -52,16 +72,16 @@ export function SectionList({ onSectionClick }: SectionListProps) {
     >
       <div
         style={{
-          padding: '12px 16px',
-          borderBottom: '1px solid #e5e7eb',
+          padding: '10px 16px',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
+          fontSize: '12px',
+          color: '#6b7280',
         }}
       >
-        <span style={{ fontWeight: 600, fontSize: '14px', color: '#111827' }}>
-          内容模块
-        </span>
+        <span>共 {totalCount} 个模块</span>
+        <span>显示 {visibleCount} 个</span>
       </div>
 
       <div style={{ flex: 1, overflow: 'auto', padding: '8px' }}>
@@ -121,7 +141,7 @@ export function SectionList({ onSectionClick }: SectionListProps) {
           </div>
         ))}
 
-        <div style={{ position: 'relative', marginTop: '8px' }}>
+        <div style={{ position: 'relative', marginTop: '8px' }} ref={menuRef}>
           <button
             onClick={() => setShowAddMenu(!showAddMenu)}
             style={{

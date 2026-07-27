@@ -139,7 +139,9 @@ function convertSkill(content: ResumeContent): SkillSection | null {
   };
 }
 
-function convertCertification(content: ResumeContent): CertificationSection | null {
+function convertCertification(
+  content: ResumeContent
+): CertificationSection | null {
   const list = content.certifications || [];
   if (list.length === 0) return null;
 
@@ -210,11 +212,16 @@ export function contentToDocument(
     .sort((a, b) => a.order - b.order)
     .map((s, i) => ({ ...s, order: i }));
 
-  const style: ResumeStyle = {
+  const savedStyle = (content as any)._documentStyle;
+  const savedLayout = (content as any)._documentLayout;
+
+  const style: ResumeStyle = savedStyle || {
     theme: 'default',
     primaryColor: styleConfig?.primaryColor || '#2563eb',
     secondaryColor: styleConfig?.secondaryColor,
-    fontFamily: styleConfig?.fontFamily || '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif',
+    fontFamily:
+      styleConfig?.fontFamily ||
+      '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif',
     fontSize: styleConfig?.fontSize || 14,
     lineHeight: 1.6,
     margin: 24,
@@ -227,7 +234,7 @@ export function contentToDocument(
     backgroundColor: styleConfig?.backgroundColor || '#ffffff',
   };
 
-  const resumeLayout: ResumeLayout = {
+  const resumeLayout: ResumeLayout = savedLayout || {
     template: (layout as any) || 'classic',
     pageSize: 'A4',
     orientation: 'portrait',
@@ -243,7 +250,7 @@ export function contentToDocument(
 }
 
 export function documentToContent(document: ResumeDocument): ResumeContent {
-  const content: ResumeContent = {
+  const content = {
     blocks: [],
     basicInfo: {
       name: '',
@@ -258,7 +265,9 @@ export function documentToContent(document: ResumeDocument): ResumeContent {
     careerObjective: '',
     certifications: [],
     campusExperiences: [],
-  };
+    _documentStyle: document.style,
+    _documentLayout: document.layout,
+  } as ResumeContent;
 
   for (const section of document.sections) {
     if (!section.visible) continue;

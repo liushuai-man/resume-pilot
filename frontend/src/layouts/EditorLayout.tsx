@@ -16,7 +16,6 @@ interface EditorLayoutProps {
   leftPanel: React.ReactNode;
   rightPanel: React.ReactNode;
   toolbar: React.ReactNode;
-  formatToolbar: React.ReactNode;
 }
 
 export default function EditorLayout({
@@ -24,7 +23,6 @@ export default function EditorLayout({
   leftPanel,
   rightPanel,
   toolbar,
-  formatToolbar,
 }: EditorLayoutProps) {
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
@@ -106,7 +104,7 @@ export default function EditorLayout({
           </Tooltip>
 
           {/* 右侧面板开关 */}
-          <Tooltip label={rightCollapsed ? '展开AI会话' : '收起AI会话'}>
+          <Tooltip label={rightCollapsed ? '展开AI助手' : '收起AI助手'}>
             <Button
               variant="subtle"
               size="xs"
@@ -124,19 +122,14 @@ export default function EditorLayout({
         </div>
       </header>
 
-      {/* 格式化工具栏 - 第二层 */}
-      <div className="h-10 bg-gray-50 border-b border-gray-200 px-4 flex items-center flex-shrink-0">
-        {formatToolbar}
-      </div>
-
       {/* 主体内容区 - 使用 flex 布局 */}
       <div className="flex-1 flex overflow-hidden">
-        {/* 左侧编辑区 - 响应式宽度，使用 clamp 函数 */}
+        {/* 左侧编辑区 - 响应式宽度 */}
         <aside
           className={`bg-white border-r border-gray-200 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) flex-shrink-0 ${
             leftCollapsed
               ? 'w-0 border-r-0 overflow-hidden opacity-0'
-              : 'w-[clamp(280px,25vw,480px)]'
+              : 'w-[clamp(240px,20vw,360px)]'
           }`}
         >
           <div className="h-full overflow-y-auto">{leftPanel}</div>
@@ -162,12 +155,12 @@ export default function EditorLayout({
           </div>
         </main>
 
-        {/* 右侧AI会话区 - 响应式宽度，使用 clamp 函数 */}
+        {/* 右侧AI助手区 - 响应式宽度 */}
         <aside
           className={`bg-white border-l border-gray-200 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) flex-shrink-0 ${
             rightCollapsed
               ? 'w-0 border-l-0 overflow-hidden opacity-0'
-              : 'w-[clamp(320px,25vw,480px)]'
+              : 'w-[clamp(360px,28vw,520px)]'
           }`}
         >
           <div className="h-full overflow-y-auto">{rightPanel}</div>
