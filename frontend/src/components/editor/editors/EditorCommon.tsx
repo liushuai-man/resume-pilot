@@ -45,23 +45,33 @@ export function SectionTitleInput({
 export function FormGroup({
   label,
   children,
+  labelExtra,
 }: {
   label: string;
   children: React.ReactNode;
+  labelExtra?: React.ReactNode;
 }) {
   return (
     <div style={{ marginBottom: '14px' }}>
-      <label
+      <div
         style={{
-          display: 'block',
-          fontSize: '12px',
-          fontWeight: 500,
-          color: '#6b7280',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
           marginBottom: '4px',
         }}
       >
-        {label}
-      </label>
+        <label
+          style={{
+            fontSize: '12px',
+            fontWeight: 500,
+            color: '#6b7280',
+          }}
+        >
+          {label}
+        </label>
+        {labelExtra}
+      </div>
       {children}
     </div>
   );

@@ -1,11 +1,17 @@
-import { FormGroup, TextInput, TextArea } from './EditorCommon';
+import { FormGroup, TextInput } from './EditorCommon';
 import type { SectionEditorProps } from './EditorCommon';
+import { AIFieldActions } from '../AIFieldActions';
+import { MarkdownTextarea } from '../MarkdownTextarea';
 
 function generateItemId() {
   return `item-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
 }
 
-export function CertificationEditor({ data, onChange }: SectionEditorProps) {
+export function CertificationEditor({
+  sectionId,
+  data,
+  onChange,
+}: SectionEditorProps) {
   const items = data || [];
 
   const addItem = () => {
@@ -68,7 +74,9 @@ export function CertificationEditor({ data, onChange }: SectionEditorProps) {
               marginBottom: '12px',
             }}
           >
-            <span style={{ fontWeight: 500, fontSize: '14px', color: '#374151' }}>
+            <span
+              style={{ fontWeight: 500, fontSize: '14px', color: '#374151' }}
+            >
               证书 {index + 1}
             </span>
             <button
@@ -110,10 +118,25 @@ export function CertificationEditor({ data, onChange }: SectionEditorProps) {
             </FormGroup>
           </div>
 
-          <FormGroup label="描述（选填）">
-            <TextArea
+          <FormGroup
+            label="描述（选填）"
+            labelExtra={
+              <AIFieldActions
+                sectionId={sectionId}
+                fieldPath={`items.${index}.description`}
+                content={item.description || ''}
+                onPolish={(result) =>
+                  updateItem(index, { description: result })
+                }
+                onComplete={(result) =>
+                  updateItem(index, { description: result })
+                }
+              />
+            }
+          >
+            <MarkdownTextarea
               value={item.description || ''}
-              onChange={(e) => updateItem(index, { description: e.target.value })}
+              onChange={(val) => updateItem(index, { description: val })}
               placeholder="证书相关描述..."
               rows={2}
             />

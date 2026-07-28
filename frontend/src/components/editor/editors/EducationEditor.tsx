@@ -1,11 +1,17 @@
-import { FormGroup, TextInput, TextArea } from './EditorCommon';
+import { FormGroup, TextInput } from './EditorCommon';
 import type { SectionEditorProps } from './EditorCommon';
+import { AIFieldActions } from '../AIFieldActions';
+import { MarkdownTextarea } from '../MarkdownTextarea';
 
 function generateItemId() {
   return `item-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
 }
 
-export function EducationEditor({ data, onChange }: SectionEditorProps) {
+export function EducationEditor({
+  sectionId,
+  data,
+  onChange,
+}: SectionEditorProps) {
   const items = data || [];
 
   const addItem = () => {
@@ -142,12 +148,25 @@ export function EducationEditor({ data, onChange }: SectionEditorProps) {
             />
           </FormGroup>
 
-          <FormGroup label="描述（选填）">
-            <TextArea
+          <FormGroup
+            label="描述（选填）"
+            labelExtra={
+              <AIFieldActions
+                sectionId={sectionId}
+                fieldPath={`items.${index}.description`}
+                content={item.description || ''}
+                onPolish={(result) =>
+                  updateItem(index, { description: result })
+                }
+                onComplete={(result) =>
+                  updateItem(index, { description: result })
+                }
+              />
+            }
+          >
+            <MarkdownTextarea
               value={item.description || ''}
-              onChange={(e) =>
-                updateItem(index, { description: e.target.value })
-              }
+              onChange={(val) => updateItem(index, { description: val })}
               placeholder="相关课程、荣誉等..."
               rows={3}
             />

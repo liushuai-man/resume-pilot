@@ -1,11 +1,17 @@
-import { FormGroup, TextInput, TextArea } from './EditorCommon';
+import { FormGroup, TextInput } from './EditorCommon';
 import type { SectionEditorProps } from './EditorCommon';
+import { AIFieldActions } from '../AIFieldActions';
+import { MarkdownTextarea } from '../MarkdownTextarea';
 
 function generateItemId() {
   return `item-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
 }
 
-export function CustomEditor({ data, onChange }: SectionEditorProps) {
+export function CustomEditor({
+  sectionId,
+  data,
+  onChange,
+}: SectionEditorProps) {
   const items = Array.isArray(data) ? data : [];
 
   const addItem = () => {
@@ -115,16 +121,29 @@ export function CustomEditor({ data, onChange }: SectionEditorProps) {
             </FormGroup>
           </div>
 
-          <FormGroup label="描述">
-            <TextArea
-              value={item.description || ''}
-              onChange={(e) =>
-                updateItem(index, { description: e.target.value })
+          <FormGroup
+          label="描述"
+          labelExtra={
+            <AIFieldActions
+              sectionId={sectionId}
+              fieldPath={`items.${index}.description`}
+              content={item.description || ''}
+              onPolish={(result) =>
+                updateItem(index, { description: result })
               }
-              placeholder="描述..."
-              rows={3}
+              onComplete={(result) =>
+                updateItem(index, { description: result })
+              }
             />
-          </FormGroup>
+          }
+        >
+          <MarkdownTextarea
+            value={item.description || ''}
+            onChange={(val) => updateItem(index, { description: val })}
+            placeholder="描述..."
+            rows={3}
+          />
+        </FormGroup>
         </div>
       ))}
     </div>

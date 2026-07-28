@@ -1,6 +1,28 @@
 import type { RendererProps } from './index';
 import { SectionWrapper } from './SectionWrapper';
 import ReactMarkdown from 'react-markdown';
+import { getIconComponent } from '@/utils/section-icons';
+
+const DEFAULT_ICONS: Record<string, string> = {
+  email: 'Mail',
+  phone: 'Phone',
+  location: 'MapPin',
+  website: 'Globe',
+};
+
+function getFieldIcon(data: any, field: string) {
+  const iconKey = `${field}Icon`;
+  const custom = data?.[iconKey];
+  if (custom !== undefined && custom !== null) {
+    const Comp = getIconComponent(custom);
+    if (Comp) return Comp;
+  }
+  const defaultName = DEFAULT_ICONS[field];
+  if (defaultName) {
+    return getIconComponent(defaultName);
+  }
+  return null;
+}
 
 export function ProfileRenderer({
   section,
@@ -12,7 +34,36 @@ export function ProfileRenderer({
   if (section.type !== 'profile') return null;
   const data = section.data as any;
 
+  const baseSize = style.fontSize || 14;
+  const contactSize = `${baseSize}px`;
+  const smallSize = `${Math.max(baseSize - 2, 10)}px`;
+
+  const renderContactItem = (field: string, value: string, color: string) => {
+    if (!value) return null;
+    const Icon = getFieldIcon(data, field);
+    return (
+      <span
+        style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+      >
+        {Icon && <Icon size={13} color={color} />}
+        {value}
+      </span>
+    );
+  };
+
+  function renderFieldIcon(
+    data: any,
+    field: string,
+    size: number,
+    color: string
+  ) {
+    const Icon = getFieldIcon(data, field);
+    if (!Icon) return null;
+    return <Icon size={size} color={color} />;
+  }
+
   if (variant === 'sidebar') {
+    const sidebarIconColor = 'rgba(255,255,255,0.7)';
     return (
       <div
         onClick={onClick}
@@ -50,7 +101,7 @@ export function ProfileRenderer({
         {data.title && (
           <p
             style={{
-              fontSize: '13px',
+              fontSize: smallSize,
               color: '#d1d5db',
               margin: '4px 0 12px 0',
             }}
@@ -58,15 +109,37 @@ export function ProfileRenderer({
             {data.title}
           </p>
         )}
-        <div style={{ fontSize: '12px', color: '#9ca3af', lineHeight: 1.8 }}>
-          {data.email && <div>✉ {data.email}</div>}
-          {data.phone && <div>📱 {data.phone}</div>}
-          {data.location && <div>📍 {data.location}</div>}
-          {data.website && <div>🌐 {data.website}</div>}
+        <div style={{ fontSize: smallSize, color: '#9ca3af', lineHeight: 1.8 }}>
+          {data.email && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {renderFieldIcon(data, 'email', 12, sidebarIconColor)}
+              {data.email}
+            </div>
+          )}
+          {data.phone && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {renderFieldIcon(data, 'phone', 12, sidebarIconColor)}
+              {data.phone}
+            </div>
+          )}
+          {data.location && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {renderFieldIcon(data, 'location', 12, sidebarIconColor)}
+              {data.location}
+            </div>
+          )}
+          {data.website && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {renderFieldIcon(data, 'website', 12, sidebarIconColor)}
+              {data.website}
+            </div>
+          )}
         </div>
       </div>
     );
   }
+
+  const primaryColor = style.primaryColor || '#2563eb';
 
   return (
     <SectionWrapper
@@ -87,7 +160,7 @@ export function ProfileRenderer({
             fontSize: variant === 'minimal' ? '22px' : '28px',
             fontWeight: 700,
             margin: 0,
-            color: variant === 'modern' ? style.primaryColor : '#111827',
+            color: variant === 'modern' ? primaryColor : '#111827',
             letterSpacing: variant === 'modern' ? '1px' : 'normal',
           }}
         >
@@ -96,7 +169,7 @@ export function ProfileRenderer({
         {data.title && (
           <p
             style={{
-              fontSize: variant === 'minimal' ? '14px' : '16px',
+              fontSize: contactSize,
               color: '#6b7280',
               margin: '4px 0 12px 0',
               fontWeight: 500,
@@ -110,21 +183,21 @@ export function ProfileRenderer({
             display: 'flex',
             flexWrap: 'wrap',
             justifyContent: variant === 'minimal' ? 'flex-start' : 'center',
-            gap: '12px',
-            fontSize: '13px',
+            gap: '16px',
+            fontSize: contactSize,
             color: '#6b7280',
           }}
         >
-          {data.email && <span>✉ {data.email}</span>}
-          {data.phone && <span>📱 {data.phone}</span>}
-          {data.location && <span>📍 {data.location}</span>}
-          {data.website && <span>🌐 {data.website}</span>}
+          {renderContactItem('email', data.email, primaryColor)}
+          {renderContactItem('phone', data.phone, primaryColor)}
+          {renderContactItem('location', data.location, primaryColor)}
+          {renderContactItem('website', data.website, primaryColor)}
         </div>
         {data.summary && (
           <div
             style={{
               marginTop: '12px',
-              fontSize: '13px',
+              fontSize: contactSize,
               color: '#4b5563',
               lineHeight: 1.6,
               textAlign: 'left',

@@ -241,31 +241,24 @@ function ProjectItemEditor({
         </div>
       </FormGroup>
 
-      <FormGroup label="项目描述">
-        <div style={{ position: 'relative' }}>
-          <div
-            style={{
-              position: 'absolute',
-              top: '8px',
-              right: '8px',
-              zIndex: 10,
-            }}
-          >
-            <AIFieldActions
-              sectionId={sectionId}
-              fieldPath={`items.${index}.description`}
-              content={item.description}
-              onPolish={(result) => onUpdate({ description: result })}
-              onComplete={(result) => onUpdate({ description: result })}
-            />
-          </div>
-          <MarkdownTextarea
-            value={item.description}
-            onChange={(val) => onUpdate({ description: val })}
-            placeholder="描述项目背景、你的职责和主要成果...支持 Markdown 语法"
-            rows={4}
+      <FormGroup
+        label="项目描述"
+        labelExtra={
+          <AIFieldActions
+            sectionId={sectionId}
+            fieldPath={`items.${index}.description`}
+            content={item.description}
+            onPolish={(result) => onUpdate({ description: result })}
+            onComplete={(result) => onUpdate({ description: result })}
           />
-        </div>
+        }
+      >
+        <MarkdownTextarea
+          value={item.description}
+          onChange={(val) => onUpdate({ description: val })}
+          placeholder="描述项目背景、你的职责和主要成果..."
+          rows={4}
+        />
       </FormGroup>
     </div>
   );

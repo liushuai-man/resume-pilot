@@ -23,6 +23,14 @@ const ACCENT_COLORS = [
   '#0891b2',
   '#4f46e5',
   '#be185d',
+  '#000000',
+];
+
+const TITLE_SIZES = [
+  { value: 14, label: '小' },
+  { value: 16, label: '中' },
+  { value: 18, label: '大' },
+  { value: 22, label: '特大' },
 ];
 
 const LAYOUTS = [
@@ -39,6 +47,18 @@ export function TemplateSettings() {
 
   const style: ResumeStyle = document.style;
   const layout: ResumeLayout = document.layout;
+
+  const handlePrimaryColorChange = (color: string) => {
+    updateStyle({ primaryColor: color, sectionTitleColor: color });
+  };
+
+  const handleFontSizeChange = (size: number) => {
+    updateStyle({ fontSize: size });
+  };
+
+  const handleTitleSizeChange = (size: number) => {
+    updateStyle({ sectionTitleSize: size });
+  };
 
   return (
     <div style={{ padding: '16px', overflow: 'auto', height: '100%' }}>
@@ -141,13 +161,13 @@ export function TemplateSettings() {
             marginBottom: '8px',
           }}
         >
-          字号
+          正文字号
         </label>
         <div style={{ display: 'flex', gap: '8px' }}>
           {FONT_SIZES.map((s) => (
             <button
               key={s.value}
-              onClick={() => updateStyle({ fontSize: s.value })}
+              onClick={() => handleFontSizeChange(s.value)}
               style={{
                 flex: 1,
                 padding: '8px',
@@ -180,13 +200,53 @@ export function TemplateSettings() {
             marginBottom: '8px',
           }}
         >
+          标题字号
+        </label>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {TITLE_SIZES.map((s) => (
+            <button
+              key={s.value}
+              onClick={() => handleTitleSizeChange(s.value)}
+              style={{
+                flex: 1,
+                padding: '8px',
+                border:
+                  (style.sectionTitleSize || 16) === s.value
+                    ? '2px solid #4f46e5'
+                    : '1px solid #d1d5db',
+                borderRadius: '6px',
+                backgroundColor:
+                  (style.sectionTitleSize || 16) === s.value ? '#eef2ff' : '#ffffff',
+                color:
+                  (style.sectionTitleSize || 16) === s.value ? '#4338ca' : '#374151',
+                fontSize: '12px',
+                cursor: 'pointer',
+                fontWeight: 500,
+              }}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ marginBottom: '16px' }}>
+        <label
+          style={{
+            display: 'block',
+            fontSize: '13px',
+            fontWeight: 500,
+            color: '#374151',
+            marginBottom: '8px',
+          }}
+        >
           主题色
         </label>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
           {ACCENT_COLORS.map((color) => (
             <button
               key={color}
-              onClick={() => updateStyle({ primaryColor: color })}
+              onClick={() => handlePrimaryColorChange(color)}
               style={{
                 width: '28px',
                 height: '28px',

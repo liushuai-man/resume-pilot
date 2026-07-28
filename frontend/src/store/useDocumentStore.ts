@@ -27,6 +27,7 @@ interface DocumentStore {
   removeSection: (sectionId: string) => void;
   moveSection: (sectionId: string, targetIndex: number) => void;
   updateSectionTitle: (sectionId: string, title: string) => void;
+  updateSection: (sectionId: string, updates: Partial<ResumeSection>) => void;
   toggleSectionVisible: (sectionId: string) => void;
 
   updateStyle: (style: Partial<ResumeStyle>) => void;
@@ -64,7 +65,7 @@ const defaultStyle: ResumeStyle = {
   lineHeight: 1.6,
   margin: 24,
   sectionSpacing: 24,
-  sectionTitleColor: '#1f2937',
+  sectionTitleColor: '#2563eb',
   sectionTitleSize: 16,
   lineColor: '#e5e7eb',
   sidebarColor: '#f3f4f6',
@@ -318,6 +319,22 @@ export const useDocumentStore = create<DocumentStore>()(
           const sections = state.document.sections.map((s) =>
             s.id === sectionId ? { ...s, title } : s
           );
+          return {
+            document: {
+              ...state.document,
+              sections,
+              updatedAt: new Date().toISOString(),
+            },
+          };
+        });
+      },
+
+      updateSection: (sectionId, updates) => {
+        set((state) => {
+          if (!state.document) return state;
+          const sections = state.document.sections.map((s) =>
+            s.id === sectionId ? { ...s, ...updates } : s
+          ) as ResumeSection[];
           return {
             document: {
               ...state.document,

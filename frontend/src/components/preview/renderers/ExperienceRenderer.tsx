@@ -13,8 +13,10 @@ export function ExperienceRenderer({
   const items = section.data as any[];
   if (!items || items.length === 0) return null;
 
-  const descSize = variant === 'minimal' ? '12px' : '13px';
-  const titleSize = variant === 'minimal' ? '13px' : '14px';
+  const baseSize = style.fontSize || 14;
+  const descSize = `${baseSize}px`;
+  const titleSize = `${baseSize + 1}px`;
+  const smallSize = `${Math.max(baseSize - 2, 10)}px`;
 
   return (
     <SectionWrapper
@@ -60,6 +62,7 @@ export function ExperienceRenderer({
                 startDate={item.startDate}
                 endDate={item.endDate}
                 variant={variant}
+                fontSize={smallSize}
               />
             </div>
             {item.description && (

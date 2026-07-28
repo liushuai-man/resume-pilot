@@ -29,6 +29,7 @@ interface BaseSection<T = unknown> {
   visible: boolean;
   order: number;
   data: T;
+  icon?: string | null;
 }
 
 export interface ProfileSection extends BaseSection<ProfileData> {
@@ -72,6 +73,10 @@ export interface ProfileData {
   avatar?: string;
   website?: string;
   summary?: string;
+  emailIcon?: string | null;
+  phoneIcon?: string | null;
+  locationIcon?: string | null;
+  websiteIcon?: string | null;
 }
 
 export interface EducationItem {
@@ -169,12 +174,60 @@ export interface SectionTypeConfig {
 }
 
 export const SECTION_TYPE_CONFIGS: SectionTypeConfig[] = [
-  { type: 'profile', label: '个人信息', icon: 'user', defaultTitle: '个人信息', isList: false },
-  { type: 'education', label: '教育经历', icon: 'graduation', defaultTitle: '教育经历', isList: true },
-  { type: 'experience', label: '工作经历', icon: 'briefcase', defaultTitle: '工作经历', isList: true },
-  { type: 'project', label: '项目经验', icon: 'folder', defaultTitle: '项目经验', isList: true },
-  { type: 'skill', label: '专业技能', icon: 'wrench', defaultTitle: '专业技能', isList: true },
-  { type: 'certification', label: '证书荣誉', icon: 'award', defaultTitle: '证书荣誉', isList: true },
-  { type: 'objective', label: '职业目标', icon: 'target', defaultTitle: '职业目标', isList: false },
-  { type: 'custom', label: '自定义模块', icon: 'plus', defaultTitle: '自定义模块', isList: true },
+  {
+    type: 'profile',
+    label: '个人信息',
+    icon: 'User',
+    defaultTitle: '个人信息',
+    isList: false,
+  },
+  {
+    type: 'education',
+    label: '教育经历',
+    icon: 'GraduationCap',
+    defaultTitle: '教育经历',
+    isList: true,
+  },
+  {
+    type: 'experience',
+    label: '工作经历',
+    icon: 'Briefcase',
+    defaultTitle: '工作经历',
+    isList: true,
+  },
+  {
+    type: 'project',
+    label: '项目经验',
+    icon: 'FolderKanban',
+    defaultTitle: '项目经验',
+    isList: true,
+  },
+  {
+    type: 'skill',
+    label: '专业技能',
+    icon: 'Wrench',
+    defaultTitle: '专业技能',
+    isList: true,
+  },
+  {
+    type: 'certification',
+    label: '证书荣誉',
+    icon: 'Award',
+    defaultTitle: '证书荣誉',
+    isList: true,
+  },
+  {
+    type: 'objective',
+    label: '职业目标',
+    icon: 'Target',
+    defaultTitle: '职业目标',
+    isList: false,
+  },
+  {
+    type: 'custom',
+    label: '自定义模块',
+    icon: 'PlusSquare',
+    defaultTitle: '自定义模块',
+    isList: true,
+  },
 ];

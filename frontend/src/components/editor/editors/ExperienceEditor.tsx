@@ -135,35 +135,28 @@ export function ExperienceEditor({
             </FormGroup>
           </div>
 
-          <FormGroup label="工作描述">
-            <div style={{ position: 'relative' }}>
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '8px',
-                  right: '8px',
-                  zIndex: 10,
-                }}
-              >
-                <AIFieldActions
-                  sectionId={sectionId}
-                  fieldPath={`items.${index}.description`}
-                  content={item.description}
-                  onPolish={(result) =>
-                    updateItem(index, { description: result })
-                  }
-                  onComplete={(result) =>
-                    updateItem(index, { description: result })
-                  }
-                />
-              </div>
-              <MarkdownTextarea
-                value={item.description}
-                onChange={(val) => updateItem(index, { description: val })}
-                placeholder="描述你的职责和工作内容...支持 Markdown 语法"
-                rows={4}
+          <FormGroup
+            label="工作描述"
+            labelExtra={
+              <AIFieldActions
+                sectionId={sectionId}
+                fieldPath={`items.${index}.description`}
+                content={item.description}
+                onPolish={(result) =>
+                  updateItem(index, { description: result })
+                }
+                onComplete={(result) =>
+                  updateItem(index, { description: result })
+                }
               />
-            </div>
+            }
+          >
+            <MarkdownTextarea
+              value={item.description}
+              onChange={(val) => updateItem(index, { description: val })}
+              placeholder="描述你的职责和工作内容..."
+              rows={4}
+            />
           </FormGroup>
         </div>
       ))}

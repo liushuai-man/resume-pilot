@@ -42,9 +42,12 @@ function getTitleStyle(
   style: ResumeStyle,
   variant: TemplateVariant
 ): React.CSSProperties {
+  const titleColor = style.sectionTitleColor || style.primaryColor || '#1f2937';
+  const titleSize = `${style.sectionTitleSize || style.fontSize || 16}px`;
+
   const base: React.CSSProperties = {
-    color: style.sectionTitleColor || '#1f2937',
-    fontSize: `${style.sectionTitleSize || 16}px`,
+    color: titleColor,
+    fontSize: titleSize,
     fontWeight: 600,
     margin: 0,
     marginBottom: '12px',
@@ -55,11 +58,10 @@ function getTitleStyle(
     case 'modern':
       return {
         ...base,
-        borderBottom: `2px solid ${style.primaryColor}`,
+        borderBottom: `2px solid ${style.primaryColor || '#2563eb'}`,
         paddingBottom: '6px',
         textTransform: 'uppercase',
         letterSpacing: '0.5px',
-        fontSize: '14px',
       };
     case 'classic':
       return {
@@ -70,17 +72,14 @@ function getTitleStyle(
     case 'minimal':
       return {
         ...base,
-        fontSize: '13px',
         fontWeight: 500,
-        color: '#6b7280',
         textTransform: 'uppercase',
         letterSpacing: '0.3px',
       };
     case 'sidebar':
       return {
         ...base,
-        color: style.sidebarTextColor || '#374151',
-        fontSize: '13px',
+        color: style.sidebarTextColor || titleColor,
         marginBottom: '8px',
       };
     default:

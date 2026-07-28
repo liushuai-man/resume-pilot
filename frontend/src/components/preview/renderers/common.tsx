@@ -5,18 +5,22 @@ interface TechStackTagsProps {
   techStack: string[];
   primaryColor: string;
   variant: TemplateVariant;
+  fontSize?: string;
 }
 
 export function TechStackTags({
   techStack,
   primaryColor,
   variant,
+  fontSize,
 }: TechStackTagsProps) {
   if (!techStack || techStack.length === 0) return null;
 
+  const tagSize = fontSize || '11px';
+
   if (variant === 'minimal') {
     return (
-      <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
+      <div style={{ fontSize: tagSize, color: '#6b7280', marginTop: '4px' }}>
         {techStack.join(' · ')}
       </div>
     );
@@ -43,7 +47,7 @@ export function TechStackTags({
                 : `${primaryColor}15`,
             color: variant === 'sidebar' ? '#fff' : primaryColor,
             borderRadius: '3px',
-            fontSize: '11px',
+            fontSize: tagSize,
             fontWeight: 500,
           }}
         >
@@ -175,15 +179,22 @@ interface DateRangeProps {
   startDate: string;
   endDate: string;
   variant: TemplateVariant;
+  fontSize?: string;
 }
 
-export function DateRange({ startDate, endDate, variant }: DateRangeProps) {
+export function DateRange({
+  startDate,
+  endDate,
+  variant,
+  fontSize,
+}: DateRangeProps) {
   const dateStr = formatDateRange(startDate, endDate);
+  const size = fontSize || '12px';
 
   return (
     <span
       style={{
-        fontSize: '12px',
+        fontSize: size,
         color: variant === 'sidebar' ? '#9ca3af' : '#9ca3af',
         whiteSpace: 'nowrap',
       }}

@@ -6,7 +6,8 @@ export function ObjectiveRenderer({ section, style, variant, isHighlighted, onCl
   const data = section.data as any;
   if (!data.content) return null;
 
-  const descSize = variant === 'minimal' ? '12px' : '13px';
+  const baseSize = style.fontSize || 14;
+  const descSize = `${baseSize}px`;
 
   return (
     <SectionWrapper title={section.title} style={style} variant={variant} isHighlighted={isHighlighted} onClick={onClick}>

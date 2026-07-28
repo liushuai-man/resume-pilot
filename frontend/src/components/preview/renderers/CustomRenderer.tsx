@@ -13,8 +13,10 @@ export function CustomRenderer({
   const items = Array.isArray(section.data) ? section.data : [];
   if (!items || items.length === 0) return null;
 
-  const descSize = variant === 'minimal' ? '12px' : '13px';
-  const titleSize = variant === 'minimal' ? '13px' : '14px';
+  const baseSize = style.fontSize || 14;
+  const descSize = `${baseSize}px`;
+  const titleSize = `${baseSize + 1}px`;
+  const smallSize = `${Math.max(baseSize - 3, 10)}px`;
 
   return (
     <SectionWrapper
@@ -58,7 +60,7 @@ export function CustomRenderer({
                 )}
               </div>
               {item.date && (
-                <span style={{ fontSize: '12px', color: '#9ca3af' }}>
+                <span style={{ fontSize: smallSize, color: '#9ca3af' }}>
                   {item.date}
                 </span>
               )}
@@ -88,7 +90,7 @@ export function CustomRenderer({
                       backgroundColor: '#f3f4f6',
                       color: '#6b7280',
                       borderRadius: '3px',
-                      fontSize: '11px',
+                      fontSize: smallSize,
                     }}
                   >
                     {tag}
