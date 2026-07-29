@@ -6,7 +6,7 @@ import {
   Select,
   ActionIcon,
 } from '@mantine/core';
-import { FileText, ArrowRight, Search, X, ArrowUpDown } from 'lucide-react';
+import { FileText, Search, X, ArrowUpDown } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import EmptyResume from '@/components/home/EmptyResume';
 import HistoryResume from '@/components/home/HistoryResume';
@@ -16,12 +16,13 @@ import { emptyResumeContent } from '@/utils/emptyResumeContent';
 import { useUserStore } from '@/store/useUserStore';
 import { useNavigate } from 'react-router-dom';
 import { notification } from '@/components/common/Notification';
-import type { Template, Resume } from '@/types/resume';
+import type { Resume } from '@/types/resume';
+
+const MAX_RESUMES = 7;
 
 export default function HomePage() {
   const { isLoggedIn } = useUserStore();
   const navigate = useNavigate();
-  const [templates, setTemplates] = useState<Template[]>([]);
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [sortBy, setSortBy] = useState<'created' | 'updated' | 'name'>(
@@ -30,28 +31,14 @@ export default function HomePage() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [isCreating, setIsCreating] = useState(false);
 
-  // 获取模板列表
-  useEffect(() => {
-    const fetchTemplates = async () => {
-      try {
-        const response = await resumeApi.getTemplates();
-        if (response.code === 200 && response.data) {
-          setTemplates(response.data);
-        }
-      } catch (error) {
-        console.error('获取模板列表失败:', error);
-      }
-    };
-
-    fetchTemplates();
-  }, []);
-
   // 获取用户简历列表
   useEffect(() => {
     if (!isLoggedIn) return;
     const fetchResumes = async () => {
       try {
-        const response = await resumeApi.getUserResumes({ excludeUploaded: true });
+        const response = await resumeApi.getUserResumes({
+          excludeUploaded: true,
+        });
         if (response.code === 200 && response.data) {
           setResumes(response.data);
         }
@@ -67,14 +54,12 @@ export default function HomePage() {
   const filteredResumes = useMemo(() => {
     let result = [...resumes];
 
-    // 按名称筛选
     if (searchKeyword.trim()) {
       result = result.filter((resume) =>
         resume.title.toLowerCase().includes(searchKeyword.toLowerCase())
       );
     }
 
-    // 排序
     result.sort((a, b) => {
       let comparison = 0;
 
@@ -92,26 +77,22 @@ export default function HomePage() {
     return result;
   }, [resumes, searchKeyword, sortBy, sortOrder]);
 
-  const templateMap = useMemo(() => {
-    const map: Record<string, Template> = {};
-    templates.forEach((t) => {
-      map[t.id] = t;
-    });
-    return map;
-  }, [templates]);
+  // 限制最多 7 份简历
+  const displayResumes = useMemo(
+    () => filteredResumes.slice(0, MAX_RESUMES),
+    [filteredResumes]
+  );
 
-  const getTemplateStyle = (templateId: string) => {
-    const template = templateMap[templateId];
-    const defaultTemplate = templates[0];
-    const targetTemplate = template || defaultTemplate;
-    if (!targetTemplate) return { style: null, layout: 'classic' };
+  // 从 resume 的 template_id 推断样式和布局
+  const getTemplateInfo = (resume: Resume) => {
+    const layout = resume.template_id || 'classic';
     return {
-      style: targetTemplate.style_config,
-      layout: targetTemplate.schema?.layout || targetTemplate.style_config?.layout || 'classic',
+      templateStyle: null,
+      templateLayout: layout,
     };
   };
 
-  // 使用默认模板创建简历（空内容）
+  // 使用默认布局创建空白简历
   const handleCreateEmpty = async () => {
     if (!isLoggedIn) {
       notification.error('请先登录');
@@ -119,11 +100,8 @@ export default function HomePage() {
     }
     setIsCreating(true);
     try {
-      const defaultTemplate = templates[0];
-      const templateId = defaultTemplate?.id || 'classic-blue';
-
       const response = await resumeApi.createResume({
-        template_id: templateId,
+        template_id: 'classic',
         title: '我的简历',
         content: emptyResumeContent,
       });
@@ -140,25 +118,19 @@ export default function HomePage() {
     }
   };
 
-  // 使用指定模板创建简历（使用模板示例内容）
-  const handleSelectTemplate = async (templateId: string) => {
+  // 使用指定布局创建简历
+  const handleSelectTemplate = async (layout: string) => {
     if (!isLoggedIn) {
       notification.error('请先登录');
       return;
     }
 
-    const template = templates.find((t) => t.id === templateId);
-    if (!template) return;
-
     setIsCreating(true);
     try {
-      const initialContent =
-        template.schema?.defaultContent || emptyResumeContent;
-
       const response = await resumeApi.createResume({
-        template_id: templateId,
-        title: `基于${template.name}的简历`,
-        content: initialContent,
+        template_id: layout,
+        title: `我的简历`,
+        content: emptyResumeContent,
       });
 
       if (response.data) {
@@ -167,7 +139,7 @@ export default function HomePage() {
       }
     } catch (error) {
       console.error('创建简历失败:', error);
-      notification.error('创建简历失败，请重试');
+      notification.error('创建简历失败，请稍后重试');
     } finally {
       setIsCreating(false);
     }
@@ -180,7 +152,7 @@ export default function HomePage() {
 
   return (
     <Container className="max-w-6xl mx-auto">
-      {/* 历史简历区域 */}
+      {/* 我的简历区域 */}
       <div className="mb-10">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-4">
@@ -251,17 +223,17 @@ export default function HomePage() {
           {/* 新建简历入口 */}
           <EmptyResume onClick={handleCreateEmpty} loading={isCreating} />
 
-          {/* 用户历史简历 */}
-          {filteredResumes.length > 0 ? (
-            filteredResumes.map((resume) => {
-              const { style, layout } = getTemplateStyle(resume.template_id);
+          {/* 用户历史简历（最多 7 份） */}
+          {displayResumes.length > 0 ? (
+            displayResumes.map((resume) => {
+              const { templateStyle, templateLayout } = getTemplateInfo(resume);
               return (
                 <HistoryResume
                   key={resume.id}
                   resume={resume}
                   onDelete={handleDeleteResume}
-                  templateStyle={style}
-                  templateLayout={layout}
+                  templateStyle={templateStyle}
+                  templateLayout={templateLayout}
                 />
               );
             })
@@ -277,7 +249,7 @@ export default function HomePage() {
       </div>
 
       {/* 精选模板区域 */}
-      <div className="bg-gray-50 rounded-xl">
+      <div className="bg-gray-50 rounded-xl p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">精选模板</h1>
@@ -285,27 +257,10 @@ export default function HomePage() {
               选择合适的模板，快速创建专业简历
             </p>
           </div>
-          <Button
-            variant="ghost"
-            onClick={() => console.log('查看更多模板')}
-            className="text-gray-500 bg-white hover:text-blue-400 hover:bg-white h-auto"
-          >
-            查看更多 <ArrowRight size={14} />
-          </Button>
+          <span className="text-sm text-gray-400">更多模版开发中</span>
         </div>
 
-        {templates.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <FileText size={48} className="text-gray-300 mb-4" />
-            <Text className="text-gray-400">暂无可用模板</Text>
-          </div>
-        ) : (
-          <ResumeTemplate
-            templates={templates}
-            onSelect={handleSelectTemplate}
-            loading={isCreating}
-          />
-        )}
+        <ResumeTemplate onSelect={handleSelectTemplate} loading={isCreating} />
       </div>
     </Container>
   );

@@ -312,18 +312,18 @@ function generateClassicLayout(blocks: ResumeBlock[], styles: any): string {
       case 'certifications': {
         const data = block.data;
         const certifications = data?.certifications || data || [];
-        const certList = Array.isArray(certifications)
-          ? certifications
-          : [];
+        const certList = Array.isArray(certifications) ? certifications : [];
         html += `
           <div class="section">
             <div class="section-title">证书荣誉</div>
             <div class="skills">
-              ${certList.map((cert: any) => {
-                const name = typeof cert === 'string' ? cert : cert.name;
-                const date = typeof cert === 'string' ? '' : cert.date || '';
-                return `<span class="skill-tag">${name} ${date}</span>`;
-              }).join('')}
+              ${certList
+                .map((cert: any) => {
+                  const name = typeof cert === 'string' ? cert : cert.name;
+                  const date = typeof cert === 'string' ? '' : cert.date || '';
+                  return `<span class="skill-tag">${name} ${date}</span>`;
+                })
+                .join('')}
             </div>
           </div>
         `;
@@ -414,12 +414,16 @@ function generateSidebarLayout(blocks: ResumeBlock[], styles: any): string {
     html += `
       <div class="sidebar-section">
         <div class="sidebar-section-title">教育背景</div>
-        ${items.map((item: any) => `
+        ${items
+          .map(
+            (item: any) => `
           <div class="sidebar-item">
             <div style="font-weight: bold; color: ${styles.sidebarTextColor};">${item.school}</div>
             <div>${item.major} · ${item.degree}</div>
           </div>
-        `).join('')}
+        `
+          )
+          .join('')}
       </div>
     `;
   }
@@ -431,10 +435,12 @@ function generateSidebarLayout(blocks: ResumeBlock[], styles: any): string {
     html += `
       <div class="sidebar-section">
         <div class="sidebar-section-title">证书荣誉</div>
-        ${certList.map((cert: any) => {
-          const name = typeof cert === 'string' ? cert : cert.name;
-          return `<div class="sidebar-item">• ${name}</div>`;
-        }).join('')}
+        ${certList
+          .map((cert: any) => {
+            const name = typeof cert === 'string' ? cert : cert.name;
+            return `<div class="sidebar-item">• ${name}</div>`;
+          })
+          .join('')}
       </div>
     `;
   }
@@ -734,18 +740,18 @@ function generateMinimalLayout(blocks: ResumeBlock[], styles: any): string {
       case 'certifications': {
         const data = block.data;
         const certifications = data?.certifications || data || [];
-        const certList = Array.isArray(certifications)
-          ? certifications
-          : [];
+        const certList = Array.isArray(certifications) ? certifications : [];
         html += `
           <div class="section">
             <div class="section-title">证书荣誉</div>
             <div class="skills">
-              ${certList.map((cert: any) => {
-                const name = typeof cert === 'string' ? cert : cert.name;
-                const date = typeof cert === 'string' ? '' : cert.date || '';
-                return `<span class="skill-tag">${name} ${date}</span>`;
-              }).join('')}
+              ${certList
+                .map((cert: any) => {
+                  const name = typeof cert === 'string' ? cert : cert.name;
+                  const date = typeof cert === 'string' ? '' : cert.date || '';
+                  return `<span class="skill-tag">${name} ${date}</span>`;
+                })
+                .join('')}
             </div>
           </div>
         `;

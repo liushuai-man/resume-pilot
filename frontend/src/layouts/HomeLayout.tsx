@@ -61,7 +61,7 @@ export default function HomeLayout() {
       <header className="border-b border-gray-200 px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-            <Text fw="bold">RA</Text>
+            <Text fw="bold" c="white">RA</Text>
           </div>
           <Text size="lg" fw="bold">
            AI 简历助手

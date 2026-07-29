@@ -1,14 +1,27 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { Card, Text, Button, Group, Modal } from '@mantine/core';
 import { Eye, Edit3, Download, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { Resume, StyleConfig } from '@/types/resume';
+import type { ResumeDocument } from '@/types/resume-document';
 import { notification } from '@/components/common/Notification';
-import ResumePreview from '@/components/editor/ResumePreview';
+import ThumbnailPreview from '@/components/home/ThumbnailPreview';
+import { ClassicTemplate } from '@/components/preview/templates/ClassicTemplate';
+import { ModernTemplate } from '@/components/preview/templates/ModernTemplate';
+import { MinimalTemplate } from '@/components/preview/templates/MinimalTemplate';
+import { SidebarTemplate } from '@/components/preview/templates/SidebarTemplate';
+import { contentToDocument } from '@/utils/resume-migration';
 import { resumeApi } from '@/api/home.api';
 import { exportToPdf } from '@/utils/pdfExport';
 import { formatDateTime } from '@/utils/format';
 import ConfirmModal from '@/components/common/ConfirmModal';
+
+const TEMPLATE_MAP: Record<string, React.ComponentType<{ document: ResumeDocument }>> = {
+  classic: ClassicTemplate as any,
+  modern: ModernTemplate as any,
+  minimal: MinimalTemplate as any,
+  sidebar: SidebarTemplate as any,
+};
 
 interface HistoryResumeProps {
   resume: Resume;
@@ -31,10 +44,15 @@ export default function HistoryResume({
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
-  const previewProps = {
-    templateStyle,
-    templateLayout,
-  };
+  const layout = templateLayout || 'classic';
+
+  // 转换为新数据模型（与编辑器一致）
+  const document = useMemo(
+    () => contentToDocument(content, templateStyle || null, layout),
+    [content, templateStyle, layout]
+  );
+
+  const TemplateComponent = TEMPLATE_MAP[layout] || ClassicTemplate;
 
   const handlePreview = () => {
     setPreviewModalOpen(true);
@@ -92,7 +110,6 @@ export default function HistoryResume({
 
       if (result.code === 200) {
         notification.success(result.message);
-        // 调用回调函数更新简历列表，而不是刷新页面
         if (onDelete) {
           onDelete(id);
         }
@@ -121,36 +138,36 @@ export default function HistoryResume({
           transform: 'translate(-100%, -100%)',
         }}
       >
-        <ResumePreview content={content} variant="card" {...previewProps} />
+        <TemplateComponent document={document} />
       </div>
 
       <Card className="aspect-[5/6] flex flex-col overflow-hidden border-2 border-gray-200 rounded-md p-0">
-        <div className="px-3 py-1  bg-white">
+        {/* 标题栏 */}
+        <div className="px-3 py-2 bg-white">
           <Text size="sm" fw="medium" className="text-gray-800 mb-1 truncate">
             {title}
           </Text>
-          <Text size="xs" className="text-gray-400 ">
+          <Text size="xs" className="text-gray-400">
             更新时间: {formatDateTime(updated_at)}
           </Text>
         </div>
-        <div className="flex-1 mx-3 border-2 border-gray-200 rounded-md overflow-hidden bg-white">
-          <div className="w-full h-full overflow-hidden">
-            <div className="transform scale-[0.30] origin-top-left">
-              <ResumePreview
-                content={content}
-                variant="card"
-                {...previewProps}
-              />
-            </div>
-          </div>
+
+        {/* CSS 缩放缩略图 */}
+        <div className="flex-1 mx-3 mb-0 overflow-hidden rounded-md border border-gray-100">
+          <ThumbnailPreview
+            content={content}
+            templateStyle={templateStyle}
+            templateLayout={layout}
+          />
         </div>
 
-        <div className="p-3  bg-white">
+        {/* 操作栏 */}
+        <div className="p-3 bg-white">
           <Group gap={2} className="justify-around items-center">
             <Button
               variant="ghost"
               size="sm"
-              className="w-8 h-8 p-0 border-2 rounded-full border-gray-500 text-gray-500 bg-white hover:bg-blue-500 hover:text-white hover:border-blue-500"
+              className="w-8 h-8 p-0 border-2 rounded-full border-gray-300 text-gray-500 bg-white hover:bg-blue-500 hover:text-white hover:border-blue-500"
               onClick={handlePreview}
               title="预览"
             >
@@ -159,7 +176,7 @@ export default function HistoryResume({
             <Button
               variant="ghost"
               size="sm"
-              className="w-8 h-8 p-0 border-2 rounded-full border-gray-500 text-gray-500 bg-white hover:bg-blue-500 hover:text-white hover:border-blue-500"
+              className="w-8 h-8 p-0 border-2 rounded-full border-gray-300 text-gray-500 bg-white hover:bg-blue-500 hover:text-white hover:border-blue-500"
               onClick={handleEdit}
               title="编辑"
             >
@@ -168,7 +185,7 @@ export default function HistoryResume({
             <Button
               variant="ghost"
               size="sm"
-              className="w-8 h-8 p-0 border-2 rounded-full border-gray-500 text-gray-500 bg-white hover:bg-green-500 hover:text-white hover:border-green-500"
+              className="w-8 h-8 p-0 border-2 rounded-full border-gray-300 text-gray-500 bg-white hover:bg-green-500 hover:text-white hover:border-green-500"
               onClick={handleExportFromCard}
               title="下载"
               disabled={isExporting}
@@ -178,7 +195,7 @@ export default function HistoryResume({
             <Button
               variant="ghost"
               size="sm"
-              className="w-8 h-8 p-0 border-2 rounded-full border-gray-500 text-gray-500 bg-white hover:bg-orange-500 hover:text-white hover:border-orange-500"
+              className="w-8 h-8 p-0 border-2 rounded-full border-gray-300 text-gray-500 bg-white hover:bg-orange-500 hover:text-white hover:border-orange-500"
               onClick={handleDelete}
               title="删除"
             >
@@ -204,11 +221,7 @@ export default function HistoryResume({
             style={{ maxHeight: '70vh' }}
           >
             <div className="min-h-full flex justify-center">
-              <ResumePreview
-                content={content}
-                variant="card"
-                {...previewProps}
-              />
+              <TemplateComponent document={document} />
             </div>
           </div>
 
