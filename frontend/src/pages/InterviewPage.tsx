@@ -23,7 +23,14 @@ import { notifications } from '@mantine/notifications';
 const InterviewPage = () => {
   const navigate = useNavigate();
   const { resumeId: paramResumeId } = useParams<{ resumeId?: string }>();
-  const { resume, setResume, setContent, loadTemplate } = useResumeStore();
+  const {
+    resume,
+    setResume,
+    setContent,
+    loadTemplate,
+    templateStyle,
+    templateLayout,
+  } = useResumeStore();
   const { user } = useUserStore();
 
   const [loading, setLoading] = useState(true);
@@ -168,10 +175,8 @@ const InterviewPage = () => {
       }));
 
       if (result.isFinished || !result.nextQuestion) {
-        if (result.report) {
-          setInterviewResult(result.report);
-        }
-        await handleFinishInterview();
+        // 将本次返回的评估报告显式传给 finish，避免读取到 stale state
+        await handleFinishInterview(result.report);
       } else {
         setCurrentQuestion(result.nextQuestion);
         setQuestions((prev) => [...prev, result.nextQuestion!]);
@@ -190,19 +195,25 @@ const InterviewPage = () => {
     }
   };
 
-  const handleFinishInterview = async () => {
+  const handleFinishInterview = async (reportOverride?: any) => {
     if (!sessionId || !selectedResumeId) return;
 
     setFinishing(true);
     try {
+      const reportToSend =
+        reportOverride ??
+        (typeof interviewResult === 'object' &&
+        interviewResult &&
+        !interviewResult.id
+          ? interviewResult
+          : undefined);
+
       const result = await interviewApi.finishInterview(
         sessionId,
         selectedResumeId,
         questions,
         answers,
-        typeof interviewResult === 'object' && !interviewResult.id
-          ? interviewResult
-          : undefined
+        reportToSend
       );
 
       setInterviewResult(result);
@@ -219,6 +230,11 @@ const InterviewPage = () => {
         message: '完成面试失败',
         color: 'red',
       });
+      // 后端保存失败但已有评估报告时，直接展示报告，避免卡在聊天界面
+      if (reportOverride) {
+        setInterviewResult(reportOverride);
+        setIsFinished(true);
+      }
     } finally {
       setFinishing(false);
     }
@@ -604,6 +620,8 @@ const InterviewPage = () => {
             <ResizableResumePreview
               content={resume?.content || null}
               highlightSection={currentQuestion?.sectionKey}
+              templateStyle={templateStyle}
+              templateLayout={templateLayout}
               className="w-full h-full"
             />
           )}

@@ -99,7 +99,8 @@ export const interviewApi = {
 
   // 获取单个面试结果详情
   getInterviewResult: async (id: string): Promise<InterviewResult> => {
-    return request.get(`/interview/results/${id}`);
+    const response: any = await request.get(`/interview/results/${id}`);
+    return response.data || response;
   },
 
   // 删除面试结果

@@ -83,6 +83,10 @@ const InterviewResultPage = () => {
     );
   }
 
+  const reportDate = result.created_at
+    ? formatDateTime(result.created_at)
+    : formatDateTime(new Date());
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* 顶部导航栏 */}
@@ -112,8 +116,7 @@ const InterviewResultPage = () => {
                 <Title order={2}>面试报告</Title>
               </Group>
               <Text c="dimmed" size="sm">
-                {result.position || '面试评估'} ·{' '}
-                {formatDateTime(result.created_at)}
+                {result.position || '面试评估'} · {reportDate}
               </Text>
             </div>
             <div className="text-center">
