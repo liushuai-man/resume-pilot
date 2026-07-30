@@ -12,10 +12,12 @@ import {
   ImageIcon,
 } from 'lucide-react';
 import { useResumeStore } from '@/store/useResumeStore';
+import { useDocumentStore } from '@/store/useDocumentStore';
 import { useUserStore } from '@/store/useUserStore';
 import { resumeApi } from '@/api/home.api';
 import { interviewApi, Question, Answer } from '@/api/interview.api';
 import { uploadApi } from '@/api/upload.api';
+import { contentToDocument } from '@/utils/resume-migration';
 import ResizableResumePreview from '@/components/editor/ResizableResumePreview';
 import { InterviewReport, InterviewChat } from '@/components/interview';
 import { notifications } from '@mantine/notifications';
@@ -23,14 +25,8 @@ import { notifications } from '@mantine/notifications';
 const InterviewPage = () => {
   const navigate = useNavigate();
   const { resumeId: paramResumeId } = useParams<{ resumeId?: string }>();
-  const {
-    resume,
-    setResume,
-    setContent,
-    loadTemplate,
-    templateStyle,
-    templateLayout,
-  } = useResumeStore();
+  const { resume, setResume, setContent, loadTemplate } = useResumeStore();
+  const { loadDocument } = useDocumentStore();
   const { user } = useUserStore();
 
   const [loading, setLoading] = useState(true);
@@ -63,11 +59,26 @@ const InterviewPage = () => {
     async (resumeData: any) => {
       setResume(resumeData);
       setContent(resumeData.content);
+
+      let loadedTemplate: any = null;
       if (resumeData.template_id) {
         await loadTemplate(resumeData.template_id);
+        loadedTemplate = useResumeStore.getState().template;
       }
+
+      // 同步到 document store，让左侧预览和编辑页使用完全相同的渲染
+      // 注意：与编辑器保持一致，仅使用 style_config.layout
+      const layout = loadedTemplate?.style_config?.layout || 'classic';
+      const doc = contentToDocument(
+        resumeData.content,
+        loadedTemplate?.style_config || null,
+        layout
+      );
+      doc.id = resumeData.id;
+      doc.title = resumeData.title;
+      loadDocument(doc);
     },
-    [setResume, setContent, loadTemplate]
+    [setResume, setContent, loadTemplate, loadDocument]
   );
 
   // 获取用户的所有简历
@@ -599,7 +610,7 @@ const InterviewPage = () => {
         {/* 左侧：简历预览 */}
         <div
           ref={interviewPreviewRef}
-          className="w-1/2 flex-shrink-0 bg-white overflow-auto"
+          className="w-1/2 flex-shrink-0 bg-gray-50 border-r border-gray-200 overflow-hidden"
         >
           {resume?.content?.isUploadedFile && resume.content.fileUrl ? (
             resume.content.fileType === 'pdf' ? (
@@ -617,19 +628,19 @@ const InterviewPage = () => {
               />
             )
           ) : (
-            <ResizableResumePreview
-              content={resume?.content || null}
-              highlightSection={currentQuestion?.sectionKey}
-              templateStyle={templateStyle}
-              templateLayout={templateLayout}
-              className="w-full h-full"
-            />
+            <div className="h-full p-4 overflow-hidden">
+              <ResizableResumePreview
+                content={resume?.content || null}
+                highlightSection={currentQuestion?.sectionKey}
+                className="w-full h-full"
+              />
+            </div>
           )}
         </div>
 
         {/* 右侧：AI 面试官对话 */}
         <div className="flex-1 flex flex-col bg-white">
-          <div className="flex-1 overflow-y-auto p-4">
+          <div className="flex-1 overflow-y-auto p-4 ">
             {isFinished ? (
               <InterviewReport
                 result={interviewResult}
