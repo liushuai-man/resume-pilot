@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { success, error } from '../utils/response';
 import {
   startInterview,
   submitAnswer,
@@ -21,8 +22,6 @@ export const getNextQuestionHandler = async (req: Request, res: Response) => {
     return error(res, '生成下一题失败');
   }
 };
-import { prisma } from '../database/prisma';
-import { success, error } from '../utils/response';
 
 export const startInterviewHandler = async (req: Request, res: Response) => {
   try {
@@ -53,23 +52,17 @@ export const startInterviewHandler = async (req: Request, res: Response) => {
 export const submitAnswerHandler = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
-    const { sessionId, question, answer, resumeId } = req.body;
+    const { sessionId, answer } = req.body;
 
     if (!userId) {
       return error(res, '需要登录', 401);
     }
 
-    // 获取简历内容
-    const resume = await prisma.resume.findUniqueOrThrow({
-      where: { id: resumeId, user_id: userId },
-    });
+    if (!sessionId || !answer?.trim()) {
+      return error(res, '请提供会话信息和回答内容', 400);
+    }
 
-    const result = await submitAnswer(
-      userId,
-      sessionId,
-      question,
-      answer
-    );
+    const result = await submitAnswer(userId, sessionId, answer);
 
     return success(res, result, '答案已提交');
   } catch (err) {
@@ -81,26 +74,15 @@ export const submitAnswerHandler = async (req: Request, res: Response) => {
 export const finishInterviewHandler = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
-    const { sessionId, resumeId, questions, answers, report } = req.body;
+    const { sessionId } = req.body;
 
     if (!userId) {
       return error(res, '需要登录', 401);
     }
 
-    // 获取简历内容
-    const resume = await prisma.resume.findUniqueOrThrow({
-      where: { id: resumeId, user_id: userId },
-    });
+    if (!sessionId) return error(res, '请提供会话信息', 400);
 
-    const result = await finishInterview(
-      userId,
-      sessionId,
-      resumeId,
-      questions,
-      answers,
-      resume.content,
-      report
-    );
+    const result = await finishInterview(userId, sessionId);
 
     return success(res, result, '面试已完成');
   } catch (err) {

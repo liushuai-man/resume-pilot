@@ -1,64 +1,27 @@
 import { prisma } from '../database/prisma';
 import {
-  startLangGraphInterview,
-  submitLangGraphAnswer,
-} from '../ai/agents/interview.agent';
+  createInitialInterviewState,
+  runAnswerGraph,
+  runNextQuestionGraph,
+  runReportGraph,
+} from '../ai/graphs/interview.graph';
+import { Question } from '../ai/types/interview.types';
 import {
-  InterviewState,
-  Question,
-  Answer,
-  LangGraphInterviewState,
-} from '../ai/types/interview.types';
+  clearInterviewState,
+  loadInterviewState,
+  saveInterviewState,
+} from '../repositories/interview-session.repository';
 
-const sessionStore = new Map<
-  string,
-  LangGraphInterviewState | InterviewState
->();
-
-async function getInterviewSessionState(userId: string, sessionId: string): Promise<LangGraphInterviewState> {
-  const session = await prisma.chatSession.findFirst({
-    where: { id: sessionId, user_id: userId, session_type: 'interview', is_deleted: false },
-    select: { summary: true },
-  });
-  if (!session) throw new Error('Interview session not found or forbidden');
-
-  const cachedState = sessionStore.get(sessionId) as LangGraphInterviewState;
-  if (cachedState) return cachedState;
-  if (!session.summary) throw new Error('Interview session is no longer active');
-
-  try {
-    const state = JSON.parse(session.summary) as LangGraphInterviewState;
-    sessionStore.set(sessionId, state);
-    return state;
-  } catch {
-    throw new Error('Interview session state is invalid');
-  }
-}
-
-async function saveInterviewSessionState(sessionId: string, state: LangGraphInterviewState): Promise<void> {
-  sessionStore.set(sessionId, state);
-  await prisma.chatSession.update({ where: { id: sessionId }, data: { summary: JSON.stringify(state) } });
-}
-
-// 主流程：面试工作流
 export async function startInterview(
   userId: string,
   resumeId: string,
   targetPosition?: string,
   questionCount?: number
-): Promise<{
-  sessionId: string;
-  firstQuestion: Question;
-  sessionData: LangGraphInterviewState;
-}> {
-  console.log('=== 使用 LangGraph 开始面试 ===');
-
-  const resume = await prisma.resume.findUniqueOrThrow({
-    where: { id: resumeId, user_id: userId },
+): Promise<{ sessionId: string; firstQuestion: Question }> {
+  const resume = await prisma.resume.findFirstOrThrow({
+    where: { id: resumeId, user_id: userId, is_deleted: false },
   });
-
-  // 创建聊天会话
-  const session = await prisma.chatSession.create({
+  const chatSession = await prisma.chatSession.create({
     data: {
       user_id: userId,
       resume_id: resumeId,
@@ -66,161 +29,76 @@ export async function startInterview(
       session_type: 'interview',
     },
   });
-
-  // 使用 LangGraph 面试 Agent 开始面试
-  const { sessionData, firstQuestion } = await startLangGraphInterview(
+  const { session, firstQuestion } = createInitialInterviewState(
     resumeId,
     resume.content,
     targetPosition,
     questionCount,
     userId
   );
-
-  // 存储会话状态
-  await saveInterviewSessionState(session.id, sessionData);
-
-  return {
-    sessionId: session.id,
-    firstQuestion,
-    sessionData,
-  };
+  await saveInterviewState(chatSession.id, session);
+  return { sessionId: chatSession.id, firstQuestion };
 }
 
 export async function submitAnswer(
   userId: string,
   sessionId: string,
-  question: Question,
   answer: string
-): Promise<{
-  feedback: string;
-  nextQuestion: Question | null;
-  isFinished: boolean;
-  report?: any;
-}> {
-  console.log('=== 使用 LangGraph 提交回答 ===');
-
-  // 获取会话状态
-  const state = await getInterviewSessionState(userId, sessionId);
-  if (!state) {
-    throw new Error('会话不存在');
-  }
-
-  // 使用 LangGraph 面试 Agent 处理回答
-  const result = await submitLangGraphAnswer(state, answer);
-
-  // 更新会话状态
-  await saveInterviewSessionState(sessionId, result.updatedState);
-
+) {
+  const state = await loadInterviewState(userId, sessionId);
+  const result = await runAnswerGraph(state, answer);
+  await saveInterviewState(sessionId, result.session);
   return {
     feedback: result.feedback,
-    nextQuestion: result.nextQuestion,
-    isFinished: result.isFinished,
-    report: result.report,
+    isFinished: result.session.isFinished,
   };
 }
 
-export async function finishInterview(
+export async function generateInterviewNextQuestion(
   userId: string,
-  sessionId: string,
-  resumeId: string,
-  questions: Question[],
-  answers: Answer[],
-  resumeContent: any,
-  report?: any
-): Promise<any> {
-  console.log('=== 使用 LangGraph 完成面试 ===');
+  sessionId: string
+) {
+  const state = await loadInterviewState(userId, sessionId);
+  if (state.isFinished) return null;
+  const result = await runNextQuestionGraph(state);
+  await saveInterviewState(sessionId, result.session);
+  return result.nextQuestion;
+}
 
-  const state = await getInterviewSessionState(userId, sessionId);
-  if (!state) {
-    throw new Error('会话不存在');
-  }
+export async function finishInterview(userId: string, sessionId: string) {
+  const state = await loadInterviewState(userId, sessionId);
+  const graphResult = state.report
+    ? { report: state.report }
+    : await runReportGraph(state);
+  const report = graphResult.report;
+  const scoredEvaluations = state.evaluations.filter((item) => item.score > 0);
+  const fallbackScore = scoredEvaluations.length
+    ? Math.round(
+        (scoredEvaluations.reduce((sum, item) => sum + item.score, 0) /
+          scoredEvaluations.length) *
+          10
+      )
+    : 0;
+  const score = report?.overallScore ?? fallbackScore;
 
-  let finalReport = report || state.report;
+  if (report && report.overallScore == null) report.overallScore = score;
 
-  if (!finalReport) {
-    console.log('=== 报告为空，重新生成 ===');
-    const { InterviewSupervisorAgent } =
-      await import('../ai/agents/interview/supervisor.agent');
-    const supervisorAgent = new InterviewSupervisorAgent();
-    finalReport = await supervisorAgent.generateReport(
-      state.resumeContent,
-      questions.length > 0 ? questions : state.questions,
-      answers.length > 0 ? answers : state.answers,
-      state.evaluations,
-      state.targetPosition,
-      state.profile,
-      userId
-    );
-  }
-
-  let finalScore = finalReport?.overallScore;
-
-  if (finalScore === undefined || finalScore === null) {
-    const validEvaluations = state.evaluations.filter(
-      (e) => e.score !== undefined && e.score !== null
-    );
-    if (validEvaluations.length > 0) {
-      const totalScore = validEvaluations.reduce((sum, e) => sum + e.score, 0);
-      finalScore = Math.round((totalScore / validEvaluations.length) * 10);
-    } else {
-      const answeredCount =
-        answers.length > 0 ? answers.length : state.answers.length;
-      const totalQuestions =
-        questions.length > 0 ? questions.length : state.questions.length;
-      if (answeredCount === 0) {
-        finalScore = 0;
-      } else if (answeredCount === totalQuestions) {
-        finalScore = 50;
-      } else {
-        finalScore = Math.round((answeredCount / totalQuestions) * 40);
-      }
-    }
-  }
-
-  if (finalReport && !finalReport.overallScore) {
-    finalReport.overallScore = finalScore;
-  }
-
-  const interviewResult = await prisma.interviewResult.create({
+  const result = await prisma.interviewResult.create({
     data: {
       user_id: userId,
       session_id: sessionId,
-      resume_id: resumeId,
+      resume_id: state.resumeId,
       position: state.targetPosition,
-      score: finalScore,
-      report: finalReport as any,
+      score,
+      report,
     },
   });
-
-  sessionStore.delete(sessionId);
-  await prisma.chatSession.update({ where: { id: sessionId }, data: { summary: null } });
-
-  return interviewResult;
-}
-
-export async function generateInterviewNextQuestion(userId: string, sessionId: string) {
-  const state = await getInterviewSessionState(userId, sessionId);
-  if (state.isFinished) return null;
-
-  const { InterviewSupervisorAgent } = await import('../ai/agents/interview/supervisor.agent');
-  const supervisor = new InterviewSupervisorAgent();
-  const nextQuestion = await supervisor.generateNextQuestion(state);
-  const qType = nextQuestion.type || 'technical';
-  const updatedState: LangGraphInterviewState = {
-    ...state,
-    questions: [...state.questions, nextQuestion],
-    askedQuestionTypes: {
-      technical: state.askedQuestionTypes.technical + (qType === 'technical' ? 1 : 0),
-      project: state.askedQuestionTypes.project + (qType === 'project' ? 1 : 0),
-      followup: state.askedQuestionTypes.followup + (qType === 'followup' ? 1 : 0),
-    },
-  };
-  await saveInterviewSessionState(sessionId, updatedState);
-  return nextQuestion;
+  await clearInterviewState(sessionId);
+  return result;
 }
 
 export async function getInterviewResults(userId: string) {
-  return await prisma.interviewResult.findMany({
+  return prisma.interviewResult.findMany({
     where: { user_id: userId, is_deleted: false },
     include: { resume: true },
     orderBy: { created_at: 'desc' },
@@ -228,15 +106,16 @@ export async function getInterviewResults(userId: string) {
 }
 
 export async function getInterviewResult(resultId: string, userId: string) {
-  return await prisma.interviewResult.findFirst({
+  return prisma.interviewResult.findFirst({
     where: { id: resultId, user_id: userId, is_deleted: false },
     include: { resume: true },
   });
 }
 
 export async function deleteInterviewResult(resultId: string, userId: string) {
-  return await prisma.interviewResult.update({
+  const result = await prisma.interviewResult.updateMany({
     where: { id: resultId, user_id: userId, is_deleted: false },
     data: { is_deleted: true },
   });
+  return result.count > 0;
 }

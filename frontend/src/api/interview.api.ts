@@ -35,9 +35,7 @@ export interface StartInterviewResponse {
 
 export interface SubmitAnswerResponse {
   feedback: string;
-  nextQuestion: Question | null;
   isFinished: boolean;
-  report?: any;
 }
 
 export interface FinishInterviewResponse extends InterviewResult {}
@@ -60,15 +58,11 @@ export const interviewApi = {
   // 提交答案
   submitAnswer: async (
     sessionId: string,
-    question: Question,
-    answer: string,
-    resumeId: string
+    answer: string
   ): Promise<SubmitAnswerResponse> => {
     const response: any = await request.post('/interview/answer', {
       sessionId,
-      question,
       answer,
-      resumeId,
     });
     return response.data || response;
   },
@@ -80,18 +74,10 @@ export const interviewApi = {
 
   // 完成面试
   finishInterview: async (
-    sessionId: string,
-    resumeId: string,
-    questions: Question[],
-    answers: Answer[],
-    report?: any
+    sessionId: string
   ): Promise<FinishInterviewResponse> => {
     const response: any = await request.post('/interview/finish', {
       sessionId,
-      resumeId,
-      questions,
-      answers,
-      report,
     });
     return response.data || response;
   },

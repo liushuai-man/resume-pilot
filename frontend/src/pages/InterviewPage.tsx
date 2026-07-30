@@ -182,9 +182,7 @@ const InterviewPage = () => {
 
       const result = await interviewApi.submitAnswer(
         sessionId,
-        currentQuestion,
-        currentAnswer,
-        selectedResumeId
+        currentAnswer
       );
 
       // 按 questionId 存储每题的独立反馈
@@ -194,8 +192,7 @@ const InterviewPage = () => {
       }));
 
       if (result.isFinished) {
-        // 将本次返回的评估报告显式传给 finish，避免读取到 stale state
-        await handleFinishInterview(result.report, updatedAnswers);
+        await handleFinishInterview();
       } else {
         // Feedback is visible before the next LLM call begins.
         const nextQuestion = await interviewApi.getNextQuestion(sessionId);
@@ -218,29 +215,12 @@ const InterviewPage = () => {
     }
   };
 
-  const handleFinishInterview = async (
-    reportOverride?: any,
-    answersOverride?: Answer[]
-  ) => {
-    if (!sessionId || !selectedResumeId) return;
+  const handleFinishInterview = async () => {
+    if (!sessionId) return;
 
     setFinishing(true);
     try {
-      const reportToSend =
-        reportOverride ??
-        (typeof interviewResult === 'object' &&
-        interviewResult &&
-        !interviewResult.id
-          ? interviewResult
-          : undefined);
-
-      const result = await interviewApi.finishInterview(
-        sessionId,
-        selectedResumeId,
-        questions,
-        answersOverride ?? answers,
-        reportToSend
-      );
+      const result = await interviewApi.finishInterview(sessionId);
 
       setInterviewResult(result);
       setIsFinished(true);
@@ -256,11 +236,6 @@ const InterviewPage = () => {
         message: '完成面试失败',
         color: 'red',
       });
-      // 后端保存失败但已有评估报告时，直接展示报告，避免卡在聊天界面
-      if (reportOverride) {
-        setInterviewResult(reportOverride);
-        setIsFinished(true);
-      }
     } finally {
       setFinishing(false);
     }

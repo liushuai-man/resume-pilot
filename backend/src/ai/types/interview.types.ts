@@ -75,23 +75,6 @@ export interface MemoryResult {
   profileUpdated: boolean;
 }
 
-// ==================== 面试状态 ====================
-
-export interface InterviewState {
-  resumeId: string;
-  resumeContent: any;
-  targetPosition?: string;
-  maxQuestions: number;
-  currentSection: string;
-  questions: Question[];
-  answers: Answer[];
-  evaluations: Evaluation[];
-  currentQuestionIndex: number;
-  isFinished: boolean;
-  finalReport?: any;
-  userId?: string;
-}
-
 export interface InterviewReport {
   overallScore: number;
   introductionEvaluation?: string;
