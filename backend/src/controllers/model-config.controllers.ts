@@ -39,6 +39,7 @@ export const listConfigs = async (req: AuthRequest, res: Response) => {
       displayName: c.display_name,
       baseUrl: c.base_url,
       isDefault: c.is_default,
+      purpose: c.purpose,
       createdAt: c.created_at,
       updatedAt: c.updated_at,
     }));
@@ -72,7 +73,8 @@ export const getConfig = async (req: AuthRequest, res: Response) => {
         modelName: config.model_name,
         displayName: config.display_name,
         baseUrl: config.base_url,
-        isDefault: config.is_default,
+      isDefault: config.is_default,
+      purpose: config.purpose,
         createdAt: config.created_at,
         updatedAt: config.updated_at,
       },
@@ -98,6 +100,7 @@ export const createConfig = async (req: AuthRequest, res: Response) => {
       baseUrl,
       displayName,
       isDefault,
+      purpose,
     }: CreateModelConfigRequest = req.body;
 
     if (!provider || !modelName || !apiKey || !displayName) {
@@ -111,6 +114,7 @@ export const createConfig = async (req: AuthRequest, res: Response) => {
       baseUrl,
       displayName,
       isDefault,
+      purpose,
     });
 
     return success(
@@ -121,7 +125,8 @@ export const createConfig = async (req: AuthRequest, res: Response) => {
         modelName: config.model_name,
         displayName: config.display_name,
         baseUrl: config.base_url,
-        isDefault: config.is_default,
+      isDefault: config.is_default,
+      purpose: config.purpose,
         createdAt: config.created_at,
         updatedAt: config.updated_at,
       },
@@ -157,7 +162,8 @@ export const updateConfig = async (req: AuthRequest, res: Response) => {
         modelName: config.model_name,
         displayName: config.display_name,
         baseUrl: config.base_url,
-        isDefault: config.is_default,
+      isDefault: config.is_default,
+      purpose: config.purpose,
         createdAt: config.created_at,
         updatedAt: config.updated_at,
       },

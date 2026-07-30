@@ -157,6 +157,7 @@ export interface ResumeContent {
   // 上传文件相关字段
   isUploadedFile?: boolean;
   fileUrl?: string;
+  previewUrl?: string;
   fileType?: 'pdf' | 'image';
   ocrText?: string;
   pageCount?: number;

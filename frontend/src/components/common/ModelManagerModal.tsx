@@ -67,6 +67,7 @@ export default function ModelManagerModal({
     baseUrl: '',
     displayName: '',
     isDefault: false,
+    purpose: 'chat',
   });
 
   useEffect(() => {
@@ -134,6 +135,7 @@ export default function ModelManagerModal({
           baseUrl: '',
           displayName: '',
           isDefault: false,
+          purpose: 'chat',
         });
         await loadConfigs();
         onConfigChange?.();
@@ -231,6 +233,22 @@ export default function ModelManagerModal({
         {showForm && (
           <Paper p="md" withBorder>
             <Stack gap="sm">
+              <Select
+                label="模型用途"
+                data={[
+                  { value: 'chat', label: '聊天模型（必需）' },
+                  { value: 'embedding', label: '向量模型（可选）' },
+                ]}
+                value={formData.purpose || 'chat'}
+                onChange={(purpose) =>
+                  setFormData({
+                    ...formData,
+                    purpose: purpose === 'embedding' ? 'embedding' : 'chat',
+                    isDefault: false,
+                  })
+                }
+                size="sm"
+              />
               <Text fw={500} size="sm">
                 添加新模型
               </Text>

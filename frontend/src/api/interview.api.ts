@@ -73,6 +73,11 @@ export const interviewApi = {
     return response.data || response;
   },
 
+  getNextQuestion: async (sessionId: string): Promise<Question | null> => {
+    const response: any = await request.post('/interview/next-question', { sessionId });
+    return response.data?.question || null;
+  },
+
   // 完成面试
   finishInterview: async (
     sessionId: string,

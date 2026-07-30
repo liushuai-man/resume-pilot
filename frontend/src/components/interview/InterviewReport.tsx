@@ -52,6 +52,12 @@ export default function InterviewReport({
   const reportDate = result?.created_at
     ? formatDateTime(result.created_at)
     : formatDateTime(new Date());
+  const report = result?.report || {};
+  const visualScores = [
+    { label: '综合得分', value: normalizedScore * 10, color: '#6366f1' },
+    { label: '表达完整度', value: Math.min(100, 55 + answers.length * 8), color: '#06b6d4' },
+    { label: '面试完成度', value: Math.min(100, answers.length * 20), color: '#10b981' },
+  ];
 
   if (generating || !result) {
     return (
@@ -69,7 +75,7 @@ export default function InterviewReport({
 
   return (
     <div className="max-w-2xl mx-auto py-6">
-      <Paper shadow="sm" p="xl" radius="md" withBorder mb="md">
+      <Paper shadow="sm" p="xl" radius="lg" mb="md" style={{ background: 'linear-gradient(135deg, #eef2ff 0%, #f8fafc 58%, #ecfeff 100%)' }}>
         <div className="flex items-center justify-between">
           <div>
             <Group mb="xs">
@@ -108,6 +114,32 @@ export default function InterviewReport({
             </Text>
           </div>
         </div>
+      </Paper>
+
+      <Paper shadow="sm" p="lg" radius="lg" withBorder mb="md">
+        <Text fw={700} mb="md">能力概览</Text>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {visualScores.map((item) => (
+            <div key={item.label} className="rounded-xl bg-gray-50 p-3">
+              <div className="flex justify-between items-center mb-2">
+                <Text size="sm" fw={500}>{item.label}</Text>
+                <Text size="sm" fw={700} style={{ color: item.color }}>{Math.round(item.value)}%</Text>
+              </div>
+              <div className="h-2 rounded-full bg-gray-200 overflow-hidden">
+                <div style={{ width: `${item.value}%`, backgroundColor: item.color }} className="h-full rounded-full transition-all duration-500" />
+              </div>
+            </div>
+          ))}
+        </div>
+        {report.candidateProfile?.skills && Object.keys(report.candidateProfile.skills).length > 0 && (
+          <div className="mt-5 flex flex-wrap gap-2">
+            {Object.entries(report.candidateProfile.skills).slice(0, 8).map(([skill, value]) => (
+              <span key={skill} className="rounded-full bg-indigo-50 px-3 py-1 text-xs text-indigo-700">
+                {skill} · {String(value)}
+              </span>
+            ))}
+          </div>
+        )}
       </Paper>
 
       <Paper shadow="sm" p="lg" radius="md" withBorder mb="md">

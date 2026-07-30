@@ -23,22 +23,27 @@ export class ChatAgent {
     console.log(`=== 使用向量化记忆进行 AI 对话 - Session: ${sessionId} ===`);
 
     try {
-      if (resumeContent) {
-        await vectorMemoryManager.addResumeContent(
-          sessionId,
-          resumeContent,
-          userId,
-          resumeId
-        );
-      }
-
       const latestUserMessage = messages[messages.length - 1]?.content || '';
+      let relevantMemories = '';
 
-      const relevantMemories =
-        await vectorMemoryManager.retrieveRelevantMemories(
+      // Some OpenAI-compatible providers do not expose an embedding endpoint.
+      // Memory must be optional so it never blocks the primary chat request.
+      try {
+        if (resumeContent) {
+          await vectorMemoryManager.addResumeContent(
+            sessionId,
+            resumeContent,
+            userId,
+            resumeId
+          );
+        }
+        relevantMemories = await vectorMemoryManager.retrieveRelevantMemories(
           sessionId,
           latestUserMessage
         );
+      } catch (memoryError) {
+        console.warn('Vector memory is unavailable; continuing without it:', memoryError);
+      }
 
       const context = relevantMemories
         ? `\n相关对话历史：\n${relevantMemories}`
@@ -90,23 +95,27 @@ export class ChatAgent {
         input: latestUserMessage,
       });
 
-      await vectorMemoryManager.addUserMessage(
-        sessionId,
-        latestUserMessage,
-        userId,
-        resumeId
-      );
-      await vectorMemoryManager.addAssistantMessage(
-        sessionId,
-        response,
-        userId,
-        resumeId
-      );
+      try {
+        await vectorMemoryManager.addUserMessage(
+          sessionId,
+          latestUserMessage,
+          userId,
+          resumeId
+        );
+        await vectorMemoryManager.addAssistantMessage(
+          sessionId,
+          response,
+          userId,
+          resumeId
+        );
+      } catch (memoryError) {
+        console.warn('Unable to save vector memory:', memoryError);
+      }
 
       return response.trim();
     } catch (error) {
       console.error('AI 对话失败:', error);
-      throw new Error('AI 对话服务暂时不可用，请稍后重试');
+      throw error;
     }
   }
 

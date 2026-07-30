@@ -8,7 +8,7 @@ const FONT_FAMILIES = [
   { value: "'Helvetica Neue', Arial, sans-serif", label: 'Helvetica' },
 ];
 
-const FONT_SIZES = [
+export const FONT_SIZES = [
   { value: 12, label: '小' },
   { value: 14, label: '中' },
   { value: 16, label: '大' },
@@ -132,23 +132,55 @@ export function TemplateSettings() {
         >
           字体
         </label>
-        <select
-          value={style.fontFamily}
-          onChange={(e) => updateStyle({ fontFamily: e.target.value })}
-          style={{
-            width: '100%',
-            padding: '8px 12px',
-            border: '1px solid #d1d5db',
-            borderRadius: '6px',
-            fontSize: '13px',
-          }}
-        >
-          {FONT_FAMILIES.map((f) => (
-            <option key={f.value} value={f.value}>
-              {f.label}
-            </option>
-          ))}
-        </select>
+        <div style={{ position: 'relative' }}>
+          <select
+            value={style.fontFamily}
+            onChange={(e) => updateStyle({ fontFamily: e.target.value })}
+            style={{
+              width: '100%',
+              appearance: 'none',
+              WebkitAppearance: 'none',
+              padding: '9px 36px 9px 12px',
+              border: '1px solid #d1d5db',
+              borderRadius: '8px',
+              backgroundColor: '#fff',
+              color: '#374151',
+              fontSize: '13px',
+              fontWeight: 500,
+              cursor: 'pointer',
+              outline: 'none',
+              transition: 'border-color 0.15s, box-shadow 0.15s',
+            }}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = '#818cf8';
+              e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99, 102, 241, 0.12)';
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.borderColor = '#d1d5db';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
+            {FONT_FAMILIES.map((f) => (
+              <option key={f.value} value={f.value}>
+                {f.label}
+              </option>
+            ))}
+          </select>
+          <span
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              right: '12px',
+              top: '50%',
+              transform: 'translateY(-55%)',
+              color: '#9ca3af',
+              pointerEvents: 'none',
+              fontSize: '14px',
+            }}
+          >
+            ▾
+          </span>
+        </div>
       </div>
 
       <div style={{ marginBottom: '16px' }}>
@@ -163,31 +195,25 @@ export function TemplateSettings() {
         >
           正文字号
         </label>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          {FONT_SIZES.map((s) => (
-            <button
-              key={s.value}
-              onClick={() => handleFontSizeChange(s.value)}
-              style={{
-                flex: 1,
-                padding: '8px',
-                border:
-                  style.fontSize === s.value
-                    ? '2px solid #4f46e5'
-                    : '1px solid #d1d5db',
-                borderRadius: '6px',
-                backgroundColor:
-                  style.fontSize === s.value ? '#eef2ff' : '#ffffff',
-                color: style.fontSize === s.value ? '#4338ca' : '#374151',
-                fontSize: '12px',
-                cursor: 'pointer',
-                fontWeight: 500,
-              }}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
+        <select
+          value={style.fontSize}
+          onChange={(e) => handleFontSizeChange(Number(e.target.value))}
+          style={{
+            width: '100%',
+            padding: '8px 12px',
+            border: '1px solid #d1d5db',
+            borderRadius: '6px',
+            fontSize: '13px',
+          }}
+        >
+          {[8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 22, 24, 28, 32].map(
+            (size) => (
+              <option key={size} value={size}>
+                {size}px
+              </option>
+            )
+          )}
+        </select>
       </div>
 
       <div style={{ marginBottom: '16px' }}>

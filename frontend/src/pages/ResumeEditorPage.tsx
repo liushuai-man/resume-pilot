@@ -212,7 +212,7 @@ export default function ResumeEditorPage() {
         }
         leftPanel={leftPanelContent}
         rightPanel={
-          <AIConversation currentField="" onApplyToResume={() => {}} />
+          <AIConversation currentField="" />
         }
       >
         <DocumentPreview />

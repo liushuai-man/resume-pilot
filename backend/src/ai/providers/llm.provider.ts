@@ -21,11 +21,11 @@ export async function createUserLLM(
 
   return new ChatOpenAI({
     modelName: config.model_name,
+    openAIApiKey: config.api_key,
     temperature,
     maxTokens,
     timeout: 100000,
     configuration: {
-      apiKey: config.api_key,
       baseURL: config.base_url || undefined,
     },
   });

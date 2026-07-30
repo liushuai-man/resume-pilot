@@ -58,9 +58,13 @@ export class InterviewDecisionAgent {
   async generateNextQuestion(
     state: LangGraphInterviewState
   ): Promise<Question> {
+    if (process.env.INTERVIEW_DETAILED_NEXT_QUESTION !== 'true') {
+      return this.generateFastNextQuestion(state);
+    }
+
     const llm = await createUserLLM(state.userId, {
       temperature: 0.7,
-      maxTokens: 1500,
+      maxTokens: 400,
     });
 
     const chain = RunnableSequence.from([
@@ -87,7 +91,7 @@ export class InterviewDecisionAgent {
     try {
       const result = await chain.invoke({
         targetPosition: state.targetPosition,
-        resumeContent: state.resumeText,
+        resumeContent: state.resumeText.slice(0, 1800),
         currentProgress: currentProgress.toString(),
         candidateProfile: JSON.stringify(state.profile, null, 2),
         interviewPlan: JSON.stringify(state.interviewPlan, null, 2),
@@ -130,5 +134,44 @@ export class InterviewDecisionAgent {
         difficulty: 'medium',
       };
     }
+  }
+
+  private generateFastNextQuestion(state: LangGraphInterviewState): Question {
+    const questionNumber = state.questions.length + 1;
+    const lastEvaluation = state.evaluations[state.evaluations.length - 1];
+    const lastQuestion = state.questions[state.questions.length - 1];
+    const projects = Array.isArray(state.resumeContent?.projects) ? state.resumeContent.projects : [];
+    const skills = String(state.resumeContent?.skills || '')
+      .split(/[、,，/\n]/)
+      .map((skill) => skill.trim())
+      .filter(Boolean);
+
+    if (lastEvaluation && lastEvaluation.score <= 5) {
+      return {
+        id: `q-${Date.now()}-followup`,
+        content: `针对刚才的“${lastQuestion?.topic || lastQuestion?.section || '问题'}”，请结合一个具体场景说明你的处理步骤和结果。`,
+        section: lastQuestion?.section || 'general',
+        sectionKey: lastQuestion?.sectionKey || 'general',
+        type: 'followup', topic: lastQuestion?.topic || '追问', difficulty: 'easy',
+      };
+    }
+
+    const project = projects[(questionNumber - 2) % Math.max(projects.length, 1)];
+    if (project && questionNumber % 2 === 0) {
+      const name = project.name || '这个项目';
+      return {
+        id: `q-${Date.now()}-project`,
+        content: `请选取${name}，说明你承担的职责、最有挑战的一项工作，以及如何验证最终效果。`,
+        section: 'projects', sectionKey: 'projects', type: 'project', topic: name,
+        difficulty: 'medium', projectName: name,
+      };
+    }
+
+    const skill = skills[(questionNumber - 2) % Math.max(skills.length, 1)] || state.targetPosition || '核心技能';
+    return {
+      id: `q-${Date.now()}-technical`,
+      content: `围绕${skill}，请说明你在实际开发中会如何设计、排查问题并作出技术取舍？`,
+      section: 'skills', sectionKey: 'skills', type: 'technical', topic: skill, difficulty: 'medium',
+    };
   }
 }

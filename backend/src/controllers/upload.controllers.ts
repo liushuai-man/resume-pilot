@@ -9,6 +9,36 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadsDir = path.join(__dirname, '../../uploads');
 
+async function createPdfPreview(filePath: string, fileName: string, pageNumber = 1): Promise<string> {
+  const previewName = `${path.basename(fileName, path.extname(fileName))}-preview-${pageNumber}`;
+  const previewPath = path.join(uploadsDir, `${previewName}.png`);
+  if (fs.existsSync(previewPath)) {
+    return previewPath;
+  }
+
+  const [{ getDocument }, { createCanvas }] = await Promise.all([
+    import('pdfjs-dist/legacy/build/pdf.mjs'),
+    import('@napi-rs/canvas'),
+  ]);
+  const document = await getDocument({
+    data: new Uint8Array(await fs.promises.readFile(filePath)),
+    disableWorker: true,
+  } as any).promise;
+  try {
+    if (!Number.isInteger(pageNumber) || pageNumber < 1 || pageNumber > document.numPages) {
+      throw new Error('PDF page does not exist');
+    }
+    const page = await document.getPage(pageNumber);
+    const viewport = page.getViewport({ scale: 1.5 });
+    const canvas = createCanvas(Math.ceil(viewport.width), Math.ceil(viewport.height));
+    await page.render({ canvas, canvasContext: canvas.getContext('2d'), viewport }).promise;
+    await fs.promises.writeFile(previewPath, canvas.toBuffer('image/png'));
+  } finally {
+    await document.destroy();
+  }
+  return previewPath;
+}
+
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
@@ -82,6 +112,16 @@ export const uploadResumeHandler = async (req: Request, res: Response) => {
 
       const fileUrl = `/uploads/${storedFileName}`;
       const fileType = fileExtension === '.pdf' ? 'pdf' : 'image';
+      let previewUrl: string | undefined;
+
+      if (fileType === 'pdf') {
+        try {
+          const previewPath = await createPdfPreview(storedFilePath, storedFileName);
+          previewUrl = `/uploads/${path.basename(previewPath)}`;
+        } catch (previewError) {
+          console.warn('PDF preview generation failed:', previewError);
+        }
+      }
 
       const resumeTitle =
         decodedOriginalName.replace(fileExtension, '') || '导入简历';
@@ -100,6 +140,7 @@ export const uploadResumeHandler = async (req: Request, res: Response) => {
       const resumeContent = {
         isUploadedFile: true,
         fileUrl,
+        previewUrl,
         fileType,
         fileName: fileDisplayName,
         ocrText,
@@ -135,6 +176,7 @@ export const uploadResumeHandler = async (req: Request, res: Response) => {
             type: fileType,
             pageCount,
             fileUrl,
+            previewUrl,
           },
         },
         '简历导入成功'
@@ -145,4 +187,27 @@ export const uploadResumeHandler = async (req: Request, res: Response) => {
       return error(res, `上传并解析简历失败: ${errorMessage}`);
     }
   });
+};
+
+export const getResumePreviewHandler = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const { id } = req.params;
+    const resume = await prisma.resume.findFirst({ where: { id, user_id: userId, is_deleted: false } });
+    const content = resume?.content as any;
+    if (!resume || !content?.isUploadedFile || content.fileType !== 'pdf') {
+      return error(res, '未找到 PDF 简历', 404);
+    }
+    const storedFileName = path.basename(content.fileUrl);
+    const page = Number.parseInt(String(req.query.page ?? '1'), 10);
+    const previewPath = await createPdfPreview(
+      path.join(uploadsDir, storedFileName),
+      storedFileName,
+      page
+    );
+    return res.type('png').sendFile(previewPath);
+  } catch (err) {
+    console.error('生成 PDF 预览失败:', err);
+    return error(res, '生成 PDF 预览失败');
+  }
 };

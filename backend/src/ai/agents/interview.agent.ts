@@ -29,6 +29,7 @@ export async function startLangGraphInterview(
     section: 'introduction',
     sectionKey: 'introduction',
     type: 'introduction',
+    isIntroduction: true,
   };
 
   const resumeText = getResumeText(resumeContent);
@@ -121,10 +122,7 @@ export async function submitLangGraphAnswer(
   const newEvaluations = [...state.evaluations, evaluation];
   const newAnswers = [...state.answers, newAnswer];
 
-  let newIndex = state.currentQuestionIndex;
-  if (!currentQuestion.isIntroduction) {
-    newIndex = state.currentQuestionIndex + 1;
-  }
+  const newIndex = state.currentQuestionIndex + 1;
 
   const isFinished = newIndex >= state.maxQuestions;
 
@@ -152,34 +150,8 @@ export async function submitLangGraphAnswer(
       profile: updatedProfile,
     };
 
-    nextQuestion =
-      await supervisorAgent.generateNextQuestion(stateForNextQuestion);
-
-    newQuestions = [...state.questions, nextQuestion];
-
-    const qType = nextQuestion.type || 'technical';
-    newQuestionTypes = {
-      technical:
-        qType === 'technical'
-          ? state.askedQuestionTypes.technical + 1
-          : state.askedQuestionTypes.technical,
-      project:
-        qType === 'project'
-          ? state.askedQuestionTypes.project + 1
-          : state.askedQuestionTypes.project,
-      followup:
-        qType === 'followup'
-          ? state.askedQuestionTypes.followup + 1
-          : state.askedQuestionTypes.followup,
-    };
-
-    if (nextQuestion.topic) {
-      state.interviewPlan = state.interviewPlan.map((p) =>
-        p.topic === nextQuestion!.topic
-          ? { ...p, askedCount: p.askedCount + 1 }
-          : p
-      );
-    }
+    // Next-question generation is deliberately deferred to a separate request.
+    // This lets the UI show evaluation feedback without waiting on another LLM call.
   }
 
   const updatedState: LangGraphInterviewState = {

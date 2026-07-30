@@ -1,7 +1,8 @@
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { MemoryVectorStore } from 'langchain/vectorstores/memory';
 import { Document } from '@langchain/core/documents';
-import { createUserLLM, getUserModelClientConfig } from '../providers/llm.provider';
+import { createUserLLM } from '../providers/llm.provider';
+import { getEmbeddingModelConfig } from '../../services/model-config.service';
 import { MemoryDocument } from '../types/chat.types';
 import { RunnableSequence } from '@langchain/core/runnables';
 import { StringOutputParser } from '@langchain/core/output_parsers';
@@ -11,7 +12,9 @@ export class VectorMemoryManager {
   private vectorStores: Map<string, MemoryVectorStore> = new Map();
   private async getOrCreateVectorStore(sessionId: string, userId?: string): Promise<MemoryVectorStore> {
     if (!this.vectorStores.has(sessionId)) {
-      const config = await getUserModelClientConfig(userId);
+      if (!userId) throw new Error('Embedding model requires a user');
+      const config = await getEmbeddingModelConfig(userId);
+      if (!config) throw new Error('No embedding model configured');
       const embeddings = new OpenAIEmbeddings({
         openAIApiKey: config.api_key,
         configuration: { baseURL: config.base_url || undefined },

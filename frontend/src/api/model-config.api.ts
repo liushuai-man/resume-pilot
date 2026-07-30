@@ -14,6 +14,7 @@ export interface ModelConfig {
   displayName: string;
   baseUrl?: string | null;
   isDefault: boolean;
+  purpose: 'chat' | 'embedding';
   createdAt: string;
   updatedAt: string;
 }
@@ -25,6 +26,7 @@ export interface CreateModelConfigRequest {
   baseUrl?: string;
   displayName: string;
   isDefault?: boolean;
+  purpose?: 'chat' | 'embedding';
 }
 
 export interface UpdateModelConfigRequest {

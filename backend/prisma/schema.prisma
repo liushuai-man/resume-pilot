@@ -121,6 +121,7 @@ model UserModelConfig {
   api_key      String
   base_url     String?
   display_name String
+  purpose      String   @default("chat")
   is_default   Boolean  @default(false)
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt

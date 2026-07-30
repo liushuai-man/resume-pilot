@@ -6,7 +6,21 @@ import {
   getInterviewResults,
   getInterviewResult,
   deleteInterviewResult,
+  generateInterviewNextQuestion,
 } from '../services/interview.service';
+
+export const getNextQuestionHandler = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const { sessionId } = req.body;
+    if (!userId || !sessionId) return error(res, '缺少会话信息', 400);
+    const question = await generateInterviewNextQuestion(userId, sessionId);
+    return success(res, { question });
+  } catch (err) {
+    console.error('生成下一题失败:', err);
+    return error(res, '生成下一题失败');
+  }
+};
 import { prisma } from '../database/prisma';
 import { success, error } from '../utils/response';
 

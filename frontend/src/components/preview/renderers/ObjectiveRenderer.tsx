@@ -1,5 +1,6 @@
 import type { RendererProps } from './index';
 import { SectionWrapper } from './SectionWrapper';
+import { DescriptionText } from './common';
 
 export function ObjectiveRenderer({ section, style, variant, isHighlighted, onClick }: RendererProps) {
   if (section.type !== 'objective') return null;
@@ -11,16 +12,7 @@ export function ObjectiveRenderer({ section, style, variant, isHighlighted, onCl
 
   return (
     <SectionWrapper title={section.title} style={style} variant={variant} isHighlighted={isHighlighted} onClick={onClick}>
-      <p
-        style={{
-          fontSize: descSize,
-          color: '#4b5563',
-          lineHeight: 1.6,
-          margin: 0,
-        }}
-      >
-        {data.content}
-      </p>
+      <DescriptionText text={data.content} fontSize={descSize} variant={variant} />
     </SectionWrapper>
   );
 }

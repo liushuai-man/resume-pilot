@@ -10,6 +10,8 @@ import {
   Trash2,
   FileText,
   ImageIcon,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { useResumeStore } from '@/store/useResumeStore';
 import { useDocumentStore } from '@/store/useDocumentStore';
@@ -51,8 +53,13 @@ const InterviewPage = () => {
   const [interviewResult, setInterviewResult] = useState<any>(null);
   const [isThinking, setIsThinking] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadedPdfPage, setUploadedPdfPage] = useState(1);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const interviewPreviewRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setUploadedPdfPage(1);
+  }, [resume?.id]);
 
   // 加载简历及其模板样式
   const loadResumeWithTemplate = useCallback(
@@ -186,12 +193,16 @@ const InterviewPage = () => {
         [currentQuestion.id]: result.feedback,
       }));
 
-      if (result.isFinished || !result.nextQuestion) {
+      if (result.isFinished) {
         // 将本次返回的评估报告显式传给 finish，避免读取到 stale state
         await handleFinishInterview(result.report, updatedAnswers);
       } else {
-        setCurrentQuestion(result.nextQuestion);
-        setQuestions((prev) => [...prev, result.nextQuestion!]);
+        // Feedback is visible before the next LLM call begins.
+        const nextQuestion = await interviewApi.getNextQuestion(sessionId);
+        if (nextQuestion) {
+          setCurrentQuestion(nextQuestion);
+          setQuestions((prev) => [...prev, nextQuestion]);
+        }
       }
       setIsThinking(false);
     } catch (error) {
@@ -618,12 +629,38 @@ const InterviewPage = () => {
         >
           {resume?.content?.isUploadedFile && resume.content.fileUrl ? (
             resume.content.fileType === 'pdf' ? (
-              <iframe
-                src={`${import.meta.env.VITE_API_BASE_URL}${resume.content.fileUrl}`}
-                title="简历预览"
-                className="w-full border-0"
-                style={{ height: '100%', minHeight: '600px' }}
-              />
+              <div className="flex h-full flex-col bg-slate-100 p-4">
+                <img
+                  src={`${import.meta.env.VITE_API_BASE_URL}/api/upload/resume/${resume.id}/preview?page=${uploadedPdfPage}`}
+                  alt="简历预览"
+                  className="min-h-0 w-full flex-1 object-contain shadow-sm"
+                />
+                {(resume.content.pageCount || 1) > 1 && (
+                  <div className="mt-3 flex items-center justify-center gap-3">
+                    <Button
+                      variant="subtle"
+                      size="xs"
+                      leftSection={<ChevronLeft size={15} />}
+                      disabled={uploadedPdfPage <= 1}
+                      onClick={() => setUploadedPdfPage((page) => Math.max(1, page - 1))}
+                    >
+                      上一页
+                    </Button>
+                    <Text size="sm" c="dimmed">
+                      {uploadedPdfPage} / {resume.content.pageCount || 1}
+                    </Text>
+                    <Button
+                      variant="subtle"
+                      size="xs"
+                      rightSection={<ChevronRight size={15} />}
+                      disabled={uploadedPdfPage >= (resume.content.pageCount || 1)}
+                      onClick={() => setUploadedPdfPage((page) => Math.min(resume.content.pageCount || 1, page + 1))}
+                    >
+                      下一页
+                    </Button>
+                  </div>
+                )}
+              </div>
             ) : (
               <img
                 src={`${import.meta.env.VITE_API_BASE_URL}${resume.content.fileUrl}`}

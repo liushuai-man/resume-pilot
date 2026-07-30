@@ -8,6 +8,7 @@ export interface CreateModelConfigRequest {
   baseUrl?: string;
   displayName: string;
   isDefault?: boolean;
+  purpose?: 'chat' | 'embedding';
 }
 
 export interface UpdateModelConfigRequest {
@@ -17,6 +18,7 @@ export interface UpdateModelConfigRequest {
   baseUrl?: string;
   displayName?: string;
   isDefault?: boolean;
+  purpose?: 'chat' | 'embedding';
 }
 
 const PROVIDER_PRESETS: Record<
@@ -66,7 +68,14 @@ export async function listModelConfigs(userId: string) {
 
 export async function getDefaultModelConfig(userId: string) {
   return await prisma.userModelConfig.findFirst({
-    where: { user_id: userId, is_deleted: false, is_default: true },
+    where: { user_id: userId, is_deleted: false, is_default: true, purpose: 'chat' },
+  });
+}
+
+export async function getEmbeddingModelConfig(userId: string) {
+  return await prisma.userModelConfig.findFirst({
+    where: { user_id: userId, is_deleted: false, purpose: 'embedding' },
+    orderBy: { updated_at: 'desc' },
   });
 }
 
@@ -80,16 +89,17 @@ export async function createModelConfig(
   userId: string,
   data: CreateModelConfigRequest
 ) {
+  const purpose = data.purpose || 'chat';
   const existingConfigs = await prisma.userModelConfig.count({
-    where: { user_id: userId, is_deleted: false },
+    where: { user_id: userId, is_deleted: false, purpose },
   });
 
   const isFirstConfig = existingConfigs === 0;
-  const shouldBeDefault = data.isDefault || isFirstConfig;
+  const shouldBeDefault = purpose === 'chat' && (data.isDefault || isFirstConfig);
 
   if (shouldBeDefault) {
     await prisma.userModelConfig.updateMany({
-      where: { user_id: userId, is_deleted: false },
+      where: { user_id: userId, is_deleted: false, purpose: 'chat' },
       data: { is_default: false },
     });
   }
@@ -102,6 +112,7 @@ export async function createModelConfig(
       api_key: data.apiKey,
       base_url: data.baseUrl || null,
       display_name: data.displayName,
+      purpose,
       is_default: shouldBeDefault,
     },
   });
@@ -201,11 +212,11 @@ export async function testConnection(data: {
   try {
     const llm = new ChatOpenAI({
       modelName: data.modelName,
+      openAIApiKey: data.apiKey,
       temperature: 0.7,
       maxTokens: 100,
       timeout: 15000,
       configuration: {
-        apiKey: data.apiKey,
         baseURL: data.baseUrl || undefined,
       },
     });

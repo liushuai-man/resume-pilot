@@ -198,6 +198,27 @@ export async function finishInterview(
   return interviewResult;
 }
 
+export async function generateInterviewNextQuestion(userId: string, sessionId: string) {
+  const state = await getInterviewSessionState(userId, sessionId);
+  if (state.isFinished) return null;
+
+  const { InterviewSupervisorAgent } = await import('../ai/agents/interview/supervisor.agent');
+  const supervisor = new InterviewSupervisorAgent();
+  const nextQuestion = await supervisor.generateNextQuestion(state);
+  const qType = nextQuestion.type || 'technical';
+  const updatedState: LangGraphInterviewState = {
+    ...state,
+    questions: [...state.questions, nextQuestion],
+    askedQuestionTypes: {
+      technical: state.askedQuestionTypes.technical + (qType === 'technical' ? 1 : 0),
+      project: state.askedQuestionTypes.project + (qType === 'project' ? 1 : 0),
+      followup: state.askedQuestionTypes.followup + (qType === 'followup' ? 1 : 0),
+    },
+  };
+  await saveInterviewSessionState(sessionId, updatedState);
+  return nextQuestion;
+}
+
 export async function getInterviewResults(userId: string) {
   return await prisma.interviewResult.findMany({
     where: { user_id: userId, is_deleted: false },

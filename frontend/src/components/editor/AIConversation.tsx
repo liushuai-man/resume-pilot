@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Card, Input, Button, Avatar, Text } from '@mantine/core';
 import { Sparkles, Send, Loader2 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import { ChatMessage } from '@/api/ai.api';
 import { useResumeStore } from '@/store/useResumeStore';
 import { notification } from '@/components/common/Notification';
@@ -11,7 +12,7 @@ interface Message {
   type: 'user' | 'ai';
   content: string;
   timestamp: Date;
-  suggestedAction?: 'apply' | 'copy' | 'regenerate';
+  suggestedAction?: 'copy' | 'regenerate';
 }
 
 interface AIConversationProps {
@@ -82,7 +83,7 @@ export default function AIConversation({
         content: aiResponse,
         timestamp: new Date(),
         // 检查AI回复是否包含可应用的内容
-        suggestedAction: aiResponse.length > 50 ? 'apply' : undefined,
+        suggestedAction: aiResponse.length > 50 ? 'copy' : undefined,
       };
       setMessages((prev) => [...prev, aiMessage]);
       setChatHistory([
@@ -170,6 +171,7 @@ export default function AIConversation({
       );
     });
   };
+  void formatMessage;
 
   return (
     <div className="h-full flex flex-col bg-white">
@@ -219,20 +221,27 @@ export default function AIConversation({
                     : 'bg-gray-100 text-gray-800 rounded-tl-sm'
                 }`}
               >
-                {formatMessage(msg.content)}
+                {msg.type === 'ai' ? (
+                  <ReactMarkdown
+                    components={{
+                      p: ({ children }) => <p className="my-1">{children}</p>,
+                      ul: ({ children }) => <ul className="my-1 list-disc pl-5">{children}</ul>,
+                      ol: ({ children }) => <ol className="my-1 list-decimal pl-5">{children}</ol>,
+                      h1: ({ children }) => <h1 className="my-2 text-base font-semibold">{children}</h1>,
+                      h2: ({ children }) => <h2 className="my-2 text-sm font-semibold">{children}</h2>,
+                      code: ({ children }) => <code className="rounded bg-gray-200 px-1">{children}</code>,
+                    }}
+                  >
+                    {msg.content}
+                  </ReactMarkdown>
+                ) : (
+                  <p className="whitespace-pre-wrap">{msg.content}</p>
+                )}
               </div>
 
               {/* 操作按钮 */}
               {msg.type === 'ai' && msg.suggestedAction && (
                 <div className="mt-2 flex gap-2">
-                  <Button
-                    variant="subtle"
-                    size="xs"
-                    className="text-blue-600 hover:bg-blue-50"
-                    onClick={() => handleAction(msg.id, 'apply')}
-                  >
-                    应用到简历
-                  </Button>
                   <Button
                     variant="subtle"
                     size="xs"
