@@ -12,12 +12,23 @@ import {
   AIChatRequest,
 } from '../api/ai-chat';
 import { success, error } from '../utils/response';
-import { aiConfig } from '../config/ai';
+import { prisma } from '../database/prisma';
+
+// Deprecated endpoint compatibility only. New requests always use the user's saved model.
+const aiConfig: any = {};
+
+async function assertChatSessionOwnership(sessionId: string, userId: string) {
+  const session = await prisma.chatSession.findFirst({
+    where: { id: sessionId, user_id: userId, is_deleted: false },
+    select: { id: true },
+  });
+  if (!session) throw new Error('Chat session not found or forbidden');
+}
 
 export const completeText = async (req: any, res: Response) => {
   try {
     console.log('=== AI补全请求 ===');
-    console.log('使用模型:', aiConfig.provider);
+    console.log('使用用户默认模型');
     console.log('请求体:', {
       ...req.body,
       text: req.body.text?.substring(0, 50) + '...',
@@ -50,7 +61,7 @@ export const completeText = async (req: any, res: Response) => {
 export const polishText = async (req: any, res: Response) => {
   try {
     console.log('=== AI润色请求 ===');
-    console.log('使用模型:', aiConfig.provider);
+    console.log('使用用户默认模型');
     console.log('请求体:', {
       ...req.body,
       text: req.body.text?.substring(0, 50) + '...',
@@ -83,7 +94,7 @@ export const polishText = async (req: any, res: Response) => {
 export const chat = async (req: Request, res: Response) => {
   try {
     console.log('=== AI对话请求 ===');
-    console.log('使用模型:', aiConfig.provider);
+    console.log('使用用户默认模型');
     console.log('消息数量:', req.body.messages?.length);
 
     const {
@@ -126,11 +137,13 @@ export const chat = async (req: Request, res: Response) => {
 export const getChatSummary = async (req: Request, res: Response) => {
   try {
     const { sessionId } = req.params;
+    const userId = (req as any).user?.id;
 
     if (!sessionId) {
       return error(res, '请提供会话ID', 400);
     }
 
+    await assertChatSessionOwnership(sessionId, userId);
     const summary = await getSessionSummary(sessionId);
     return success(res, { summary }, '获取摘要成功');
   } catch (err: any) {
@@ -142,11 +155,13 @@ export const getChatSummary = async (req: Request, res: Response) => {
 export const clearChatSession = async (req: Request, res: Response) => {
   try {
     const { sessionId } = req.params;
+    const userId = (req as any).user?.id;
 
     if (!sessionId) {
       return error(res, '请提供会话ID', 400);
     }
 
+    await assertChatSessionOwnership(sessionId, userId);
     await clearSession(sessionId);
     return success(res, null, '清除会话成功');
   } catch (err: any) {

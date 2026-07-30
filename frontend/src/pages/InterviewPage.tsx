@@ -167,9 +167,10 @@ const InterviewPage = () => {
         questionId: currentQuestion.id,
         content: currentAnswer,
       };
+      const updatedAnswers = [...answers, newAnswer];
 
       // 先添加用户答案到列表
-      setAnswers((prev) => [...prev, newAnswer]);
+      setAnswers(updatedAnswers);
       setCurrentAnswer('');
 
       const result = await interviewApi.submitAnswer(
@@ -187,7 +188,7 @@ const InterviewPage = () => {
 
       if (result.isFinished || !result.nextQuestion) {
         // 将本次返回的评估报告显式传给 finish，避免读取到 stale state
-        await handleFinishInterview(result.report);
+        await handleFinishInterview(result.report, updatedAnswers);
       } else {
         setCurrentQuestion(result.nextQuestion);
         setQuestions((prev) => [...prev, result.nextQuestion!]);
@@ -206,7 +207,10 @@ const InterviewPage = () => {
     }
   };
 
-  const handleFinishInterview = async (reportOverride?: any) => {
+  const handleFinishInterview = async (
+    reportOverride?: any,
+    answersOverride?: Answer[]
+  ) => {
     if (!sessionId || !selectedResumeId) return;
 
     setFinishing(true);
@@ -223,7 +227,7 @@ const InterviewPage = () => {
         sessionId,
         selectedResumeId,
         questions,
-        answers,
+        answersOverride ?? answers,
         reportToSend
       );
 

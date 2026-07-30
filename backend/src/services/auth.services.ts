@@ -1,15 +1,10 @@
 import axios from 'axios';
 import jwt from 'jsonwebtoken';
-import * as https from 'https';
 import { prisma } from '../database/prisma';
 import { authConfig } from '../config/auth';
 import { GithubUser, User } from '../types/auth';
 
 // 创建一个忽略 SSL 验证的 https Agent（用于开发环境）
-const httpsAgent = new https.Agent({
-  rejectUnauthorized: false,
-});
-
 export const authService = {
   async githubLogin(code: string): Promise<{ user: User; token: string }> {;
     // 1. 用 code 换取 access_token
@@ -24,7 +19,6 @@ export const authService = {
         headers: {
           Accept: 'application/json',
         },
-        httpsAgent, // 添加 httpsAgent 来忽略 SSL 验证
       }
     );
     const accessToken = tokenResponse.data.access_token;
@@ -38,7 +32,6 @@ export const authService = {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
-        httpsAgent, // 添加 httpsAgent 来忽略 SSL 验证
       }
     );
     const githubUser = userResponse.data;

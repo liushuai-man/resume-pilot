@@ -1,54 +1,22 @@
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { MemoryVectorStore } from 'langchain/vectorstores/memory';
 import { Document } from '@langchain/core/documents';
-import { createLLM } from '../providers/llm.provider';
-import { aiConfig } from '../../config/ai';
+import { createUserLLM, getUserModelClientConfig } from '../providers/llm.provider';
 import { MemoryDocument } from '../types/chat.types';
 import { RunnableSequence } from '@langchain/core/runnables';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { PromptTemplate } from '@langchain/core/prompts';
 
 export class VectorMemoryManager {
-  private embeddings: OpenAIEmbeddings;
   private vectorStores: Map<string, MemoryVectorStore> = new Map();
-  private llm = createLLM({ temperature: 0.3, maxTokens: 500 });
-
-  constructor() {
-    this.embeddings = new OpenAIEmbeddings({
-      openAIApiKey: this.getApiKey(),
-      configuration: {
-        baseURL: this.getBaseURL(),
-      },
-    });
-  }
-
-  private getApiKey(): string {
-    switch (aiConfig.provider) {
-      case 'mimo':
-        return aiConfig.mimo.apiKey || '';
-      case 'deepseek':
-        return aiConfig.deepseek.apiKey || '';
-      case 'openai':
-      default:
-        return aiConfig.openai.apiKey || '';
-    }
-  }
-
-  private getBaseURL(): string | undefined {
-    switch (aiConfig.provider) {
-      case 'mimo':
-        return aiConfig.mimo.baseURL;
-      case 'deepseek':
-        return 'https://api.deepseek.com/v1';
-      case 'openai':
-      default:
-        return undefined;
-    }
-  }
-
-  private getOrCreateVectorStore(sessionId: string): MemoryVectorStore {
+  private async getOrCreateVectorStore(sessionId: string, userId?: string): Promise<MemoryVectorStore> {
     if (!this.vectorStores.has(sessionId)) {
-      this.vectorStores.set(sessionId, new MemoryVectorStore(this.embeddings));
+      const config = await getUserModelClientConfig(userId);
+      const embeddings = new OpenAIEmbeddings({
+        openAIApiKey: config.api_key,
+        configuration: { baseURL: config.base_url || undefined },
+      });
+      this.vectorStores.set(sessionId, new MemoryVectorStore(embeddings));
     }
     return this.vectorStores.get(sessionId)!;
   }
@@ -58,7 +26,7 @@ export class VectorMemoryManager {
     content: string,
     metadata: Omit<MemoryDocument['metadata'], 'timestamp'>
   ): Promise<void> {
-    const vectorStore = this.getOrCreateVectorStore(sessionId);
+    const vectorStore = await this.getOrCreateVectorStore(sessionId, metadata.userId);
     const doc = new Document({
       pageContent: content,
       metadata: {
@@ -169,7 +137,8 @@ export class VectorMemoryManager {
     query: string,
     k: number = 5
   ): Promise<string> {
-    const vectorStore = this.getOrCreateVectorStore(sessionId);
+    const vectorStore = this.vectorStores.get(sessionId);
+    if (!vectorStore) return '';
     const docs = await vectorStore.similaritySearch(query, k);
     
     if (docs.length === 0) {
@@ -180,7 +149,8 @@ export class VectorMemoryManager {
   }
 
   async generateSessionSummary(sessionId: string): Promise<string> {
-    const vectorStore = this.getOrCreateVectorStore(sessionId);
+    const vectorStore = this.vectorStores.get(sessionId);
+    if (!vectorStore) return '暂无对话记录';
     const allDocs = await vectorStore.similaritySearch('', 100);
     
     if (allDocs.length === 0) {
@@ -197,9 +167,11 @@ export class VectorMemoryManager {
 摘要：
 `.trim());
 
+    const userId = allDocs[0]?.metadata.userId as string | undefined;
+    const llm = await createUserLLM(userId, { temperature: 0.3, maxTokens: 500 });
     const chain = RunnableSequence.from([
       summaryPrompt,
-      this.llm,
+      llm,
       new StringOutputParser(),
     ]);
 

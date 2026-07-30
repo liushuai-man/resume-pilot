@@ -7,7 +7,7 @@ import { SectionEditorModal } from '@/components/editor/SectionEditorModal';
 import { DocumentPreview } from '@/components/preview/DocumentPreview';
 import { TemplateSettings } from '@/components/editor/TemplateSettings';
 import AIConversation from '@/components/editor/AIConversation';
-import { exportToPdf } from '@/utils/pdfExport';
+import { downloadPdf } from '@/utils/downloadPdf';
 import { notification } from '@/components/common/Notification';
 import { useResumeStore } from '@/store/useResumeStore';
 import { useDocumentStore } from '@/store/useDocumentStore';
@@ -27,6 +27,7 @@ export default function ResumeEditorPage() {
     setSaving,
     setLastSaved,
     setActiveSection,
+    updateTitle,
     reset,
   } = useDocumentStore();
   const [manualSaving, setManualSaving] = useState(false);
@@ -103,24 +104,21 @@ export default function ResumeEditorPage() {
     }
   };
 
-  const handleExport = () => {
-    notification.info('正在生成PDF简历...');
-    const resumeElement = window.document.querySelector(
-      '.resume-preview-container'
-    ) as HTMLElement;
-    if (resumeElement) {
-      const exportName = document?.title || '我的简历';
-      exportToPdf(resumeElement, exportName)
-        .then(() => {
-          notification.success('PDF简历导出成功');
-        })
-        .catch(() => {
-          notification.error('PDF导出失败');
-        });
+  const handleExport = async () => {
+    if (!resumeId) return;
+    try {
+      notification.info('正在生成 PDF 简历…');
+      const pdf = await resumeApi.exportResumePdf(resumeId);
+      downloadPdf(pdf, document?.title || resume?.title || '简历');
+      notification.success('PDF 简历导出成功');
+    } catch {
+      notification.error('PDF 导出失败');
     }
   };
 
-  const handleTitleChange = (_title: string) => {};
+  const handleTitleChange = (title: string) => {
+    updateTitle(title.trim() || '未命名简历');
+  };
 
   const formatLastSaved = (date: Date | null | string) => {
     if (!date) return '';

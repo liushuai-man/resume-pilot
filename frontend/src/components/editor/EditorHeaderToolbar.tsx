@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button, Input, Badge, Loader } from '@mantine/core';
 import { Save, Download, Bot } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -25,6 +25,12 @@ export default function EditorHeaderToolbar({
   const navigate = useNavigate();
   const [editingTitle, setEditingTitle] = useState(title);
   const [isEditing, setIsEditing] = useState(false);
+
+  useEffect(() => {
+    if (!isEditing) {
+      setEditingTitle(title);
+    }
+  }, [title, isEditing]);
 
   const handleTitleBlur = () => {
     setIsEditing(false);
@@ -60,10 +66,17 @@ export default function EditorHeaderToolbar({
           onFocus={() => setIsEditing(true)}
           onBlur={handleTitleBlur}
           onKeyDown={handleTitleKeyDown}
-          className={`w-64 ${isEditing ? 'ring-2 ring-blue-500' : ''}`}
+          className="w-64"
           size="xs"
           placeholder="简历标题"
           radius="sm"
+          styles={{
+            input: {
+              borderColor: '#d1d5db',
+              boxShadow: 'none',
+              outline: 'none',
+            },
+          }}
         />
         <Badge
           variant="outline"

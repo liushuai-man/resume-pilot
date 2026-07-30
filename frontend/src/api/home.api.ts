@@ -39,6 +39,12 @@ export const resumeApi = {
   deleteResume: async (id: string): Promise<ApiResponse<void>> => {
     return await request.delete(`/resume/${id}`);
   },
+
+  exportResumePdf: async (id: string): Promise<Blob> => {
+    return await request.get(`/resume/${id}/export-pdf`, {
+      responseType: 'blob',
+    });
+  },
 };
 
 export default resumeApi;

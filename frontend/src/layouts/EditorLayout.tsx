@@ -29,6 +29,7 @@ export default function EditorLayout({
   const [scale, setScale] = useState(1);
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const resumeContentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const container = previewContainerRef.current;
@@ -50,15 +51,15 @@ export default function EditorLayout({
 
   useEffect(() => {
     const updateHeight = () => {
-      if (contentRef.current) {
-        contentRef.current.style.height = `${contentRef.current.offsetHeight * scale}px`;
+      if (contentRef.current && resumeContentRef.current) {
+        contentRef.current.style.height = `${resumeContentRef.current.offsetHeight * scale}px`;
       }
     };
 
     updateHeight();
     const observer = new ResizeObserver(updateHeight);
-    if (contentRef.current) {
-      observer.observe(contentRef.current);
+    if (resumeContentRef.current) {
+      observer.observe(resumeContentRef.current);
     }
 
     return () => observer.disconnect();
@@ -147,11 +148,17 @@ export default function EditorLayout({
             className="transition-transform duration-300 ease-out flex-shrink-0"
             style={{
               width: RESUME_WIDTH,
-              transform: `scale(${scale})`,
-              transformOrigin: 'top center',
             }}
           >
-            {children}
+            <div
+              ref={resumeContentRef}
+              style={{
+                transform: `scale(${scale})`,
+                transformOrigin: 'top center',
+              }}
+            >
+              {children}
+            </div>
           </div>
         </main>
 

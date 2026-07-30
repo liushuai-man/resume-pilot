@@ -15,6 +15,31 @@ const sessionStore = new Map<
   LangGraphInterviewState | InterviewState
 >();
 
+async function getInterviewSessionState(userId: string, sessionId: string): Promise<LangGraphInterviewState> {
+  const session = await prisma.chatSession.findFirst({
+    where: { id: sessionId, user_id: userId, session_type: 'interview', is_deleted: false },
+    select: { summary: true },
+  });
+  if (!session) throw new Error('Interview session not found or forbidden');
+
+  const cachedState = sessionStore.get(sessionId) as LangGraphInterviewState;
+  if (cachedState) return cachedState;
+  if (!session.summary) throw new Error('Interview session is no longer active');
+
+  try {
+    const state = JSON.parse(session.summary) as LangGraphInterviewState;
+    sessionStore.set(sessionId, state);
+    return state;
+  } catch {
+    throw new Error('Interview session state is invalid');
+  }
+}
+
+async function saveInterviewSessionState(sessionId: string, state: LangGraphInterviewState): Promise<void> {
+  sessionStore.set(sessionId, state);
+  await prisma.chatSession.update({ where: { id: sessionId }, data: { summary: JSON.stringify(state) } });
+}
+
 // 主流程：面试工作流
 export async function startInterview(
   userId: string,
@@ -52,7 +77,7 @@ export async function startInterview(
   );
 
   // 存储会话状态
-  sessionStore.set(session.id, sessionData);
+  await saveInterviewSessionState(session.id, sessionData);
 
   return {
     sessionId: session.id,
@@ -62,10 +87,10 @@ export async function startInterview(
 }
 
 export async function submitAnswer(
+  userId: string,
   sessionId: string,
   question: Question,
-  answer: string,
-  resumeContent: any
+  answer: string
 ): Promise<{
   feedback: string;
   nextQuestion: Question | null;
@@ -75,7 +100,7 @@ export async function submitAnswer(
   console.log('=== 使用 LangGraph 提交回答 ===');
 
   // 获取会话状态
-  const state = sessionStore.get(sessionId) as LangGraphInterviewState;
+  const state = await getInterviewSessionState(userId, sessionId);
   if (!state) {
     throw new Error('会话不存在');
   }
@@ -84,7 +109,7 @@ export async function submitAnswer(
   const result = await submitLangGraphAnswer(state, answer);
 
   // 更新会话状态
-  sessionStore.set(sessionId, result.updatedState);
+  await saveInterviewSessionState(sessionId, result.updatedState);
 
   return {
     feedback: result.feedback,
@@ -105,7 +130,7 @@ export async function finishInterview(
 ): Promise<any> {
   console.log('=== 使用 LangGraph 完成面试 ===');
 
-  const state = sessionStore.get(sessionId) as LangGraphInterviewState;
+  const state = await getInterviewSessionState(userId, sessionId);
   if (!state) {
     throw new Error('会话不存在');
   }
@@ -168,6 +193,7 @@ export async function finishInterview(
   });
 
   sessionStore.delete(sessionId);
+  await prisma.chatSession.update({ where: { id: sessionId }, data: { summary: null } });
 
   return interviewResult;
 }

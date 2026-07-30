@@ -51,10 +51,10 @@ export const submitAnswerHandler = async (req: Request, res: Response) => {
     });
 
     const result = await submitAnswer(
+      userId,
       sessionId,
       question,
-      answer,
-      resume.content
+      answer
     );
 
     return success(res, result, '答案已提交');

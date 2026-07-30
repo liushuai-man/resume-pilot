@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, Text, Button, Group, Modal } from '@mantine/core';
 import { Eye, Edit3, Download, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -12,7 +12,7 @@ import { MinimalTemplate } from '@/components/preview/templates/MinimalTemplate'
 import { SidebarTemplate } from '@/components/preview/templates/SidebarTemplate';
 import { contentToDocument } from '@/utils/resume-migration';
 import { resumeApi } from '@/api/home.api';
-import { exportToPdf } from '@/utils/pdfExport';
+import { downloadPdf } from '@/utils/downloadPdf';
 import { formatDateTime } from '@/utils/format';
 import ConfirmModal from '@/components/common/ConfirmModal';
 
@@ -38,8 +38,6 @@ export default function HistoryResume({
 }: HistoryResumeProps) {
   const { id, title, content, updated_at } = resume;
   const navigate = useNavigate();
-  const previewRef = useRef<HTMLDivElement>(null);
-  const hiddenExportRef = useRef<HTMLDivElement>(null);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -62,37 +60,13 @@ export default function HistoryResume({
     navigate(`/resume/${id}`);
   };
 
-  const handleExportPdf = async (
-    targetRef: React.RefObject<HTMLDivElement>
-  ) => {
-    if (!targetRef.current) {
-      notification.error('无法获取预览内容');
-      return;
-    }
-
+  const handleExportPdf = async () => {
     setIsExporting(true);
     try {
-      notification.info('正在生成PDF简历...');
-      await exportToPdf(targetRef.current, title);
-      notification.success('PDF简历导出成功');
-    } catch (error) {
-      notification.error('PDF导出失败，请稍后重试');
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
-  const handleExportFromCard = async () => {
-    if (!hiddenExportRef.current) {
-      notification.error('无法获取预览内容');
-      return;
-    }
-
-    setIsExporting(true);
-    try {
-      notification.info('正在生成PDF简历...');
-      await exportToPdf(hiddenExportRef.current, title);
-      notification.success('PDF简历导出成功');
+      notification.info('正在生成 PDF 简历…');
+      const pdf = await resumeApi.exportResumePdf(id);
+      downloadPdf(pdf, title);
+      notification.success('PDF 简历导出成功');
     } catch (error) {
       notification.error('PDF导出失败，请稍后重试');
     } finally {
@@ -130,17 +104,6 @@ export default function HistoryResume({
 
   return (
     <>
-      {/* 隐藏的导出容器 - 用于卡片直接下载 */}
-      <div
-        ref={hiddenExportRef}
-        className="fixed top-0 left-0 w-[210mm] h-[297mm] opacity-0 pointer-events-none z-[-1] overflow-hidden"
-        style={{
-          transform: 'translate(-100%, -100%)',
-        }}
-      >
-        <TemplateComponent document={document} />
-      </div>
-
       <Card className="aspect-[5/6] flex flex-col overflow-hidden border-2 border-gray-200 rounded-md p-0">
         {/* 标题栏 */}
         <div className="px-3 py-2 bg-white">
@@ -186,7 +149,7 @@ export default function HistoryResume({
               variant="ghost"
               size="sm"
               className="w-8 h-8 p-0 border-2 rounded-full border-gray-300 text-gray-500 bg-white hover:bg-green-500 hover:text-white hover:border-green-500"
-              onClick={handleExportFromCard}
+              onClick={handleExportPdf}
               title="下载"
               disabled={isExporting}
             >
@@ -216,7 +179,6 @@ export default function HistoryResume({
       >
         <div className="bg-white border-t-2 border-gray-200 overflow-hidden p-0">
           <div
-            ref={previewRef}
             className="overflow-auto bg-gray-100"
             style={{ maxHeight: '70vh' }}
           >
@@ -237,7 +199,7 @@ export default function HistoryResume({
             </Button>
             <Button
               variant="filled"
-              onClick={() => handleExportPdf(previewRef)}
+              onClick={handleExportPdf}
               disabled={isExporting}
               className="bg-green-600 hover:bg-green-700 text-white"
               size="md"

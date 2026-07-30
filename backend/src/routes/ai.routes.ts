@@ -3,7 +3,6 @@ import {
   completeText,
   polishText,
   chat,
-  testAIConnection,
   getChatSummary,
   clearChatSession,
   polishSection,
@@ -13,7 +12,6 @@ import { authMiddleware } from '../middlewares/auth.middleware';
 
 const router: Router = Router();
 
-router.get('/test', testAIConnection);
 router.post('/complete', authMiddleware, completeText);
 router.post('/polish', authMiddleware, polishText);
 router.post('/resume/polish-section', authMiddleware, polishSection);

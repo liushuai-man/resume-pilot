@@ -11,12 +11,6 @@ const envSchema = z.object({
   JWT_SECRET: z.string(),
   JWT_EXPIRES_IN: z.string().default('7d'),
 
-  OPENAI_API_KEY: z.string().optional(),
-  DEEPSEEK_API_KEY: z.string().optional(),
-  MIMO_API_KEY: z.string().optional(),
-  MIMO_API_BASE_URL: z.string().optional(),
-  AI_PROVIDER: z.string().default('openai'),
-
   REDIS_URL: z.string().optional(),
 
   CORS_ORIGIN: z.string().default('http://localhost:5173'),

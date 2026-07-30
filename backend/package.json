@@ -50,6 +50,8 @@
     "@types/ms": "^2.1.0",
     "@types/multer": "^2.2.0",
     "@types/node": "^20.11.0",
+    "@typescript-eslint/eslint-plugin": "^8.65.0",
+    "@typescript-eslint/parser": "^8.65.0",
     "eslint": "^8.56.0",
     "prisma": "^5.10.0",
     "tsx": "^4.7.0",

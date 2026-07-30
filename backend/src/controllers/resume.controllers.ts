@@ -6,6 +6,7 @@ import {
   getThumbnailPath,
 } from '../services/thumbnail.service';
 import { success, error } from '../utils/response';
+import { generateResumeHtml as renderResumeHtml } from '../utils/resumeToHtml';
 
 export const createResume = async (req: Request, res: Response) => {
   try {
@@ -113,6 +114,53 @@ export const deleteResume = async (req: Request, res: Response) => {
   } catch (err: any) {
     console.error('删除简历失败:', err);
     return error(res, '删除失败');
+  }
+};
+
+export const exportResumePdf = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = (req as any).user?.id;
+    if (!userId) return error(res, '未授权', 401);
+
+    const resume = await prisma.resume.findFirst({
+      where: { id, user_id: userId, is_deleted: false },
+    });
+    if (!resume) return error(res, '简历不存在', 404);
+
+    const template = resume.template_id
+      ? await prisma.template.findFirst({
+          where: { id: resume.template_id, is_deleted: false },
+          select: { style_config: true },
+        })
+      : null;
+    const styleConfig = template?.style_config ?? undefined;
+    const html = renderResumeHtml(resume.content as any, styleConfig);
+
+    const puppeteer = (await import('puppeteer')).default;
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    });
+    try {
+      const page = await browser.newPage();
+      await page.setContent(html, { waitUntil: 'networkidle0' });
+      const pdf = await page.pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: { top: '0', right: '0', bottom: '0', left: '0' },
+      });
+      const filename = `${resume.title.replace(/[\\/:*?"<>|]/g, '_') || 'resume'}.pdf`;
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`);
+      res.setHeader('Content-Length', pdf.length);
+      return res.send(pdf);
+    } finally {
+      await browser.close();
+    }
+  } catch (err) {
+    console.error('导出 PDF 失败:', err);
+    return error(res, '导出 PDF 失败');
   }
 };
 

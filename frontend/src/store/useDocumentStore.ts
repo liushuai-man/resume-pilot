@@ -17,6 +17,7 @@ interface DocumentStore {
   aiLoading: Record<string, boolean>;
 
   loadDocument: (doc: ResumeDocument) => void;
+  updateTitle: (title: string) => void;
 
   updateSectionData: (sectionId: string, data: any) => void;
   updateSectionItem: (sectionId: string, itemId: string, updates: any) => void;
@@ -155,6 +156,19 @@ export const useDocumentStore = create<DocumentStore>()(
 
       loadDocument: (doc) => {
         set({ document: doc, activeSectionId: null });
+      },
+
+      updateTitle: (title) => {
+        set((state) => {
+          if (!state.document) return state;
+          return {
+            document: {
+              ...state.document,
+              title,
+              updatedAt: new Date().toISOString(),
+            },
+          };
+        });
       },
 
       updateSectionData: (sectionId, data) => {
