@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import rateLimit from 'express-rate-limit';
 import { env } from './config/env';
 import type { Application } from 'express';
 import {
@@ -11,12 +12,9 @@ import {
   modelConfigRouter,
   uploadRouter,
 } from './routes/index';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export const app: Application = express();
+app.set('trust proxy', 1);
 
 // Middleware
 app.use(cookieParser());
@@ -33,8 +31,13 @@ app.use(
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Static file service for uploaded files
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+const aiRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { code: 429, message: 'AI 请求过于频繁，请稍后再试', data: null },
+});
 
 // Routes
 app.get('/health', (req, res) => {
@@ -43,7 +46,7 @@ app.get('/health', (req, res) => {
 
 app.use('/api/auth', authRouter);
 app.use('/api/resume', resumeRouter);
-app.use('/api/ai', aiRouter);
-app.use('/api/interview', interviewRouter);
-app.use('/api/model-config', modelConfigRouter);
+app.use('/api/ai', aiRateLimit, aiRouter);
+app.use('/api/interview', aiRateLimit, interviewRouter);
+app.use('/api/model-config', aiRateLimit, modelConfigRouter);
 app.use('/api/upload', uploadRouter);

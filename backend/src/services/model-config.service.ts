@@ -1,5 +1,6 @@
 import { prisma } from '../database/prisma';
 import { ChatOpenAI } from '@langchain/openai';
+import { decryptSecret, encryptSecret, isEncryptedSecret } from '../utils/secret-crypto';
 
 export interface CreateModelConfigRequest {
   provider: string;
@@ -109,7 +110,7 @@ export async function createModelConfig(
       user_id: userId,
       provider: data.provider,
       model_name: data.modelName,
-      api_key: data.apiKey,
+      api_key: encryptSecret(data.apiKey),
       base_url: data.baseUrl || null,
       display_name: data.displayName,
       purpose,
@@ -141,7 +142,7 @@ export async function updateModelConfig(
   const updateData: any = {};
   if (data.provider !== undefined) updateData.provider = data.provider;
   if (data.modelName !== undefined) updateData.model_name = data.modelName;
-  if (data.apiKey !== undefined) updateData.api_key = data.apiKey;
+  if (data.apiKey !== undefined) updateData.api_key = encryptSecret(data.apiKey);
   if (data.baseUrl !== undefined) updateData.base_url = data.baseUrl || null;
   if (data.displayName !== undefined)
     updateData.display_name = data.displayName;
@@ -151,6 +152,15 @@ export async function updateModelConfig(
     where: { id: configId },
     data: updateData,
   });
+}
+
+export async function getDecryptedApiKey(config: { id: string; api_key: string }) {
+  const apiKey = decryptSecret(config.api_key);
+  // Transparent one-time migration for configurations created before encryption.
+  if (!isEncryptedSecret(config.api_key)) {
+    await prisma.userModelConfig.update({ where: { id: config.id }, data: { api_key: encryptSecret(apiKey) } });
+  }
+  return apiKey;
 }
 
 export async function setDefaultModelConfig(userId: string, configId: string) {

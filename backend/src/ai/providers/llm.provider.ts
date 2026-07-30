@@ -1,5 +1,5 @@
 import { ChatOpenAI } from '@langchain/openai';
-import { getDefaultModelConfig } from '../../services/model-config.service';
+import { getDefaultModelConfig, getDecryptedApiKey } from '../../services/model-config.service';
 
 export async function getUserModelClientConfig(userId?: string) {
   if (!userId) throw new Error('需要登录后才能使用 AI 功能');
@@ -18,10 +18,11 @@ export async function createUserLLM(
 ) {
   const { temperature = 0.7, maxTokens = 1000 } = options || {};
   const config = await getUserModelClientConfig(userId);
+  const apiKey = await getDecryptedApiKey(config);
 
   return new ChatOpenAI({
     modelName: config.model_name,
-    openAIApiKey: config.api_key,
+    openAIApiKey: apiKey,
     temperature,
     maxTokens,
     timeout: 100000,

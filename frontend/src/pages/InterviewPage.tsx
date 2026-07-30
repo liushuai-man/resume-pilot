@@ -663,7 +663,7 @@ const InterviewPage = () => {
               </div>
             ) : (
               <img
-                src={`${import.meta.env.VITE_API_BASE_URL}${resume.content.fileUrl}`}
+                src={`${import.meta.env.VITE_API_BASE_URL}/api/upload/resume/${resume.id}/file`}
                 alt="简历预览"
                 className="w-full h-auto"
               />

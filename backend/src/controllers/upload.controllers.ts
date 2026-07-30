@@ -211,3 +211,23 @@ export const getResumePreviewHandler = async (req: Request, res: Response) => {
     return error(res, '生成 PDF 预览失败');
   }
 };
+
+export const getResumeFileHandler = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const resume = await prisma.resume.findFirst({
+      where: { id: req.params.id, user_id: userId, is_deleted: false },
+    });
+    const content = resume?.content as any;
+    if (!resume || !content?.isUploadedFile || !content.fileUrl) {
+      return error(res, '未找到导入的简历文件', 404);
+    }
+    const filename = path.basename(content.fileUrl);
+    const filePath = path.join(uploadsDir, filename);
+    if (!fs.existsSync(filePath)) return error(res, '简历文件不存在', 404);
+    return res.sendFile(filePath);
+  } catch (err) {
+    console.error('读取导入简历失败:', err);
+    return error(res, '读取导入简历失败');
+  }
+};
