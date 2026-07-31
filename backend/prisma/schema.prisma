@@ -129,5 +129,6 @@ model UserModelConfig {
   user         User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id])
+  @@index([user_id, purpose])
   @@map("user_model_configs")
 }
