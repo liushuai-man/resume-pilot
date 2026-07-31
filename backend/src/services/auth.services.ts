@@ -4,6 +4,8 @@ import { prisma } from '../database/prisma';
 import { authConfig } from '../config/auth';
 import { GithubUser, User } from '../types/auth';
 
+const GITHUB_REQUEST_TIMEOUT_MS = 12_000;
+
 // 创建一个忽略 SSL 验证的 https Agent（用于开发环境）
 export const authService = {
   async githubLogin(code: string): Promise<{ user: User; token: string }> {;
@@ -19,6 +21,7 @@ export const authService = {
         headers: {
           Accept: 'application/json',
         },
+        timeout: GITHUB_REQUEST_TIMEOUT_MS,
       }
     );
     const accessToken = tokenResponse.data.access_token;
@@ -32,6 +35,7 @@ export const authService = {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
+        timeout: GITHUB_REQUEST_TIMEOUT_MS,
       }
     );
     const githubUser = userResponse.data;

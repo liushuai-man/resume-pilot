@@ -16,5 +16,5 @@ export const logout = async (): Promise<ApiResponse<null>> => {
 };
 
 export const getCurrentUser = async (): Promise<ApiResponse<GithubUser>> => {
-  return request.get('/auth/me');
+  return request.get('/auth/me', { timeout: 10000 });
 };

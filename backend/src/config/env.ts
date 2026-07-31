@@ -10,6 +10,10 @@ const envSchema = z.object({
 
   JWT_SECRET: z.string(),
   JWT_EXPIRES_IN: z.string().default('7d'),
+  COOKIE_SECURE: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
   MODEL_CONFIG_ENCRYPTION_KEY: z.string().optional(),
 
   REDIS_URL: z.string().optional(),

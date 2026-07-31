@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { authService } from '../services/auth.services';
 import { authConfig } from '../config/auth';
+import { env } from '../config/env';
 import {
   success,
   unauthorized,
@@ -53,8 +54,9 @@ export const authController = {
       // 设置 cookie
       res.cookie('token', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: env.COOKIE_SECURE,
         sameSite: 'lax',
+        path: '/',
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 天
       });
       // 登录成功，重定向回前端首页（带登录成功标记）
@@ -97,7 +99,11 @@ export const authController = {
    */
   logout: async (_req: Request, res: Response) => {
     try {
-      res.clearCookie('token');
+      res.clearCookie('token', {
+        secure: env.COOKIE_SECURE,
+        sameSite: 'lax',
+        path: '/',
+      });
       return success(res, null);
     } catch (err) {
       console.error('Logout failed:', err);

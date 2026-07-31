@@ -1,4 +1,5 @@
 import React from 'react';
+import ProtectedRoute from '@/components/common/ProtectedRoute';
 
 // 路由配置类型
 export interface RouteConfig {
@@ -27,6 +28,9 @@ const NotFoundPage = React.lazy(
   () => import('@/components/common/NotFoundPage')
 );
 
+const protectedPage = (element: React.ReactNode) =>
+  React.createElement(ProtectedRoute, null, element);
+
 // 路由配置
 export const routes: RouteConfig[] = [
   // 认证相关页面
@@ -46,23 +50,23 @@ export const routes: RouteConfig[] = [
   // 主要功能布局
   {
     path: '/resume/:id',
-    element: React.createElement(ResumeEditorPage),
+    element: protectedPage(React.createElement(ResumeEditorPage)),
   },
   {
     path: '/resume/interview',
-    element: React.createElement(InterviewPage),
+    element: protectedPage(React.createElement(InterviewPage)),
   },
   {
     path: '/resume/interview/:resumeId',
-    element: React.createElement(InterviewPage),
+    element: protectedPage(React.createElement(InterviewPage)),
   },
   {
     path: '/resume/interview/history',
-    element: React.createElement(InterviewHistoryPage),
+    element: protectedPage(React.createElement(InterviewHistoryPage)),
   },
   {
     path: '/resume/interview/result/:id',
-    element: React.createElement(InterviewResultPage),
+    element: protectedPage(React.createElement(InterviewResultPage)),
   },
 
   // 404 页面

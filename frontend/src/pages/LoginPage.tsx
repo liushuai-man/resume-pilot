@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Button,
@@ -11,9 +12,29 @@ import {
 } from '@mantine/core';
 import { Sparkles, Target, MessageSquare, Cloud } from 'lucide-react';
 import { FaGithub } from 'react-icons/fa';
+import { notification } from '@/components/common/Notification';
 
 export default function LoginPage() {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const errorCode = urlParams.get('error');
+    if (!errorCode) return;
+
+    const messages: Record<string, string> = {
+      auth_failed: 'GitHub 登录失败，请稍后重试',
+      missing_code: 'GitHub 未返回授权码，请重新登录',
+      access_denied: '你取消了 GitHub 授权',
+    };
+
+    notification.error(
+      messages[errorCode] ?? 'GitHub 登录失败，请重新尝试',
+      '登录失败'
+    );
+    window.history.replaceState({}, '', window.location.pathname);
+  }, []);
+
   const handleLoginToGithub = () => {
     // 通过 Vite proxy 跳转到后端 GitHub OAuth 授权入口
     try {

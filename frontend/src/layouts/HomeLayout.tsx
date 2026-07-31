@@ -32,6 +32,14 @@ export default function HomeLayout() {
       } catch (error) {
         console.error('获取用户信息失败:', error);
         clearUser();
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('login') === 'success') {
+          notification.error(
+            'GitHub 授权已返回，但登录状态未能保存，请检查 Cookie 配置',
+            '登录失败'
+          );
+          window.history.replaceState({}, '', window.location.pathname);
+        }
       }
     };
 
