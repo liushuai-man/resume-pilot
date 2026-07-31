@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc",
+    "build": "tsc --noEmit && esbuild src/server.ts --bundle --platform=node --format=esm --target=node20 --packages=external --sourcemap --outfile=dist/server.js",
     "start": "node dist/server.js",
     "prisma:generate": "prisma generate && node scripts/fix-prisma-types.cjs",
     "prisma:migrate": "prisma migrate dev",
