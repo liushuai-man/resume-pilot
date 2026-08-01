@@ -33,6 +33,17 @@ export function ProfileRenderer({
 }: RendererProps) {
   if (section.type !== 'profile') return null;
   const data = section.data as any;
+  const hasContent = [
+    data.name,
+    data.title,
+    data.email,
+    data.phone,
+    data.location,
+    data.avatar,
+    data.website,
+    data.summary,
+  ].some((value) => typeof value === 'string' && value.trim().length > 0);
+  if (!hasContent) return null;
 
   const baseSize = style.fontSize || 14;
   const contactSize = `${baseSize}px`;
@@ -96,7 +107,7 @@ export function ProfileRenderer({
             color: '#fff',
           }}
         >
-          {data.name || '姓名'}
+          {data.name}
         </h1>
         {data.title && (
           <p
@@ -164,7 +175,7 @@ export function ProfileRenderer({
             letterSpacing: variant === 'modern' ? '1px' : 'normal',
           }}
         >
-          {data.name || '姓名'}
+          {data.name}
         </h1>
         {data.title && (
           <p

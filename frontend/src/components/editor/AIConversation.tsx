@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Card, Input, Button, Avatar, Text } from '@mantine/core';
 import { Sparkles, Send, Loader2 } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
 import { ChatMessage } from '@/api/ai.api';
 import { useResumeStore } from '@/store/useResumeStore';
 import { notification } from '@/components/common/Notification';
 import { useAI } from '@/hooks/useAI';
+import MarkdownContent from '@/components/common/MarkdownContent';
 
 interface Message {
   id: string;
@@ -137,42 +137,6 @@ export default function AIConversation({
     return mainLines.join('\n').trim();
   };
 
-  const formatMessage = (content: string) => {
-    // 将消息内容按换行符分割，支持Markdown风格的列表
-    return content.split('\n').map((line, i) => {
-      // 处理列表项
-      if (
-        line.trim().startsWith('•') ||
-        line.trim().startsWith('-') ||
-        line.trim().startsWith('*')
-      ) {
-        return (
-          <p key={i} className="ml-2 my-1">
-            {line}
-          </p>
-        );
-      }
-      // 处理数字列表
-      if (/^\d+\./.test(line.trim())) {
-        return (
-          <p key={i} className="ml-2 my-1">
-            {line}
-          </p>
-        );
-      }
-      // 空行
-      if (!line.trim()) {
-        return <br key={i} />;
-      }
-      return (
-        <p key={i} className="my-1">
-          {line}
-        </p>
-      );
-    });
-  };
-  void formatMessage;
-
   return (
     <div className="h-full flex flex-col bg-white">
       {/* 头部 */}
@@ -222,20 +186,11 @@ export default function AIConversation({
                 }`}
               >
                 {msg.type === 'ai' ? (
-                  <ReactMarkdown
-                    components={{
-                      p: ({ children }) => <p className="my-1">{children}</p>,
-                      ul: ({ children }) => <ul className="my-1 list-disc pl-5">{children}</ul>,
-                      ol: ({ children }) => <ol className="my-1 list-decimal pl-5">{children}</ol>,
-                      h1: ({ children }) => <h1 className="my-2 text-base font-semibold">{children}</h1>,
-                      h2: ({ children }) => <h2 className="my-2 text-sm font-semibold">{children}</h2>,
-                      code: ({ children }) => <code className="rounded bg-gray-200 px-1">{children}</code>,
-                    }}
-                  >
-                    {msg.content}
-                  </ReactMarkdown>
+                  <MarkdownContent content={msg.content} />
                 ) : (
-                  <p className="whitespace-pre-wrap">{msg.content}</p>
+                  <p className="whitespace-pre-wrap break-words leading-6">
+                    {msg.content}
+                  </p>
                 )}
               </div>
 

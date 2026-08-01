@@ -10,15 +10,13 @@ import {
   ActionIcon,
   Badge,
   Stack,
-  Loader,
 } from '@mantine/core';
 import {
   Trash2,
   Star,
   StarOff,
   Plus,
-  Wifi,
-  WifiOff,
+  Pencil,
   Eye,
   EyeOff,
 } from 'lucide-react';
@@ -27,7 +25,6 @@ import {
   ModelConfig,
   ModelPreset,
   CreateModelConfigRequest,
-  TestConnectionResponse,
 } from '@/api/model-config.api';
 import { notification } from '@/components/common/Notification';
 import { getApiErrorMessage } from '@/utils/api-error';
@@ -56,10 +53,7 @@ export default function ModelManagerModal({
   const [presets, setPresets] = useState<ModelPreset[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [testLoading, setTestLoading] = useState(false);
-  const [testResult, setTestResult] = useState<TestConnectionResponse | null>(
-    null
-  );
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [showApiKey, setShowApiKey] = useState(false);
   const [formData, setFormData] = useState<CreateModelConfigRequest>({
     provider: 'openai',
@@ -70,6 +64,26 @@ export default function ModelManagerModal({
     isDefault: false,
     purpose: 'chat',
   });
+
+  const resetForm = () => {
+    setEditingId(null);
+    setShowForm(false);
+    setShowApiKey(false);
+    setFormData({
+      provider: 'openai',
+      modelName: 'gpt-4o',
+      apiKey: '',
+      baseUrl: '',
+      displayName: '',
+      isDefault: false,
+      purpose: 'chat',
+    });
+  };
+
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
 
   useEffect(() => {
     if (opened) {
@@ -119,7 +133,7 @@ export default function ModelManagerModal({
     if (
       !formData.provider ||
       !formData.modelName ||
-      !formData.apiKey ||
+      (!editingId && !formData.apiKey) ||
       !formData.displayName
     ) {
       notification.error('请填写完整的配置信息');
@@ -128,19 +142,19 @@ export default function ModelManagerModal({
 
     setLoading(true);
     try {
-      const res = await modelConfigApi.create(formData);
+      const res = editingId
+        ? await modelConfigApi.update(editingId, {
+            provider: formData.provider,
+            modelName: formData.modelName,
+            ...(formData.apiKey.trim() ? { apiKey: formData.apiKey.trim() } : {}),
+            baseUrl: formData.baseUrl,
+            displayName: formData.displayName,
+            purpose: formData.purpose,
+          })
+        : await modelConfigApi.create(formData);
       if (res.code === 200) {
-        notification.success('连接测试成功，模型配置已保存');
-        setShowForm(false);
-        setFormData({
-          provider: 'openai',
-          modelName: 'gpt-4o',
-          apiKey: '',
-          baseUrl: '',
-          displayName: '',
-          isDefault: false,
-          purpose: 'chat',
-        });
+        notification.success(editingId ? '模型配置已更新' : '模型配置已保存');
+        resetForm();
         await loadConfigs();
         onConfigChange?.();
       } else {
@@ -151,6 +165,21 @@ export default function ModelManagerModal({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEdit = (config: ModelConfig) => {
+    setEditingId(config.id);
+    setShowForm(true);
+    setShowApiKey(false);
+    setFormData({
+      provider: config.provider,
+      modelName: config.modelName,
+      apiKey: '',
+      baseUrl: config.baseUrl || '',
+      displayName: config.displayName,
+      isDefault: config.isDefault,
+      purpose: config.purpose,
+    });
   };
 
   const handleSetDefault = async (id: string) => {
@@ -172,6 +201,7 @@ export default function ModelManagerModal({
       const res = await modelConfigApi.delete(id);
       if (res.code === 200) {
         notification.success('删除成功');
+        if (editingId === id) resetForm();
         await loadConfigs();
         onConfigChange?.();
       }
@@ -185,39 +215,8 @@ export default function ModelManagerModal({
     label: PROVIDER_LABELS[p.provider] || p.provider,
   }));
 
-  const handleTestConnection = async () => {
-    if (!formData.provider || !formData.modelName || !formData.apiKey) {
-      notification.error('请填写服务商、模型名称和 API Key');
-      return;
-    }
-
-    setTestLoading(true);
-    setTestResult(null);
-    try {
-      const res = await modelConfigApi.test({
-        provider: formData.provider,
-        modelName: formData.modelName,
-        apiKey: formData.apiKey,
-        baseUrl: formData.baseUrl,
-        purpose: formData.purpose,
-      });
-      if (res.code === 200 && res.data) {
-        setTestResult(res.data);
-        if (res.data.success) {
-          notification.success('连接测试成功');
-        } else {
-          notification.error(`连接测试失败: ${res.data.message}`);
-        }
-      }
-    } catch (error: any) {
-      notification.error(getApiErrorMessage(error, '模型连接测试失败'));
-    } finally {
-      setTestLoading(false);
-    }
-  };
-
   return (
-    <Modal opened={opened} onClose={onClose} title="模型管理" size="lg">
+    <Modal opened={opened} onClose={handleClose} title="模型管理" size="lg">
       <Stack gap="md">
         <Group justify="space-between">
           <Text size="sm" c="dimmed">
@@ -227,8 +226,12 @@ export default function ModelManagerModal({
             size="sm"
             leftSection={<Plus size={14} />}
             onClick={() => {
-              setShowForm(!showForm);
-              setTestResult(null);
+              if (showForm) {
+                resetForm();
+              } else {
+                setEditingId(null);
+                setShowForm(true);
+              }
             }}
           >
             {showForm ? '取消' : '添加模型'}
@@ -255,7 +258,7 @@ export default function ModelManagerModal({
                 size="sm"
               />
               <Text fw={500} size="sm">
-                添加新模型
+                {editingId ? '编辑模型' : '添加新模型'}
               </Text>
               <Select
                 label="服务商"
@@ -285,7 +288,7 @@ export default function ModelManagerModal({
               />
               <TextInput
                 label="API Key"
-                placeholder="sk-..."
+                placeholder={editingId ? '留空则继续使用原 API Key' : 'sk-...'}
                 type={showApiKey ? 'text' : 'password'}
                 value={formData.apiKey}
                 onChange={(e) =>
@@ -312,48 +315,13 @@ export default function ModelManagerModal({
                 size="sm"
               />
 
-              {testResult && (
-                <div
-                  style={{
-                    padding: '8px 12px',
-                    borderRadius: '6px',
-                    backgroundColor: testResult.success ? '#f0fdf4' : '#fef2f2',
-                    border: `1px solid ${testResult.success ? '#bbf7d0' : '#fecaca'}`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                  }}
-                >
-                  {testResult.success ? (
-                    <Wifi size={16} style={{ color: '#22c55e' }} />
-                  ) : (
-                    <WifiOff size={16} style={{ color: '#ef4444' }} />
-                  )}
-                  <Text size="sm" c={testResult.success ? 'green' : 'red'}>
-                    {testResult.message}
-                    {testResult.response && (
-                      <Text size="xs" c="dimmed" style={{ display: 'block' }}>
-                        响应: {testResult.response}
-                      </Text>
-                    )}
-                  </Text>
-                </div>
-              )}
+              <Text size="xs" c="dimmed">
+                保存时会自动验证连接，验证失败不会覆盖现有配置。
+              </Text>
 
               <Group justify="flex-end" gap="sm">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleTestConnection}
-                  loading={testLoading}
-                  leftSection={
-                    testLoading ? <Loader size={14} /> : <Wifi size={14} />
-                  }
-                >
-                  测试连接
-                </Button>
                 <Button size="sm" onClick={handleSubmit} loading={loading}>
-                  测试并保存
+                  {editingId ? '保存修改' : '保存模型'}
                 </Button>
               </Group>
             </Stack>
@@ -396,6 +364,15 @@ export default function ModelManagerModal({
                     </Badge>
                   </div>
                   <Group gap="xs">
+                    <ActionIcon
+                      size="sm"
+                      color="gray"
+                      variant="subtle"
+                      onClick={() => handleEdit(config)}
+                      title="编辑"
+                    >
+                      <Pencil size={16} />
+                    </ActionIcon>
                     {config.purpose === 'chat' && !config.isDefault && (
                       <ActionIcon
                         size="sm"

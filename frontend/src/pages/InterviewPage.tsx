@@ -55,12 +55,23 @@ const InterviewPage = () => {
   const [isThinking, setIsThinking] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadedPdfPage, setUploadedPdfPage] = useState(1);
+  const [importedPreviewLoading, setImportedPreviewLoading] = useState(false);
+  const [importedPreviewError, setImportedPreviewError] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const interviewPreviewRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setUploadedPdfPage(1);
+    setImportedPreviewError(false);
+    setImportedPreviewLoading(Boolean(resume?.content?.isUploadedFile));
   }, [resume?.id]);
+
+  useEffect(() => {
+    if (resume?.content?.isUploadedFile) {
+      setImportedPreviewError(false);
+      setImportedPreviewLoading(true);
+    }
+  }, [resume?.id, resume?.content?.isUploadedFile, uploadedPdfPage]);
 
   // 加载简历及其模板样式
   const loadResumeWithTemplate = useCallback(
@@ -631,14 +642,49 @@ const InterviewPage = () => {
           className="w-1/2 flex-shrink-0 bg-gray-50 border-r border-gray-200 overflow-hidden"
         >
           {resume?.content?.isUploadedFile && resume.content.fileUrl ? (
-            resume.content.fileType === 'pdf' ? (
-              <div className="flex h-full flex-col bg-slate-100 p-4">
-                <img
-                  src={`${import.meta.env.VITE_API_BASE_URL}/api/upload/resume/${resume.id}/preview?page=${uploadedPdfPage}`}
-                  alt="简历预览"
-                  className="min-h-0 w-full flex-1 object-contain shadow-sm"
-                />
-                {(resume.content.pageCount || 1) > 1 && (
+            <div className="relative flex h-full flex-col bg-slate-100 p-4">
+              <div className="relative min-h-0 flex-1 overflow-hidden">
+                {importedPreviewLoading && !importedPreviewError && (
+                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-100">
+                    <div className="flex items-center gap-2 text-sm text-slate-500">
+                      <Loader size="sm" />
+                      正在加载简历预览…
+                    </div>
+                  </div>
+                )}
+                {importedPreviewError ? (
+                  <div className="flex h-full items-center justify-center">
+                    <div className="max-w-sm rounded-xl border border-amber-200 bg-white p-6 text-center shadow-sm">
+                      <FileText size={28} className="mx-auto mb-3 text-amber-500" />
+                      <Text fw={600} size="sm" c="dark">
+                        导入简历原文件不可用
+                      </Text>
+                      <Text size="xs" c="dimmed" mt={6} className="leading-5">
+                        文件可能由旧版本保存到了临时容器中，请删除这条导入记录后重新上传。
+                      </Text>
+                    </div>
+                  </div>
+                ) : (
+                  <img
+                    key={`${resume.id}-${uploadedPdfPage}`}
+                    src={
+                      resume.content.fileType === 'pdf'
+                        ? `${import.meta.env.VITE_API_BASE_URL}/api/upload/resume/${resume.id}/preview?page=${uploadedPdfPage}`
+                        : `${import.meta.env.VITE_API_BASE_URL}/api/upload/resume/${resume.id}/file`
+                    }
+                    alt={`${resume.title}预览`}
+                    className="h-full w-full object-contain shadow-sm"
+                    onLoad={() => setImportedPreviewLoading(false)}
+                    onError={() => {
+                      setImportedPreviewLoading(false);
+                      setImportedPreviewError(true);
+                    }}
+                  />
+                )}
+              </div>
+              {resume.content.fileType === 'pdf' &&
+                !importedPreviewError &&
+                (resume.content.pageCount || 1) > 1 && (
                   <div className="mt-3 flex items-center justify-center gap-3">
                     <Button
                       variant="subtle"
@@ -663,14 +709,7 @@ const InterviewPage = () => {
                     </Button>
                   </div>
                 )}
-              </div>
-            ) : (
-              <img
-                src={`${import.meta.env.VITE_API_BASE_URL}/api/upload/resume/${resume.id}/file`}
-                alt="简历预览"
-                className="w-full h-auto"
-              />
-            )
+            </div>
           ) : (
             <div className="h-full p-4 overflow-hidden">
               <ResizableResumePreview

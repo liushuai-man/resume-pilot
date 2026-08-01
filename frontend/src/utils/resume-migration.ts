@@ -51,6 +51,22 @@ function convertProfile(content: ResumeContent): ProfileSection {
   };
 }
 
+function hasProfileContent(content: ResumeContent): boolean {
+  const basic = content.basicInfo;
+  if (!basic) return false;
+  return [
+    basic.name,
+    basic.title,
+    basic.email,
+    basic.phone,
+    basic.location,
+    basic.avatar,
+    basic.website,
+    basic.summary,
+    basic.bio,
+  ].some((value) => typeof value === 'string' && value.trim().length > 0);
+}
+
 function convertEducation(content: ResumeContent): EducationSection | null {
   const list = content.education || [];
   if (list.length === 0) return null;
@@ -187,8 +203,10 @@ export function contentToDocument(
 
   const sections: ResumeSection[] = [];
 
-  const profile = convertProfile(content);
-  sections.push(profile);
+  if (hasProfileContent(content)) {
+    const profile = convertProfile(content);
+    sections.push(profile);
+  }
 
   const objective = convertObjective(content);
   if (objective) sections.push(objective);

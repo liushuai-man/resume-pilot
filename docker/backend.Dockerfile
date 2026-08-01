@@ -9,5 +9,6 @@ RUN pnpm install --frozen-lockfile
 COPY backend/ ./
 RUN pnpm prisma:generate && pnpm build
 ENV NODE_ENV=production
+ENV UPLOADS_DIR=/app/uploads
 EXPOSE 4000
 CMD ["node", "dist/server.js"]

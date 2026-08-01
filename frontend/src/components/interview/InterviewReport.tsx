@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { formatDateTime } from '@/utils/format';
 import type { Question, Answer } from '@/api/interview.api';
+import MarkdownContent from '@/components/common/MarkdownContent';
 
 interface InterviewReportProps {
   result: any;
@@ -157,7 +158,7 @@ export default function InterviewReport({
               bg="purple.0"
               className="border-l-3 border-purple-500"
             >
-              <Text size="sm">{result.report.introductionEvaluation}</Text>
+              <MarkdownContent content={result.report.introductionEvaluation} />
             </Paper>
           </div>
         )}
@@ -177,7 +178,7 @@ export default function InterviewReport({
                 bg="green.0"
                 className="border-l-3 border-green-500"
               >
-                <Text size="sm">{s}</Text>
+                <MarkdownContent content={s} />
               </Paper>
             ))}
           </div>
@@ -198,7 +199,7 @@ export default function InterviewReport({
                 bg="orange.0"
                 className="border-l-3 border-orange-500"
               >
-                <Text size="sm">{w}</Text>
+                <MarkdownContent content={w} />
               </Paper>
             ))}
           </div>
@@ -219,7 +220,7 @@ export default function InterviewReport({
                 bg="blue.0"
                 className="border-l-3 border-blue-500"
               >
-                <Text size="sm">{s}</Text>
+                <MarkdownContent content={s} />
               </Paper>
             ))}
           </div>
@@ -248,7 +249,7 @@ export default function InterviewReport({
                     : question.section || '综合'}
                 </Text>
                 <Paper p="sm" radius="sm" bg="gray.0" mb={4}>
-                  <Text size="sm">{question.content}</Text>
+                  <MarkdownContent content={question.content} />
                 </Paper>
                 <Paper
                   p="sm"
@@ -260,7 +261,9 @@ export default function InterviewReport({
                   <Text size="xs" c="dimmed" mb={2}>
                     你的回答
                   </Text>
-                  <Text size="sm">{answer.content}</Text>
+                  <p className="whitespace-pre-wrap break-words text-sm leading-6">
+                    {answer.content}
+                  </p>
                 </Paper>
                 {feedback && (
                   <Paper
@@ -272,7 +275,7 @@ export default function InterviewReport({
                     <Text size="xs" c="dimmed" mb={2}>
                       AI 评价
                     </Text>
-                    <Text size="sm">{feedback}</Text>
+                    <MarkdownContent content={feedback} />
                   </Paper>
                 )}
                 {index < answers.length - 1 && (

@@ -4,10 +4,13 @@ import { success, error } from '../utils/response';
 import { prisma } from '../database/prisma';
 import * as fs from 'fs';
 import * as path from 'path';
-import { fileURLToPath } from 'url';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const uploadsDir = path.join(__dirname, '../../uploads');
+// process.cwd() is `backend` in development and `/app` in the production image.
+// Unlike __dirname it is not changed by bundling src/server.ts into dist/server.js,
+// so imported files always land in the Docker-mounted /app/uploads volume.
+const uploadsDir = path.resolve(
+  process.env.UPLOADS_DIR || path.join(process.cwd(), 'uploads')
+);
 
 async function createPdfPreview(filePath: string, fileName: string, pageNumber = 1): Promise<string> {
   const previewName = `${path.basename(fileName, path.extname(fileName))}-preview-${pageNumber}`;
@@ -199,9 +202,13 @@ export const getResumePreviewHandler = async (req: Request, res: Response) => {
       return error(res, '未找到 PDF 简历', 404);
     }
     const storedFileName = path.basename(content.fileUrl);
+    const storedFilePath = path.join(uploadsDir, storedFileName);
+    if (!fs.existsSync(storedFilePath)) {
+      return error(res, '简历原文件不存在，请删除后重新导入', 404);
+    }
     const page = Number.parseInt(String(req.query.page ?? '1'), 10);
     const previewPath = await createPdfPreview(
-      path.join(uploadsDir, storedFileName),
+      storedFilePath,
       storedFileName,
       page
     );

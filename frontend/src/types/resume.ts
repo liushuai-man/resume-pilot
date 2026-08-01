@@ -159,6 +159,7 @@ export interface ResumeContent {
   fileUrl?: string;
   previewUrl?: string;
   fileType?: 'pdf' | 'image';
+  fileName?: string;
   ocrText?: string;
   pageCount?: number;
 }

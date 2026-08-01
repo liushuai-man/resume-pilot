@@ -5,6 +5,7 @@ import { ArrowLeft, CheckCircle2, CircleAlert, Lightbulb, Trophy } from 'lucide-
 import { interviewApi, InterviewResult } from '@/api/interview.api';
 import { formatDateTime } from '@/utils/format';
 import { notifications } from '@mantine/notifications';
+import MarkdownContent from '@/components/common/MarkdownContent';
 
 const clamp = (value: number) => Math.max(0, Math.min(100, value));
 
@@ -73,7 +74,11 @@ const InterviewResultPage = () => {
               <div className="mb-3 flex items-center gap-2 text-indigo-600"><Trophy size={18} /><span className="text-sm font-semibold">INTERVIEW REVIEW</span></div>
               <Title order={1} className="!text-3xl">{result.position || '综合面试评估'}</Title>
               <Text c="dimmed" mt="sm">{formatDateTime(result.created_at)} · 基于本次回答的即时分析</Text>
-              {report.introductionEvaluation && <Text mt="lg" className="max-w-xl leading-7">{report.introductionEvaluation}</Text>}
+              {report.introductionEvaluation && (
+                <div className="mt-5 max-w-xl text-slate-700">
+                  <MarkdownContent content={report.introductionEvaluation} />
+                </div>
+              )}
             </div>
             <div className="flex items-center justify-center">
               <div
@@ -127,7 +132,7 @@ const InterviewResultPage = () => {
             <div key={title} className={`grid gap-4 py-6 md:grid-cols-[180px_1fr] ${index ? 'border-t border-slate-200' : ''}`}>
               <div className={`flex items-center gap-2 font-semibold ${tone}`}><Icon size={18} />{title}</div>
               <ol className="space-y-3">
-                {items.length ? items.map((item: string, itemIndex: number) => <li key={itemIndex} className="flex gap-3 leading-7"><span className="mt-1 text-xs text-slate-400">0{itemIndex + 1}</span><span>{item}</span></li>) : <li className="text-sm text-slate-500">暂无可展示内容</li>}
+                {items.length ? items.map((item: string, itemIndex: number) => <li key={itemIndex} className="flex gap-3 leading-7"><span className="mt-1 text-xs text-slate-400">0{itemIndex + 1}</span><MarkdownContent content={item} className="flex-1" /></li>) : <li className="text-sm text-slate-500">暂无可展示内容</li>}
               </ol>
             </div>
           ))}

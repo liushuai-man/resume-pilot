@@ -36,21 +36,7 @@ export interface UpdateModelConfigRequest {
   baseUrl?: string;
   displayName?: string;
   isDefault?: boolean;
-}
-
-export interface TestConnectionRequest {
-  provider: string;
-  modelName: string;
-  apiKey: string;
-  baseUrl?: string;
   purpose?: 'chat' | 'embedding';
-}
-
-export interface TestConnectionResponse {
-  success: boolean;
-  message: string;
-  model?: string;
-  response?: string;
 }
 
 export const modelConfigApi = {
@@ -85,12 +71,6 @@ export const modelConfigApi = {
 
   delete: async (id: string): Promise<ApiResponse<null>> => {
     return await request.delete(`/model-config/${id}`);
-  },
-
-  test: async (
-    data: TestConnectionRequest
-  ): Promise<ApiResponse<TestConnectionResponse>> => {
-    return await request.post('/model-config/test', data);
   },
 };
 

@@ -41,7 +41,13 @@ export default function HomePage() {
           excludeUploaded: true,
         });
         if (response.code === 200 && response.data) {
-          setResumes(response.data);
+          // Keep imported interview files out of the editable resume library,
+          // even when talking to an older backend that ignores the query flag.
+          setResumes(
+            response.data.filter(
+              (item) => item.content?.isUploadedFile !== true
+            )
+          );
         }
       } catch (error) {
         console.error('获取简历列表失败:', error);

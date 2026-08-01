@@ -2,6 +2,7 @@ import { useRef, useEffect, useState } from 'react';
 import { Text, Paper, Loader } from '@mantine/core';
 import { Send, User, Bot, X } from 'lucide-react';
 import type { Question, Answer } from '@/api/interview.api';
+import MarkdownContent from '@/components/common/MarkdownContent';
 
 interface InterviewChatProps {
   questions: Question[];
@@ -15,15 +16,6 @@ interface InterviewChatProps {
   onSubmitAnswer: () => void;
   getSectionName: (sectionKey: string) => string;
   sessionStarted?: boolean;
-}
-
-function stripMarkdown(text: string): string {
-  return text
-    .replace(/\*\*(.*?)\*\*/g, '$1')
-    .replace(/\*(.*?)\*/g, '$1')
-    .replace(/`(.*?)`/g, '$1')
-    .replace(/#{1,6}\s/g, '')
-    .trim();
 }
 
 export default function InterviewChat({
@@ -93,7 +85,7 @@ export default function InterviewChat({
                       AI 面试官 · {getSectionName(question.sectionKey)}
                     </Text>
                     <Paper p="md" radius="md" bg="gray.0" withBorder>
-                      <Text>{question.content}</Text>
+                      <MarkdownContent content={question.content} />
                     </Paper>
                   </div>
                 </div>
@@ -110,7 +102,9 @@ export default function InterviewChat({
                         withBorder
                         className="max-w-[80%]"
                       >
-                        <Text size="sm">{answer.content}</Text>
+                        <p className="whitespace-pre-wrap break-words text-sm leading-6 text-slate-800">
+                          {answer.content}
+                        </p>
                       </Paper>
                     </div>
                     <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
@@ -128,9 +122,10 @@ export default function InterviewChat({
                         AI 反馈
                       </Text>
                       <Paper p="md" radius="md" bg="green.1" withBorder>
-                        <Text size="sm" c="green.7">
-                          {stripMarkdown(questionFeedback)}
-                        </Text>
+                        <MarkdownContent
+                          content={questionFeedback}
+                          className="text-emerald-800"
+                        />
                       </Paper>
                     </div>
                   </div>

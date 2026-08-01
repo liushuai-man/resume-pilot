@@ -132,8 +132,9 @@ export async function updateModelConfig(
     return null;
   }
 
+  const nextPurpose = data.purpose || config.purpose;
   if (data.isDefault) {
-    if ((data.purpose || config.purpose) !== 'chat') {
+    if (nextPurpose !== 'chat') {
       throw new Error('ONLY_CHAT_MODEL_CAN_BE_DEFAULT');
     }
     await prisma.userModelConfig.updateMany({
@@ -151,6 +152,7 @@ export async function updateModelConfig(
     updateData.display_name = data.displayName;
   if (data.purpose !== undefined) updateData.purpose = data.purpose;
   if (data.isDefault !== undefined) updateData.is_default = data.isDefault;
+  if (nextPurpose !== 'chat') updateData.is_default = false;
 
   return await prisma.userModelConfig.update({
     where: { id: configId },

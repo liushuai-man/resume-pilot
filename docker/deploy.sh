@@ -15,6 +15,16 @@ compose() {
   docker compose --env-file .env.production -f "$COMPOSE_FILE" "$@"
 }
 
+# Versions deployed before the uploads path fix wrote imported resumes to the
+# container-only /uploads directory. Preserve any files still present before
+# replacing that container.
+current_backend_id="$(compose ps -q backend 2>/dev/null || true)"
+if [ -n "$current_backend_id" ]; then
+  echo "Migrating legacy imported files into the persistent uploads volume..."
+  docker exec "$current_backend_id" sh -c \
+    'if [ -d /uploads ]; then cp -a /uploads/. /app/uploads/; fi'
+fi
+
 echo "Pulling application images..."
 compose pull backend frontend
 

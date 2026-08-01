@@ -10,6 +10,7 @@ import {
   setDefaultModelConfig,
   getProviderPresets,
   testConnection,
+  getDecryptedApiKey,
   CreateModelConfigRequest,
   UpdateModelConfigRequest,
 } from '../services/model-config.service';
@@ -23,7 +24,6 @@ export const getPresets = async (req: AuthRequest, res: Response) => {
     return error(res, `获取预设失败: ${err.message}`, 500);
   }
 };
-
 export const listConfigs = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
@@ -162,8 +162,41 @@ export const updateConfig = async (req: AuthRequest, res: Response) => {
     }
 
     const data: UpdateModelConfigRequest = req.body;
+    const existingConfig = await getModelConfigById(userId, id);
+    if (!existingConfig) {
+      return notFound(res, '配置不存在');
+    }
 
-    const config = await updateModelConfig(userId, id, data);
+    const provider = data.provider ?? existingConfig.provider;
+    const modelName = data.modelName ?? existingConfig.model_name;
+    const displayName = data.displayName ?? existingConfig.display_name;
+    const baseUrl = data.baseUrl ?? existingConfig.base_url ?? undefined;
+    const purpose = data.purpose ?? (existingConfig.purpose as 'chat' | 'embedding');
+    const apiKey = data.apiKey?.trim()
+      ? data.apiKey.trim()
+      : await getDecryptedApiKey(existingConfig);
+
+    if (!provider || !modelName || !displayName || !apiKey) {
+      return badRequest(res, '请填写完整的配置信息');
+    }
+
+    const connectionResult = await testConnection({
+      provider,
+      modelName,
+      apiKey,
+      baseUrl,
+      purpose,
+    });
+    if (!connectionResult.success) {
+      return badRequest(
+        res,
+        `连接测试失败：${connectionResult.message}，修改未保存`
+      );
+    }
+
+    const sanitizedData = { ...data };
+    if (!data.apiKey?.trim()) delete sanitizedData.apiKey;
+    const config = await updateModelConfig(userId, id, sanitizedData);
     if (!config) {
       return notFound(res, '配置不存在');
     }
@@ -242,28 +275,5 @@ export const deleteConfig = async (req: AuthRequest, res: Response) => {
   } catch (err: any) {
     console.error('删除模型配置失败:', err);
     return error(res, `删除失败: ${err.message}`, 500);
-  }
-};
-
-export const testConfig = async (req: AuthRequest, res: Response) => {
-  try {
-    const { provider, modelName, apiKey, baseUrl, purpose } = req.body;
-
-    if (!provider || !modelName || !apiKey) {
-      return badRequest(res, '请填写完整的测试信息');
-    }
-
-    const result = await testConnection({
-      provider,
-      modelName,
-      apiKey,
-      baseUrl,
-      purpose,
-    });
-
-    return success(res, result, result.success ? '测试成功' : '测试失败');
-  } catch (err: any) {
-    console.error('测试连接失败:', err);
-    return error(res, `测试失败: ${err.message}`, 500);
   }
 };
