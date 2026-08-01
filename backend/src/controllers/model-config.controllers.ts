@@ -107,6 +107,20 @@ export const createConfig = async (req: AuthRequest, res: Response) => {
       return badRequest(res, '请填写完整的配置信息');
     }
 
+    const connectionResult = await testConnection({
+      provider,
+      modelName,
+      apiKey,
+      baseUrl,
+      purpose,
+    });
+    if (!connectionResult.success) {
+      return badRequest(
+        res,
+        `连接测试失败：${connectionResult.message}，配置未保存`
+      );
+    }
+
     const config = await createModelConfig(userId, {
       provider,
       modelName,
@@ -203,6 +217,9 @@ export const setDefault = async (req: AuthRequest, res: Response) => {
     );
   } catch (err: any) {
     console.error('设为默认失败:', err);
+    if (err?.message === 'ONLY_CHAT_MODEL_CAN_BE_DEFAULT') {
+      return badRequest(res, '只有聊天模型可以设为默认模型');
+    }
     return error(res, `设为默认失败: ${err.message}`, 500);
   }
 };
@@ -230,7 +247,7 @@ export const deleteConfig = async (req: AuthRequest, res: Response) => {
 
 export const testConfig = async (req: AuthRequest, res: Response) => {
   try {
-    const { provider, modelName, apiKey, baseUrl } = req.body;
+    const { provider, modelName, apiKey, baseUrl, purpose } = req.body;
 
     if (!provider || !modelName || !apiKey) {
       return badRequest(res, '请填写完整的测试信息');
@@ -241,6 +258,7 @@ export const testConfig = async (req: AuthRequest, res: Response) => {
       modelName,
       apiKey,
       baseUrl,
+      purpose,
     });
 
     return success(res, result, result.success ? '测试成功' : '测试失败');

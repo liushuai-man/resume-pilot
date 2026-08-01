@@ -1,5 +1,5 @@
 import { prisma } from '../database/prisma';
-import { ChatOpenAI } from '@langchain/openai';
+import { ChatOpenAI, OpenAIEmbeddings } from '@langchain/openai';
 import { decryptSecret, encryptSecret, isEncryptedSecret } from '../utils/secret-crypto';
 
 export interface CreateModelConfigRequest {
@@ -133,8 +133,11 @@ export async function updateModelConfig(
   }
 
   if (data.isDefault) {
+    if ((data.purpose || config.purpose) !== 'chat') {
+      throw new Error('ONLY_CHAT_MODEL_CAN_BE_DEFAULT');
+    }
     await prisma.userModelConfig.updateMany({
-      where: { user_id: userId, is_deleted: false },
+      where: { user_id: userId, is_deleted: false, purpose: 'chat' },
       data: { is_default: false },
     });
   }
@@ -146,6 +149,7 @@ export async function updateModelConfig(
   if (data.baseUrl !== undefined) updateData.base_url = data.baseUrl || null;
   if (data.displayName !== undefined)
     updateData.display_name = data.displayName;
+  if (data.purpose !== undefined) updateData.purpose = data.purpose;
   if (data.isDefault !== undefined) updateData.is_default = data.isDefault;
 
   return await prisma.userModelConfig.update({
@@ -172,8 +176,12 @@ export async function setDefaultModelConfig(userId: string, configId: string) {
     return null;
   }
 
+  if (config.purpose !== 'chat') {
+    throw new Error('ONLY_CHAT_MODEL_CAN_BE_DEFAULT');
+  }
+
   await prisma.userModelConfig.updateMany({
-    where: { user_id: userId, is_deleted: false },
+    where: { user_id: userId, is_deleted: false, purpose: 'chat' },
     data: { is_default: false },
   });
 
@@ -199,7 +207,7 @@ export async function deleteModelConfig(userId: string, configId: string) {
 
   if (config.is_default) {
     const nextConfig = await prisma.userModelConfig.findFirst({
-      where: { user_id: userId, is_deleted: false },
+      where: { user_id: userId, is_deleted: false, purpose: 'chat' },
       orderBy: { created_at: 'asc' },
     });
     if (nextConfig) {
@@ -218,8 +226,30 @@ export async function testConnection(data: {
   modelName: string;
   apiKey: string;
   baseUrl?: string;
+  purpose?: 'chat' | 'embedding';
 }) {
   try {
+    if (data.purpose === 'embedding') {
+      const embeddings = new OpenAIEmbeddings({
+        modelName: data.modelName,
+        openAIApiKey: data.apiKey,
+        timeout: 15000,
+        configuration: {
+          baseURL: data.baseUrl || undefined,
+        },
+      });
+      const vector = await embeddings.embedQuery('连接测试');
+      if (!Array.isArray(vector) || vector.length === 0) {
+        throw new Error('向量模型未返回有效向量');
+      }
+      return {
+        success: true,
+        message: `连接成功，向量维度 ${vector.length}`,
+        model: data.modelName,
+        response: `${vector.length} dimensions`,
+      };
+    }
+
     const llm = new ChatOpenAI({
       modelName: data.modelName,
       openAIApiKey: data.apiKey,

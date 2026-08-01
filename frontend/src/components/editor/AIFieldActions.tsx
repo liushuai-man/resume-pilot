@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useDocumentStore } from '@/store/useDocumentStore';
+import { notification } from '@/components/common/Notification';
+import { getApiErrorMessage } from '@/utils/api-error';
 
 interface AIFieldActionsProps {
   sectionId: string;
@@ -32,6 +34,7 @@ export function AIFieldActions({
       onPolish(result);
     } catch (err) {
       console.error('AI润色失败:', err);
+      notification.error(getApiErrorMessage(err, 'AI 润色失败，请稍后重试'));
     }
   };
 
@@ -43,6 +46,7 @@ export function AIFieldActions({
       onComplete(result);
     } catch (err) {
       console.error('AI补全失败:', err);
+      notification.error(getApiErrorMessage(err, 'AI 补全失败，请稍后重试'));
     }
   };
 

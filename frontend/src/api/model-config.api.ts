@@ -43,6 +43,7 @@ export interface TestConnectionRequest {
   modelName: string;
   apiKey: string;
   baseUrl?: string;
+  purpose?: 'chat' | 'embedding';
 }
 
 export interface TestConnectionResponse {

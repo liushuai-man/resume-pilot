@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import {
   completeText,
   polishText,
@@ -12,11 +13,34 @@ import { authMiddleware } from '../middlewares/auth.middleware';
 
 const router: Router = Router();
 
-router.post('/complete', authMiddleware, completeText);
-router.post('/polish', authMiddleware, polishText);
-router.post('/resume/polish-section', authMiddleware, polishSection);
-router.post('/resume/complete-section', authMiddleware, completeSection);
-router.post('/chat', authMiddleware, chat);
+const aiUserRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => (req as any).user?.id || 'anonymous',
+  message: {
+    code: 429,
+    message: 'AI 请求过于频繁，请稍后再试',
+    data: null,
+  },
+});
+
+router.post('/complete', authMiddleware, aiUserRateLimit, completeText);
+router.post('/polish', authMiddleware, aiUserRateLimit, polishText);
+router.post(
+  '/resume/polish-section',
+  authMiddleware,
+  aiUserRateLimit,
+  polishSection
+);
+router.post(
+  '/resume/complete-section',
+  authMiddleware,
+  aiUserRateLimit,
+  completeSection
+);
+router.post('/chat', authMiddleware, aiUserRateLimit, chat);
 router.get('/chat/summary/:sessionId', authMiddleware, getChatSummary);
 router.delete('/chat/session/:sessionId', authMiddleware, clearChatSession);
 

@@ -11,6 +11,7 @@ import {
   loadInterviewState,
   saveInterviewState,
 } from '../repositories/interview-session.repository';
+import { getDefaultModelConfig } from './model-config.service';
 
 export async function startInterview(
   userId: string,
@@ -18,9 +19,16 @@ export async function startInterview(
   targetPosition?: string,
   questionCount?: number
 ): Promise<{ sessionId: string; firstQuestion: Question }> {
-  const resume = await prisma.resume.findFirstOrThrow({
+  const resume = await prisma.resume.findFirst({
     where: { id: resumeId, user_id: userId, is_deleted: false },
   });
+  if (!resume) {
+    throw new Error('RESUME_NOT_FOUND');
+  }
+  const modelConfig = await getDefaultModelConfig(userId);
+  if (!modelConfig) {
+    throw new Error('MODEL_CONFIG_REQUIRED');
+  }
   const chatSession = await prisma.chatSession.create({
     data: {
       user_id: userId,

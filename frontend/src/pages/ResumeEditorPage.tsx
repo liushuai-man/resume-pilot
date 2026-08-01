@@ -60,11 +60,11 @@ export default function ResumeEditorPage() {
   }, [resumeId, loadResume, initStore, loadTemplate, reset]);
 
   useEffect(() => {
-    if (resume && template && !document) {
+    if (resume && !document) {
       const doc = contentToDocument(
         resume.content,
-        template.style_config,
-        template.style_config.layout || 'classic'
+        template?.style_config || null,
+        template?.style_config?.layout || resume.template_id || 'classic'
       );
       doc.id = resume.id;
       doc.title = resume.title;

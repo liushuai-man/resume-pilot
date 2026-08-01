@@ -36,15 +36,30 @@ export const startInterviewHandler = async (req: Request, res: Response) => {
       return error(res, '请提供简历ID', 400);
     }
 
+    const normalizedQuestionCount = Number(questionCount || 5);
+    if (
+      !Number.isInteger(normalizedQuestionCount) ||
+      normalizedQuestionCount < 3 ||
+      normalizedQuestionCount > 10
+    ) {
+      return error(res, '面试题数必须是 3 到 10 之间的整数', 400);
+    }
+
     const result = await startInterview(
       userId,
       resumeId,
       targetPosition,
-      questionCount
+      normalizedQuestionCount
     );
     return success(res, result, '面试已开始');
   } catch (err) {
     console.error('开始面试失败:', err);
+    if (err instanceof Error && err.message === 'RESUME_NOT_FOUND') {
+      return error(res, '所选简历不存在或已被删除', 404);
+    }
+    if (err instanceof Error && err.message === 'MODEL_CONFIG_REQUIRED') {
+      return error(res, '请先添加并设置默认聊天模型', 400);
+    }
     return error(res, '开始面试失败');
   }
 };

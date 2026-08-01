@@ -4,6 +4,8 @@ import { Cpu, Settings, ChevronDown, Plus } from 'lucide-react';
 import { modelConfigApi, ModelConfig } from '@/api/model-config.api';
 import ModelManagerModal from './ModelManagerModal';
 import { useUserStore } from '@/store/useUserStore';
+import { notification } from '@/components/common/Notification';
+import { getApiErrorMessage } from '@/utils/api-error';
 
 interface ModelSelectorProps {
   variant?: 'compact' | 'full';
@@ -27,12 +29,18 @@ export default function ModelSelector({
     try {
       const res = await modelConfigApi.list();
       if (res.code === 200 && res.data) {
-        setConfigs(res.data);
-        const def = res.data.find((c) => c.isDefault);
-        setDefaultConfig(def || res.data[0] || null);
+        const chatConfigs = res.data.filter(
+          (config) => config.purpose === 'chat'
+        );
+        setConfigs(chatConfigs);
+        const def = chatConfigs.find((config) => config.isDefault);
+        setDefaultConfig(def || chatConfigs[0] || null);
       }
     } catch (error: any) {
       console.error('加载模型配置失败:', error);
+      notification.error(
+        getApiErrorMessage(error, '加载模型配置失败，请稍后重试')
+      );
     }
   };
 
@@ -44,6 +52,9 @@ export default function ModelSelector({
       }
     } catch (error: any) {
       console.error('设置默认模型失败:', error);
+      notification.error(
+        getApiErrorMessage(error, '设置默认模型失败，请稍后重试')
+      );
     }
   };
 

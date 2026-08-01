@@ -17,6 +17,7 @@ import { useUserStore } from '@/store/useUserStore';
 import { useNavigate } from 'react-router-dom';
 import { notification } from '@/components/common/Notification';
 import type { Resume } from '@/types/resume';
+import { getApiErrorMessage } from '@/utils/api-error';
 
 const MAX_RESUMES = 7;
 
@@ -44,6 +45,9 @@ export default function HomePage() {
         }
       } catch (error) {
         console.error('获取简历列表失败:', error);
+        notification.error(
+          getApiErrorMessage(error, '简历列表加载失败，请刷新后重试')
+        );
       }
     };
 
@@ -101,7 +105,7 @@ export default function HomePage() {
     setIsCreating(true);
     try {
       const response = await resumeApi.createResume({
-        template_id: 'classic',
+        template_id: 'classic-blue',
         title: '我的简历',
         content: emptyResumeContent,
       });

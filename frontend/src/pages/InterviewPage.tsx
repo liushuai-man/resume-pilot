@@ -23,6 +23,7 @@ import { contentToDocument } from '@/utils/resume-migration';
 import ResizableResumePreview from '@/components/editor/ResizableResumePreview';
 import { InterviewReport, InterviewChat } from '@/components/interview';
 import { notifications } from '@mantine/notifications';
+import { getApiErrorMessage } from '@/utils/api-error';
 
 const InterviewPage = () => {
   const navigate = useNavigate();
@@ -114,6 +115,11 @@ const InterviewPage = () => {
       }
     } catch (error) {
       console.error('获取简历失败:', error);
+      notifications.show({
+        title: '简历加载失败',
+        message: getApiErrorMessage(error, '请刷新页面后重试'),
+        color: 'red',
+      });
     } finally {
       setLoading(false);
     }
@@ -124,14 +130,23 @@ const InterviewPage = () => {
   }, [fetchResumes]);
 
   const handleStartInterview = async () => {
-    if (!selectedResumeId) return;
+    const selectedResume = resumes.find((item) => item.id === selectedResumeId);
+    if (!selectedResume) {
+      setSelectedResumeId(null);
+      notifications.show({
+        title: '请先选择简历',
+        message: '开始面试前，请创建一份简历或导入 PDF/图片简历',
+        color: 'orange',
+      });
+      return;
+    }
 
     setStarting(true);
     setIsThinking(true);
     try {
       console.log('开始面试，简历ID:', selectedResumeId);
       const result = await interviewApi.startInterview(
-        selectedResumeId,
+        selectedResume.id,
         targetPosition || undefined,
         parseInt(questionCount)
       );
@@ -144,8 +159,8 @@ const InterviewPage = () => {
     } catch (error) {
       console.error('开始面试失败:', error);
       notifications.show({
-        title: '失败',
-        message: '开始面试失败，请检查网络连接或重试',
+        title: '开始面试失败',
+        message: getApiErrorMessage(error, '请检查模型配置和网络连接后重试'),
         color: 'red',
       });
       // 重置状态
@@ -205,8 +220,8 @@ const InterviewPage = () => {
     } catch (error) {
       console.error('提交答案失败:', error);
       notifications.show({
-        title: '失败',
-        message: '提交答案失败',
+        title: '提交答案失败',
+        message: getApiErrorMessage(error, '请稍后重试'),
         color: 'red',
       });
       setIsThinking(false);
@@ -232,8 +247,8 @@ const InterviewPage = () => {
     } catch (error) {
       console.error('完成面试失败:', error);
       notifications.show({
-        title: '失败',
-        message: '完成面试失败',
+        title: '完成面试失败',
+        message: getApiErrorMessage(error, '请稍后重试'),
         color: 'red',
       });
     } finally {
@@ -300,8 +315,8 @@ const InterviewPage = () => {
     } catch (error) {
       console.error('上传简历失败:', error);
       notifications.show({
-        title: '失败',
-        message: '上传简历失败，请重试',
+        title: '上传简历失败',
+        message: getApiErrorMessage(error, '请检查文件格式和大小后重试'),
         color: 'red',
       });
     } finally {
@@ -330,8 +345,8 @@ const InterviewPage = () => {
     } catch (error) {
       console.error('删除简历失败:', error);
       notifications.show({
-        title: '失败',
-        message: '删除简历失败',
+        title: '删除简历失败',
+        message: getApiErrorMessage(error, '请稍后重试'),
         color: 'red',
       });
     }
@@ -574,10 +589,23 @@ const InterviewPage = () => {
                   leftSection={<Play size={14} />}
                   onClick={handleStartInterview}
                   loading={starting}
-                  disabled={!selectedResumeId}
+                  disabled={
+                    !selectedResumeId ||
+                    !resumes.some((item) => item.id === selectedResumeId)
+                  }
+                  title={
+                    selectedResumeId
+                      ? '开始模拟面试'
+                      : '请先创建或导入一份简历'
+                  }
                 >
                   开始面试
                 </Button>
+                {resumes.length === 0 && (
+                  <Text size="xs" c="orange">
+                    请先创建或导入简历
+                  </Text>
+                )}
               </>
             ) : (
               <Button

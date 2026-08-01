@@ -30,6 +30,7 @@ import {
   TestConnectionResponse,
 } from '@/api/model-config.api';
 import { notification } from '@/components/common/Notification';
+import { getApiErrorMessage } from '@/utils/api-error';
 
 interface ModelManagerModalProps {
   opened: boolean;
@@ -85,6 +86,9 @@ export default function ModelManagerModal({
       }
     } catch (error: any) {
       console.error('加载模型配置失败:', error);
+      notification.error(
+        getApiErrorMessage(error, '加载模型配置失败，请稍后重试')
+      );
     }
   };
 
@@ -126,7 +130,7 @@ export default function ModelManagerModal({
     try {
       const res = await modelConfigApi.create(formData);
       if (res.code === 200) {
-        notification.success('模型配置创建成功');
+        notification.success('连接测试成功，模型配置已保存');
         setShowForm(false);
         setFormData({
           provider: 'openai',
@@ -143,7 +147,7 @@ export default function ModelManagerModal({
         notification.error(res.message || '创建失败');
       }
     } catch (error: any) {
-      notification.error(`创建失败: ${error.message}`);
+      notification.error(getApiErrorMessage(error, '模型配置保存失败'));
     } finally {
       setLoading(false);
     }
@@ -158,7 +162,7 @@ export default function ModelManagerModal({
         onConfigChange?.();
       }
     } catch (error: any) {
-      notification.error(`设置失败: ${error.message}`);
+      notification.error(getApiErrorMessage(error, '设置默认模型失败'));
     }
   };
 
@@ -172,7 +176,7 @@ export default function ModelManagerModal({
         onConfigChange?.();
       }
     } catch (error: any) {
-      notification.error(`删除失败: ${error.message}`);
+      notification.error(getApiErrorMessage(error, '删除模型配置失败'));
     }
   };
 
@@ -195,6 +199,7 @@ export default function ModelManagerModal({
         modelName: formData.modelName,
         apiKey: formData.apiKey,
         baseUrl: formData.baseUrl,
+        purpose: formData.purpose,
       });
       if (res.code === 200 && res.data) {
         setTestResult(res.data);
@@ -205,7 +210,7 @@ export default function ModelManagerModal({
         }
       }
     } catch (error: any) {
-      notification.error(`测试失败: ${error.message}`);
+      notification.error(getApiErrorMessage(error, '模型连接测试失败'));
     } finally {
       setTestLoading(false);
     }
@@ -348,7 +353,7 @@ export default function ModelManagerModal({
                   测试连接
                 </Button>
                 <Button size="sm" onClick={handleSubmit} loading={loading}>
-                  保存
+                  测试并保存
                 </Button>
               </Group>
             </Stack>
@@ -381,9 +386,17 @@ export default function ModelManagerModal({
                       {PROVIDER_LABELS[config.provider] || config.provider} ·{' '}
                       {config.modelName}
                     </Text>
+                    <Badge
+                      mt={4}
+                      color={config.purpose === 'embedding' ? 'grape' : 'cyan'}
+                      variant="light"
+                      size="xs"
+                    >
+                      {config.purpose === 'embedding' ? '向量模型' : '聊天模型'}
+                    </Badge>
                   </div>
                   <Group gap="xs">
-                    {!config.isDefault && (
+                    {config.purpose === 'chat' && !config.isDefault && (
                       <ActionIcon
                         size="sm"
                         color="yellow"
