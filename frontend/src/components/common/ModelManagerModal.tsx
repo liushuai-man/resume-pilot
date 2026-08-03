@@ -53,6 +53,7 @@ export default function ModelManagerModal({
   const [presets, setPresets] = useState<ModelPreset[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showApiKey, setShowApiKey] = useState(false);
   const [formData, setFormData] = useState<CreateModelConfigRequest>({
@@ -69,6 +70,7 @@ export default function ModelManagerModal({
     setEditingId(null);
     setShowForm(false);
     setShowApiKey(false);
+    setSaveError(null);
     setFormData({
       provider: 'openai',
       modelName: 'gpt-4o',
@@ -120,6 +122,7 @@ export default function ModelManagerModal({
   const handleProviderChange = (provider: string | null) => {
     if (!provider) return;
     const preset = presets.find((p) => p.provider === provider);
+    setSaveError(null);
     setFormData((prev) => ({
       ...prev,
       provider,
@@ -136,10 +139,13 @@ export default function ModelManagerModal({
       (!editingId && !formData.apiKey) ||
       !formData.displayName
     ) {
-      notification.error('请填写完整的配置信息');
+      const message = '请填写完整的配置信息';
+      setSaveError(message);
+      notification.error(message);
       return;
     }
 
+    setSaveError(null);
     setLoading(true);
     try {
       const res = editingId
@@ -158,10 +164,14 @@ export default function ModelManagerModal({
         await loadConfigs();
         onConfigChange?.();
       } else {
-        notification.error(res.message || '创建失败');
+        const message = res.message || '模型配置保存失败';
+        setSaveError(message);
+        notification.error(message);
       }
     } catch (error: any) {
-      notification.error(getApiErrorMessage(error, '模型配置保存失败'));
+      const message = getApiErrorMessage(error, '模型配置保存失败');
+      setSaveError(message);
+      notification.error(message);
     } finally {
       setLoading(false);
     }
@@ -171,6 +181,7 @@ export default function ModelManagerModal({
     setEditingId(config.id);
     setShowForm(true);
     setShowApiKey(false);
+    setSaveError(null);
     setFormData({
       provider: config.provider,
       modelName: config.modelName,
@@ -216,7 +227,15 @@ export default function ModelManagerModal({
   }));
 
   return (
-    <Modal opened={opened} onClose={handleClose} title="模型管理" size="lg">
+    <Modal
+      opened={opened}
+      onClose={handleClose}
+      title="模型管理"
+      size="lg"
+      closeOnClickOutside={!loading}
+      closeOnEscape={!loading}
+      withCloseButton={!loading}
+    >
       <Stack gap="md">
         <Group justify="space-between">
           <Text size="sm" c="dimmed">
@@ -233,6 +252,7 @@ export default function ModelManagerModal({
                 setShowForm(true);
               }
             }}
+            disabled={loading}
           >
             {showForm ? '取消' : '添加模型'}
           </Button>
@@ -248,14 +268,16 @@ export default function ModelManagerModal({
                   { value: 'embedding', label: '向量模型（可选）' },
                 ]}
                 value={formData.purpose || 'chat'}
-                onChange={(purpose) =>
+                onChange={(purpose) => {
+                  setSaveError(null);
                   setFormData({
                     ...formData,
                     purpose: purpose === 'embedding' ? 'embedding' : 'chat',
                     isDefault: false,
-                  })
-                }
+                  });
+                }}
                 size="sm"
+                disabled={loading}
               />
               <Text fw={500} size="sm">
                 {editingId ? '编辑模型' : '添加新模型'}
@@ -267,39 +289,47 @@ export default function ModelManagerModal({
                 value={formData.provider}
                 onChange={handleProviderChange}
                 size="sm"
+                disabled={loading}
               />
               <TextInput
                 label="显示名称"
                 placeholder="例如：我的 GPT-4"
                 value={formData.displayName}
-                onChange={(e) =>
-                  setFormData({ ...formData, displayName: e.target.value })
-                }
+                onChange={(e) => {
+                  setSaveError(null);
+                  setFormData({ ...formData, displayName: e.target.value });
+                }}
                 size="sm"
+                disabled={loading}
               />
               <TextInput
                 label="模型名称"
                 placeholder="例如：gpt-4o"
                 value={formData.modelName}
-                onChange={(e) =>
-                  setFormData({ ...formData, modelName: e.target.value })
-                }
+                onChange={(e) => {
+                  setSaveError(null);
+                  setFormData({ ...formData, modelName: e.target.value });
+                }}
                 size="sm"
+                disabled={loading}
               />
               <TextInput
                 label="API Key"
                 placeholder={editingId ? '留空则继续使用原 API Key' : 'sk-...'}
                 type={showApiKey ? 'text' : 'password'}
                 value={formData.apiKey}
-                onChange={(e) =>
-                  setFormData({ ...formData, apiKey: e.target.value })
-                }
+                onChange={(e) => {
+                  setSaveError(null);
+                  setFormData({ ...formData, apiKey: e.target.value });
+                }}
                 size="sm"
+                disabled={loading}
                 rightSection={
                   <ActionIcon
                     size="xs"
                     onClick={() => setShowApiKey(!showApiKey)}
                     color="dimmed"
+                    disabled={loading}
                   >
                     {showApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
                   </ActionIcon>
@@ -309,19 +339,39 @@ export default function ModelManagerModal({
                 label="Base URL（可选）"
                 placeholder="https://api.openai.com/v1"
                 value={formData.baseUrl || ''}
-                onChange={(e) =>
-                  setFormData({ ...formData, baseUrl: e.target.value })
-                }
+                onChange={(e) => {
+                  setSaveError(null);
+                  setFormData({ ...formData, baseUrl: e.target.value });
+                }}
                 size="sm"
+                disabled={loading}
               />
 
               <Text size="xs" c="dimmed">
                 保存时会自动验证连接，验证失败不会覆盖现有配置。
               </Text>
 
+              {saveError && (
+                <Paper p="sm" radius="sm" bg="red.0" withBorder>
+                  <Text size="sm" c="red.7" fw={500}>
+                    连接测试未通过，配置尚未保存
+                  </Text>
+                  <Text size="xs" c="red.7" mt={4}>
+                    {saveError}
+                  </Text>
+                  <Text size="xs" c="dimmed" mt={4}>
+                    你填写的内容已保留，请修改后再次保存。
+                  </Text>
+                </Paper>
+              )}
+
               <Group justify="flex-end" gap="sm">
                 <Button size="sm" onClick={handleSubmit} loading={loading}>
-                  {editingId ? '保存修改' : '保存模型'}
+                  {saveError
+                    ? '重新测试并保存'
+                    : editingId
+                      ? '保存修改'
+                      : '保存模型'}
                 </Button>
               </Group>
             </Stack>

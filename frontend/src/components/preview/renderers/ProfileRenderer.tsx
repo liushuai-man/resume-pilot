@@ -43,7 +43,19 @@ export function ProfileRenderer({
     data.website,
     data.summary,
   ].some((value) => typeof value === 'string' && value.trim().length > 0);
-  if (!hasContent) return null;
+  if (!hasContent) {
+    return (
+      <SectionWrapper
+        title={section.title}
+        style={style}
+        variant={variant}
+        isHighlighted={isHighlighted}
+        onClick={onClick}
+      >
+        <div />
+      </SectionWrapper>
+    );
+  }
 
   const baseSize = style.fontSize || 14;
   const contactSize = `${baseSize}px`;

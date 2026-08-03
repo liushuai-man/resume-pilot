@@ -11,7 +11,7 @@ export function EducationRenderer({
 }: RendererProps) {
   if (section.type !== 'education') return null;
   const items = section.data as any[];
-  if (!items || items.length === 0) return null;
+  const safeItems = Array.isArray(items) ? items : [];
 
   const baseSize = style.fontSize || 14;
   const descSize = `${baseSize}px`;
@@ -26,7 +26,7 @@ export function EducationRenderer({
       onClick={onClick}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {items.map((item) => (
+        {safeItems.map((item) => (
           <div key={item.id} className="education-item">
             <div
               style={{

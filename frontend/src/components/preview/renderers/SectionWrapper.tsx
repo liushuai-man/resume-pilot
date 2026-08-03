@@ -28,7 +28,7 @@ export function SectionWrapper({
       style={wrapperStyles}
       onClick={onClick}
     >
-      {variant !== 'minimal' && title && (
+      {title && (
         <h2 className="section-title" style={titleStyles}>
           {title}
         </h2>

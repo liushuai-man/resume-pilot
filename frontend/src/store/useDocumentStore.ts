@@ -8,6 +8,7 @@ import type {
 } from '@/types/resume-document';
 import { SECTION_TYPE_CONFIGS } from '@/types/resume-document';
 import { polishSection, completeSection } from '@/api/document.api';
+import { createEmptyResumeSections } from '@/utils/emptyResumeContent';
 
 interface DocumentStore {
   document: ResumeDocument | null;
@@ -98,7 +99,7 @@ export const useDocumentStore = create<DocumentStore>()(
         return {
           id: generateId('doc'),
           title,
-          sections: [],
+          sections: createEmptyResumeSections(),
           style: { ...defaultStyle },
           layout: { ...defaultLayout },
           createdAt: now,

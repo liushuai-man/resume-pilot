@@ -162,6 +162,8 @@ export interface ResumeContent {
   fileName?: string;
   ocrText?: string;
   pageCount?: number;
+  // 编辑器模块骨架，用于保留空模块、顺序、显隐和自定义标题。
+  _documentSections?: unknown;
 }
 
 export interface Resume {

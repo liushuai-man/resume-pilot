@@ -16,7 +16,7 @@ export function ProjectRenderer({
 }: RendererProps) {
   if (section.type !== 'project') return null;
   const items = section.data as any[];
-  if (!items || items.length === 0) return null;
+  const safeItems = Array.isArray(items) ? items : [];
 
   const baseSize = style.fontSize || 14;
   const descSize = `${baseSize}px`;
@@ -32,7 +32,7 @@ export function ProjectRenderer({
       onClick={onClick}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {items.map((item) => (
+        {safeItems.map((item) => (
           <div key={item.id} className="project-item">
             <div
               style={{

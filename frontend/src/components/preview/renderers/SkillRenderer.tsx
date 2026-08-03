@@ -24,7 +24,7 @@ export function SkillRenderer({
 }: RendererProps) {
   if (section.type !== 'skill') return null;
   const items = section.data as any[];
-  if (!items || items.length === 0) return null;
+  const safeItems = Array.isArray(items) ? items : [];
 
   const baseSize = style.fontSize || 14;
   const descSize = `${baseSize}px`;
@@ -32,7 +32,7 @@ export function SkillRenderer({
   const primaryColor = style.primaryColor || '#2563eb';
 
   const grouped: Record<string, any[]> = {};
-  for (const item of items) {
+  for (const item of safeItems) {
     const cat = item.category || '其他';
     if (!grouped[cat]) grouped[cat] = [];
     grouped[cat].push(item);
@@ -117,7 +117,7 @@ export function SkillRenderer({
         </div>
       ) : (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-          {items.map((skill) => renderSkillTag(skill))}
+          {safeItems.map((skill) => renderSkillTag(skill))}
         </div>
       )}
     </SectionWrapper>

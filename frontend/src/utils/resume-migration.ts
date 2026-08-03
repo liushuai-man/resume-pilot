@@ -51,6 +51,28 @@ function convertProfile(content: ResumeContent): ProfileSection {
   };
 }
 
+function getSavedSections(content: ResumeContent): ResumeSection[] | null {
+  const saved = content._documentSections;
+  if (!Array.isArray(saved)) return null;
+
+  return saved
+    .filter(
+      (section: any) =>
+        section &&
+        typeof section.id === 'string' &&
+        typeof section.type === 'string' &&
+        typeof section.title === 'string'
+    )
+    .map((section: any, index) => ({
+      ...section,
+      visible: section.visible !== false,
+      order: index,
+      data: Array.isArray(section.data)
+        ? section.data.map((item: any) => ({ ...item }))
+        : { ...(section.data || {}) },
+    })) as ResumeSection[];
+}
+
 function hasProfileContent(content: ResumeContent): boolean {
   const basic = content.basicInfo;
   if (!basic) return false;
@@ -201,30 +223,33 @@ export function contentToDocument(
   sectionIdCounter = 0;
   itemIdCounter = 0;
 
-  const sections: ResumeSection[] = [];
+  const savedSections = getSavedSections(content);
+  const sections: ResumeSection[] = savedSections || [];
 
-  if (hasProfileContent(content)) {
-    const profile = convertProfile(content);
-    sections.push(profile);
+  if (!savedSections) {
+    if (hasProfileContent(content)) {
+      const profile = convertProfile(content);
+      sections.push(profile);
+    }
+
+    const objective = convertObjective(content);
+    if (objective) sections.push(objective);
+
+    const education = convertEducation(content);
+    if (education) sections.push(education);
+
+    const experience = convertExperience(content);
+    if (experience) sections.push(experience);
+
+    const project = convertProject(content);
+    if (project) sections.push(project);
+
+    const skill = convertSkill(content);
+    if (skill) sections.push(skill);
+
+    const certification = convertCertification(content);
+    if (certification) sections.push(certification);
   }
-
-  const objective = convertObjective(content);
-  if (objective) sections.push(objective);
-
-  const education = convertEducation(content);
-  if (education) sections.push(education);
-
-  const experience = convertExperience(content);
-  if (experience) sections.push(experience);
-
-  const project = convertProject(content);
-  if (project) sections.push(project);
-
-  const skill = convertSkill(content);
-  if (skill) sections.push(skill);
-
-  const certification = convertCertification(content);
-  if (certification) sections.push(certification);
 
   const reordered = sections
     .sort((a, b) => a.order - b.order)
@@ -285,6 +310,13 @@ export function documentToContent(document: ResumeDocument): ResumeContent {
     campusExperiences: [],
     _documentStyle: document.style,
     _documentLayout: document.layout,
+    _documentSections: document.sections.map((section, index) => ({
+      ...section,
+      order: index,
+      data: Array.isArray(section.data)
+        ? section.data.map((item: any) => ({ ...item }))
+        : { ...(section.data as any) },
+    })),
   } as ResumeContent;
 
   for (const section of document.sections) {
