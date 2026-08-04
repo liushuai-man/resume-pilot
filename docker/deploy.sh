@@ -32,7 +32,7 @@ echo "Ensuring PostgreSQL and Redis are running..."
 compose up -d db redis
 
 echo "Applying Prisma migrations..."
-compose run --rm --no-deps backend pnpm prisma migrate deploy
+compose run --rm --no-deps backend node node_modules/prisma/build/index.js migrate deploy
 
 echo "Replacing application containers..."
 compose up -d --no-build --remove-orphans backend frontend

@@ -1,6 +1,6 @@
 services:
   frontend:
-    image: ghcr.io/liushuai-man/resume-pilot-frontend:latest
+    image: ${FRONTEND_IMAGE:-ghcr.io/liushuai-man/resume-pilot-frontend}:${IMAGE_TAG:-latest}
     ports:
       - "${APP_PORT:-80}:80"
     depends_on:
@@ -15,7 +15,7 @@ services:
     restart: unless-stopped
 
   backend:
-    image: ghcr.io/liushuai-man/resume-pilot-backend:latest
+    image: ${BACKEND_IMAGE:-ghcr.io/liushuai-man/resume-pilot-backend}:${IMAGE_TAG:-latest}
     env_file: .env.production
     expose:
       - "4000"

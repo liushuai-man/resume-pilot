@@ -1,0 +1,12 @@
+**
+!frontend/package.json
+!frontend/pnpm-lock.yaml
+!frontend/index.html
+!frontend/postcss.config.js
+!frontend/tailwind.config.js
+!frontend/tsconfig.json
+!frontend/tsconfig.node.json
+!frontend/vite-env.d.ts
+!frontend/vite.config.ts
+!frontend/src/**
+!docker/nginx.conf
