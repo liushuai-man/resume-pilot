@@ -15,6 +15,29 @@ compose() {
   docker compose --env-file .env.production -f "$COMPOSE_FILE" "$@"
 }
 
+pull_image() {
+  service="$1"
+  attempt=1
+  max_attempts=5
+
+  while [ "$attempt" -le "$max_attempts" ]; do
+    echo "Pulling $service image (attempt $attempt/$max_attempts)..."
+    if compose pull "$service"; then
+      return 0
+    fi
+
+    if [ "$attempt" -eq "$max_attempts" ]; then
+      echo "ERROR: failed to pull $service image after $max_attempts attempts" >&2
+      return 1
+    fi
+
+    delay=$((attempt * 10))
+    echo "Image pull was interrupted; retrying in ${delay}s..." >&2
+    sleep "$delay"
+    attempt=$((attempt + 1))
+  done
+}
+
 # Versions deployed before the uploads path fix wrote imported resumes to the
 # container-only /uploads directory. Preserve any files still present before
 # replacing that container.
@@ -26,7 +49,8 @@ if [ -n "$current_backend_id" ]; then
 fi
 
 echo "Pulling application images..."
-compose pull backend frontend
+pull_image backend
+pull_image frontend
 
 echo "Ensuring PostgreSQL and Redis are running..."
 compose up -d db redis
