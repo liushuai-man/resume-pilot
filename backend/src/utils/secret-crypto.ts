@@ -25,10 +25,23 @@ export function encryptSecret(value: string): string {
 
 export function decryptSecret(value: string): string {
   if (!value?.startsWith(PREFIX)) return value;
-  const [, iv, tag, ciphertext] = value.split(':');
+  const parts = value.slice(PREFIX.length).split(':');
+  if (parts.length !== 3 || parts.some((part) => !part)) {
+    throw new Error('模型 API Key 密文格式无效，请在模型管理中重新填写 API Key 并保存');
+  }
+  const [iv, tag, ciphertext] = parts;
   const decipher = crypto.createDecipheriv('aes-256-gcm', getKey(), Buffer.from(iv, 'base64'));
   decipher.setAuthTag(Buffer.from(tag, 'base64'));
-  return Buffer.concat([decipher.update(Buffer.from(ciphertext, 'base64')), decipher.final()]).toString('utf8');
+  try {
+    return Buffer.concat([
+      decipher.update(Buffer.from(ciphertext, 'base64')),
+      decipher.final(),
+    ]).toString('utf8');
+  } catch {
+    throw new Error(
+      '模型 API Key 无法解密，请确认生产环境加密密钥未改变，或在模型管理中重新填写 API Key 并保存'
+    );
+  }
 }
 
 export const isEncryptedSecret = (value: string) => value.startsWith(PREFIX);

@@ -12,6 +12,7 @@ import type {
   ResumeStyle,
   ResumeLayout,
 } from '@/types/resume-document';
+import { createEmptyResumeSections } from '@/utils/emptyResumeContent';
 
 let sectionIdCounter = 0;
 let itemIdCounter = 0;
@@ -249,6 +250,14 @@ export function contentToDocument(
 
     const certification = convertCertification(content);
     if (certification) sections.push(certification);
+
+    // Resume records created by older versions did not persist the editor's
+    // section skeleton. Treat a completely empty legacy resume as a new blank
+    // resume, while preserving populated legacy resumes and intentionally
+    // deleted sections saved by the current version (`_documentSections: []`).
+    if (sections.length === 0) {
+      sections.push(...createEmptyResumeSections());
+    }
   }
 
   const reordered = sections
