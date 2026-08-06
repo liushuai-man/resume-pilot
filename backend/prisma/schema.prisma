@@ -19,6 +19,7 @@ model User {
   interviews    InterviewResult[]
   resumes       Resume[]
   model_configs UserModelConfig[]
+  ai_memories   AiMemory[]
 
   @@map("users")
 }
@@ -35,6 +36,7 @@ model Resume {
   chat_sessions     ChatSession[]
   interview_results InterviewResult[]
   user              User              @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  ai_memories       AiMemory[]
 
   @@index([user_id])
   @@map("resumes")
@@ -131,4 +133,27 @@ model UserModelConfig {
   @@index([user_id])
   @@index([user_id, purpose])
   @@map("user_model_configs")
+}
+
+model AiMemory {
+  id                  String   @id
+  user_id             String
+  session_id          String
+  resume_id           String?
+  content             String
+  content_hash        String
+  metadata            Json     @default("{}")
+  embedding           Unsupported("vector")?
+  embedding_dimension Int?
+  embedding_model     String?
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+  user                User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  resume              Resume?  @relation(fields: [resume_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, session_id, content_hash], map: "ai_memories_turn_key")
+  @@index([user_id, embedding_model, embedding_dimension], map: "ai_memories_vector_idx")
+  @@index([user_id, session_id], map: "ai_memories_session_idx")
+  @@index([resume_id], map: "ai_memories_resume_idx")
+  @@map("ai_memories")
 }

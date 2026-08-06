@@ -19,10 +19,16 @@ export async function aiChat(request: AIChatRequest): Promise<string> {
   return await chatAgent.chat(request);
 }
 
-export async function getSessionSummary(sessionId: string): Promise<string> {
-  return await chatAgent.getSessionSummary(sessionId);
+export async function getSessionSummary(
+  sessionId: string,
+  userId?: string
+): Promise<string> {
+  return await chatAgent.getSessionSummary(sessionId, userId);
 }
 
-export async function clearSession(sessionId: string): Promise<void> {
-  chatAgent.clearSession(sessionId);
+export async function clearSession(
+  sessionId: string,
+  userId?: string
+): Promise<void> {
+  await chatAgent.clearSession(sessionId, userId);
 }

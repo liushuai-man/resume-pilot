@@ -144,7 +144,7 @@ export const getChatSummary = async (req: Request, res: Response) => {
     }
 
     await assertChatSessionOwnership(sessionId, userId);
-    const summary = await getSessionSummary(sessionId);
+    const summary = await getSessionSummary(sessionId, userId);
     return success(res, { summary }, '获取摘要成功');
   } catch (err: any) {
     console.error('获取对话摘要失败:', err);
@@ -162,7 +162,7 @@ export const clearChatSession = async (req: Request, res: Response) => {
     }
 
     await assertChatSessionOwnership(sessionId, userId);
-    await clearSession(sessionId);
+    await clearSession(sessionId, userId);
     return success(res, null, '清除会话成功');
   } catch (err: any) {
     console.error('清除会话失败:', err);

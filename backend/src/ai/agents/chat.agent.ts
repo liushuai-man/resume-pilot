@@ -9,6 +9,17 @@ import { createUserLLM } from '../providers/llm.provider';
 import { vectorMemoryManager } from '../memory/vector-memory';
 import { AIChatRequest } from '../types/chat.types';
 
+const SHORT_TERM_MESSAGE_LIMIT = 10;
+
+function serializeResume(resumeContent: unknown): string {
+  if (!resumeContent) return '当前没有可用的简历内容。';
+  try {
+    return JSON.stringify(resumeContent, null, 2);
+  } catch {
+    return String(resumeContent);
+  }
+}
+
 export class ChatAgent {
   async chat(request: AIChatRequest): Promise<string> {
     const {
@@ -20,41 +31,29 @@ export class ChatAgent {
       resumeId,
     } = request;
 
-    console.log(`=== 使用向量化记忆进行 AI 对话 - Session: ${sessionId} ===`);
+    console.log(`=== AI 助手分层记忆对话 - Session: ${sessionId} ===`);
 
     try {
       const latestUserMessage = messages[messages.length - 1]?.content || '';
-      let relevantMemories = '';
+      const shortTermMessages = messages.slice(-(SHORT_TERM_MESSAGE_LIMIT + 1));
+      const retrieval = await vectorMemoryManager.retrieveMemory({
+        sessionId,
+        query: latestUserMessage,
+        userId,
+        messages: shortTermMessages,
+        k: 5,
+      });
+      console.log(
+        `Long-term memory retrieval: mode=${retrieval.mode}, memories=${retrieval.count}`
+      );
 
-      // Some OpenAI-compatible providers do not expose an embedding endpoint.
-      // Memory must be optional so it never blocks the primary chat request.
-      try {
-        if (resumeContent) {
-          await vectorMemoryManager.addResumeContent(
-            sessionId,
-            resumeContent,
-            userId,
-            resumeId
-          );
-        }
-        relevantMemories = await vectorMemoryManager.retrieveRelevantMemories(
-          sessionId,
-          latestUserMessage
-        );
-      } catch (memoryError) {
-        console.warn('Vector memory is unavailable; continuing without it:', memoryError);
-      }
-
-      const context = relevantMemories
-        ? `\n相关对话历史：\n${relevantMemories}`
-        : '';
-
-      const historyMessages = messages
+      const longTermMemory = retrieval.context || '没有检索到相关的长期记忆。';
+      const historyMessages = shortTermMessages
         .slice(0, -1)
-        .map((msg) =>
-          msg.role === 'user'
-            ? new HumanMessage(msg.content)
-            : new AIMessage(msg.content)
+        .map((message) =>
+          message.role === 'user'
+            ? new HumanMessage(message.content)
+            : new AIMessage(message.content)
         );
 
       const chatPrompt = ChatPromptTemplate.fromMessages([
@@ -62,14 +61,20 @@ export class ChatAgent {
           'system',
           `你是一名专业的简历助手，擅长帮助用户优化和撰写简历。你的职责包括：
 1. 优化简历内容的表达方式
-2. 量化工作成果（用数据说话）
-3. 补全缺失的内容
+2. 量化工作成果
+3. 补全缺失内容
 4. 提升简历的 ATS 通过率
-5. 提供专业的求职建议
+5. 提供专业、真实的求职建议
 
-请用简洁、专业的语言回答用户的问题。如果需要修改简历内容，请提供清晰的修改建议或直接给出优化后的内容。
+请使用简洁、专业的语言回答。不要编造简历中不存在的事实；需要补充信息时，应明确向用户询问。
 
-{context}
+【当前完整简历】
+{resume}
+
+【相关长期对话记忆】
+{longTermMemory}
+
+长期记忆可能来自较早的对话，只用于理解用户偏好、历史决定和相关讨论；若它与当前简历或用户最新要求冲突，以当前简历和最新要求为准。
 
 用户当前正在编辑的模块：{currentField}`,
         ],
@@ -81,7 +86,6 @@ export class ChatAgent {
         temperature: 0.7,
         maxTokens: 1000,
       });
-
       const chain = RunnableSequence.from([
         chatPrompt,
         llm,
@@ -89,28 +93,26 @@ export class ChatAgent {
       ]);
 
       const response = await chain.invoke({
-        context,
+        resume: serializeResume(resumeContent),
+        longTermMemory,
         currentField,
         history: historyMessages,
         input: latestUserMessage,
       });
 
-      try {
-        await vectorMemoryManager.addUserMessage(
+      // Long-term memory persistence is asynchronous so embedding latency does
+      // not delay the response shown to the user.
+      void vectorMemoryManager
+        .addConversationTurn(
           sessionId,
           latestUserMessage,
-          userId,
-          resumeId
-        );
-        await vectorMemoryManager.addAssistantMessage(
-          sessionId,
           response,
           userId,
           resumeId
-        );
-      } catch (memoryError) {
-        console.warn('Unable to save vector memory:', memoryError);
-      }
+        )
+        .catch((memoryError) => {
+          console.warn('Unable to save long-term conversation memory:', memoryError);
+        });
 
       return response.trim();
     } catch (error) {
@@ -119,12 +121,12 @@ export class ChatAgent {
     }
   }
 
-  async getSessionSummary(sessionId: string): Promise<string> {
-    return await vectorMemoryManager.generateSessionSummary(sessionId);
+  async getSessionSummary(sessionId: string, userId?: string): Promise<string> {
+    return await vectorMemoryManager.generateSessionSummary(sessionId, userId);
   }
 
-  clearSession(sessionId: string): void {
-    vectorMemoryManager.clearSession(sessionId);
+  async clearSession(sessionId: string, userId?: string): Promise<void> {
+    await vectorMemoryManager.clearSession(sessionId, userId);
   }
 }
 

@@ -19,6 +19,8 @@ export interface ChatMessage {
 }
 
 export interface AIChatRequest {
+  sessionId?: string;
+  resumeId?: string;
   messages: ChatMessage[];
   resumeContent?: any;
   currentField?: string;

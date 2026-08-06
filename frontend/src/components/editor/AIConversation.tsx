@@ -1,8 +1,10 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Card, Input, Button, Avatar, Text } from '@mantine/core';
 import { Sparkles, Send, Loader2 } from 'lucide-react';
 import { ChatMessage } from '@/api/ai.api';
 import { useResumeStore } from '@/store/useResumeStore';
+import { useDocumentStore } from '@/store/useDocumentStore';
+import { documentToContent } from '@/utils/resume-migration';
 import { notification } from '@/components/common/Notification';
 import { useAI } from '@/hooks/useAI';
 import MarkdownContent from '@/components/common/MarkdownContent';
@@ -28,10 +30,22 @@ export default function AIConversation({
   const [inputValue, setInputValue] = useState('');
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { content } = useResumeStore();
+  const { content, resume } = useResumeStore();
+  const document = useDocumentStore((state) => state.document);
+  const [sessionId] = useState(() =>
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `resume-chat-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+  );
+  const currentResumeContent = useMemo(
+    () => (document ? documentToContent(document) : content),
+    [document, content]
+  );
 
   const { isLoading, chat } = useAI({
     targetField: currentField,
+    sessionId,
+    resumeId: resume?.id,
     onError: (error) => {
       notification.error(error.message || 'AI 对话失败，请稍后重试');
     },
@@ -74,7 +88,7 @@ export default function AIConversation({
       { role: 'user', content: inputValue },
     ];
 
-    const aiResponse = await chat(newHistory, content);
+    const aiResponse = await chat(newHistory, currentResumeContent);
 
     if (aiResponse) {
       const aiMessage: Message = {
@@ -91,7 +105,7 @@ export default function AIConversation({
         { role: 'assistant', content: aiResponse },
       ]);
     }
-  }, [inputValue, isLoading, chatHistory, content, currentField, chat]);
+  }, [inputValue, isLoading, chatHistory, currentResumeContent, chat]);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {

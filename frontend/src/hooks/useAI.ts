@@ -6,6 +6,8 @@ interface UseAIOptions {
   onSuccess?: (content: string) => void;
   onError?: (error: Error) => void;
   targetField?: string;
+  sessionId?: string;
+  resumeId?: string;
 }
 
 interface UseAIReturn {
@@ -29,7 +31,7 @@ function isTimeoutError(error: any): boolean {
 
 export function useAI(options: UseAIOptions = {}): UseAIReturn {
   const [isLoading, setIsLoading] = useState(false);
-  const { onSuccess, onError, targetField } = options;
+  const { onSuccess, onError, targetField, sessionId, resumeId } = options;
 
   const handleError = useCallback(
     (error: any, operation: string) => {
@@ -120,6 +122,8 @@ export function useAI(options: UseAIOptions = {}): UseAIReturn {
       setIsLoading(true);
       try {
         const response = await aiApi.chat({
+          sessionId,
+          resumeId,
           messages,
           resumeContent,
           currentField: targetField,
@@ -139,7 +143,7 @@ export function useAI(options: UseAIOptions = {}): UseAIReturn {
         setIsLoading(false);
       }
     },
-    [targetField, onSuccess, handleError]
+    [targetField, sessionId, resumeId, onSuccess, handleError]
   );
 
   return {

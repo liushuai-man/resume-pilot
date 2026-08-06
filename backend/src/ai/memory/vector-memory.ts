@@ -1,192 +1,344 @@
+import crypto from 'crypto';
 import { OpenAIEmbeddings } from '@langchain/openai';
-import { MemoryVectorStore } from 'langchain/vectorstores/memory';
-import { Document } from '@langchain/core/documents';
-import { createUserLLM } from '../providers/llm.provider';
-import { getEmbeddingModelConfig } from '../../services/model-config.service';
-import { MemoryDocument } from '../types/chat.types';
 import { RunnableSequence } from '@langchain/core/runnables';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { PromptTemplate } from '@langchain/core/prompts';
+import { prisma } from '../../database/prisma';
+import {
+  getEmbeddingModelConfig,
+  getDecryptedApiKey,
+} from '../../services/model-config.service';
+import { createUserLLM } from '../providers/llm.provider';
+import type { ChatMessage } from '../types/chat.types';
+
+type RetrievalMode = 'vector' | 'keyword' | 'none';
+
+export interface RetrievalResult {
+  context: string;
+  mode: RetrievalMode;
+  count: number;
+}
+
+interface RetrieveMemoryOptions {
+  sessionId: string;
+  query: string;
+  userId?: string;
+  messages?: ChatMessage[];
+  k?: number;
+}
+
+interface EmbeddingRuntime {
+  embeddings: OpenAIEmbeddings;
+  modelKey: string;
+}
+
+interface MemoryRow {
+  content: string;
+  content_hash: string;
+  metadata: Record<string, unknown> | null;
+  similarity?: number;
+}
+
+const MAX_STORED_MEMORIES = 300;
+const VECTOR_SIMILARITY_THRESHOLD = 0.2;
+
+function hash(value: string): string {
+  return crypto.createHash('sha256').update(value).digest('hex');
+}
+
+function vectorLiteral(values: number[]): string {
+  if (!values.length || values.some((value) => !Number.isFinite(value))) {
+    throw new Error('Embedding model returned an invalid vector');
+  }
+  return `[${values.join(',')}]`;
+}
+
+function turnContent(userMessage: string, assistantMessage: string): string {
+  return `用户：${userMessage.trim()}\n助手：${assistantMessage.trim()}`;
+}
+
+function tokenize(text: string): Set<string> {
+  const normalized = text.toLowerCase();
+  const tokens = new Set<string>();
+  for (const word of normalized.match(/[a-z0-9+#.]{2,}/g) || []) {
+    tokens.add(word);
+  }
+  const chinese = normalized.replace(/[^\u4e00-\u9fff]/g, '');
+  for (let index = 0; index < chinese.length; index += 1) {
+    tokens.add(chinese[index]);
+    if (index < chinese.length - 1) tokens.add(chinese.slice(index, index + 2));
+  }
+  return tokens;
+}
+
+/** Build hashes for turns already present in the short-term prompt to avoid duplicates. */
+function currentTurnHashes(messages: ChatMessage[]): Set<string> {
+  const hashes = new Set<string>();
+  for (let index = 0; index < messages.length - 1; index += 1) {
+    const current = messages[index];
+    const next = messages[index + 1];
+    if (current.role === 'user' && next.role === 'assistant') {
+      hashes.add(hash(turnContent(current.content, next.content)));
+      index += 1;
+    }
+  }
+  return hashes;
+}
+
+function rankByKeyword(
+  rows: MemoryRow[],
+  query: string,
+  excludedHashes: Set<string>,
+  k: number
+): RetrievalResult {
+  const queryTokens = tokenize(query);
+  const ranked = rows
+    .filter((row) => !excludedHashes.has(row.content_hash))
+    .map((row, index) => {
+      const candidateTokens = tokenize(row.content);
+      let score = 0;
+      for (const token of queryTokens) {
+        if (candidateTokens.has(token)) score += token.length > 1 ? 3 : 1;
+      }
+      return { ...row, score, index };
+    })
+    .filter((row) => row.score > 0)
+    .sort((left, right) => right.score - left.score || left.index - right.index)
+    .slice(0, k);
+
+  if (ranked.length === 0) return { context: '', mode: 'none', count: 0 };
+  return {
+    context: ranked
+      .map((row, index) => `[长期记忆 ${index + 1}]\n${row.content}`)
+      .join('\n\n'),
+    mode: 'keyword',
+    count: ranked.length,
+  };
+}
 
 export class VectorMemoryManager {
-  private vectorStores: Map<string, MemoryVectorStore> = new Map();
-  private async getOrCreateVectorStore(sessionId: string, userId?: string): Promise<MemoryVectorStore> {
-    if (!this.vectorStores.has(sessionId)) {
-      if (!userId) throw new Error('Embedding model requires a user');
-      const config = await getEmbeddingModelConfig(userId);
-      if (!config) throw new Error('No embedding model configured');
-      const embeddings = new OpenAIEmbeddings({
-        openAIApiKey: config.api_key,
+  private async getEmbeddingRuntime(userId: string): Promise<EmbeddingRuntime | null> {
+    const config = await getEmbeddingModelConfig(userId);
+    if (!config) return null;
+
+    const apiKey = await getDecryptedApiKey(config);
+    return {
+      embeddings: new OpenAIEmbeddings({
+        modelName: config.model_name,
+        openAIApiKey: apiKey,
+        timeout: 20000,
         configuration: { baseURL: config.base_url || undefined },
-      });
-      this.vectorStores.set(sessionId, new MemoryVectorStore(embeddings));
-    }
-    return this.vectorStores.get(sessionId)!;
+      }),
+      modelKey: `${config.id}:${config.model_name}:${config.base_url || 'default'}`,
+    };
   }
 
-  async addMemory(
-    sessionId: string,
-    content: string,
-    metadata: Omit<MemoryDocument['metadata'], 'timestamp'>
-  ): Promise<void> {
-    const vectorStore = await this.getOrCreateVectorStore(sessionId, metadata.userId);
-    const doc = new Document({
-      pageContent: content,
-      metadata: {
-        ...metadata,
-        timestamp: new Date().toISOString(),
-      },
-    });
-    await vectorStore.addDocuments([doc]);
+  private async recentTextMemories(userId: string): Promise<MemoryRow[]> {
+    return (await prisma.$queryRawUnsafe(
+      `SELECT "content", "content_hash", "metadata"
+       FROM "ai_memories"
+       WHERE "user_id" = $1
+       ORDER BY "created_at" DESC
+       LIMIT 100`,
+      userId
+    )) as MemoryRow[];
   }
 
-  async addUserMessage(
-    sessionId: string,
-    content: string,
-    userId?: string,
-    resumeId?: string
-  ): Promise<void> {
-    await this.addMemory(sessionId, `用户说：${content}`, {
-      sessionId,
-      userId,
-      resumeId,
-      type: 'user_message',
-    });
-  }
-
-  async addAssistantMessage(
-    sessionId: string,
-    content: string,
-    userId?: string,
-    resumeId?: string
-  ): Promise<void> {
-    await this.addMemory(sessionId, `助手回答：${content}`, {
-      sessionId,
-      userId,
-      resumeId,
-      type: 'assistant_message',
-    });
-  }
-
-  async addResumeContent(
-    sessionId: string,
-    resumeContent: any,
-    userId?: string,
-    resumeId?: string
-  ): Promise<void> {
-    const formattedContent = this.formatResumeForMemory(resumeContent);
-    await this.addMemory(sessionId, formattedContent, {
-      sessionId,
-      userId,
-      resumeId,
-      type: 'resume_content',
-    });
-  }
-
-  private formatResumeForMemory(content: any): string {
-    if (!content) return '简历内容为空';
-
-    let context = '当前简历内容：\n';
-
-    if (content.basicInfo) {
-      context += `基本信息：
-- 姓名：${content.basicInfo.name || '未填写'}
-- 职位：${content.basicInfo.title || '未填写'}
-- 邮箱：${content.basicInfo.email || '未填写'}
-- 电话：${content.basicInfo.phone || '未填写'}
-- 简介：${content.basicInfo.bio || '未填写'}
-`;
-    }
-
-    if (content.experience && content.experience.length > 0) {
-      context += `\n工作经历：\n`;
-      content.experience.forEach((exp: any, index: number) => {
-        context += `${index + 1}. ${exp.company || '公司未填写'} | ${exp.position || '职位未填写'} (${exp.startDate || ''} - ${exp.endDate || ''})
-   描述：${exp.description || '未填写'}
-`;
-      });
-    }
-
-    if (content.education && content.education.length > 0) {
-      context += `\n教育经历：\n`;
-      content.education.forEach((edu: any, index: number) => {
-        context += `${index + 1}. ${edu.school || '学校未填写'} | ${edu.major || '专业未填写'} | ${edu.degree || '学历未填写'}
-`;
-      });
-    }
-
-    if (content.projects && content.projects.length > 0) {
-      context += `\n项目经验：\n`;
-      content.projects.forEach((proj: any, index: number) => {
-        context += `${index + 1}. ${proj.name || '项目未填写'} | ${proj.role || '角色未填写'}
-   描述：${proj.description || '未填写'}
-`;
-      });
-    }
-
-    if (content.skills && content.skills.length > 0) {
-      context += `\n技能：${content.skills.map((s: any) => s.name || s).join('、')}`;
-    }
-
-    if (content.careerObjective) {
-      context += `\n职业目标：${content.careerObjective}`;
-    }
-
-    return context;
-  }
-
-  async retrieveRelevantMemories(
-    sessionId: string,
+  private async keywordMemory(
+    userId: string,
     query: string,
-    k: number = 5
-  ): Promise<string> {
-    const vectorStore = this.vectorStores.get(sessionId);
-    if (!vectorStore) return '';
-    const docs = await vectorStore.similaritySearch(query, k);
-    
-    if (docs.length === 0) {
-      return '';
+    excludedHashes: Set<string>,
+    k: number
+  ): Promise<RetrievalResult> {
+    try {
+      return rankByKeyword(
+        await this.recentTextMemories(userId),
+        query,
+        excludedHashes,
+        k
+      );
+    } catch (error) {
+      console.warn('Keyword memory retrieval unavailable:', error);
+      return { context: '', mode: 'none', count: 0 };
     }
-
-    return docs.map((doc, index) => `[记忆 ${index + 1}] ${doc.pageContent}`).join('\n\n');
   }
 
-  async generateSessionSummary(sessionId: string): Promise<string> {
-    const vectorStore = this.vectorStores.get(sessionId);
-    if (!vectorStore) return '暂无对话记录';
-    const allDocs = await vectorStore.similaritySearch('', 100);
-    
-    if (allDocs.length === 0) {
-      return '暂无对话记录';
+  private async searchVectors(
+    userId: string,
+    modelKey: string,
+    queryVector: number[],
+    excludedHashes: Set<string>,
+    k: number
+  ): Promise<RetrievalResult> {
+    const rows = (await prisma.$queryRawUnsafe(
+      `SELECT "content", "content_hash", "metadata",
+              1 - ("embedding" <=> $1::vector) AS "similarity"
+       FROM "ai_memories"
+       WHERE "user_id" = $2
+         AND "embedding" IS NOT NULL
+         AND "embedding_model" = $3
+         AND "embedding_dimension" = $4
+       ORDER BY "embedding" <=> $1::vector
+       LIMIT $5`,
+      vectorLiteral(queryVector),
+      userId,
+      modelKey,
+      queryVector.length,
+      Math.max(k * 3, k)
+    )) as MemoryRow[];
+
+    const relevantRows = rows
+      .filter(
+        (row) =>
+          !excludedHashes.has(row.content_hash) &&
+          Number(row.similarity) >= VECTOR_SIMILARITY_THRESHOLD
+      )
+      .slice(0, k);
+    if (relevantRows.length === 0) {
+      return { context: '', mode: 'vector', count: 0 };
     }
 
-    const allContent = allDocs.map(doc => doc.pageContent).join('\n\n');
+    return {
+      context: relevantRows
+        .map((row, index) => {
+          const similarity = Math.round(Number(row.similarity) * 100);
+          return `[长期记忆 ${index + 1}｜相关度 ${similarity}%]\n${row.content}`;
+        })
+        .join('\n\n'),
+      mode: 'vector',
+      count: relevantRows.length,
+    };
+  }
 
-    const summaryPrompt = PromptTemplate.fromTemplate(`
-请为以下对话内容生成一个简短的摘要（不超过100字）：
+  /** Retrieve semantically related historical chat turns, never resume content. */
+  async retrieveMemory(options: RetrieveMemoryOptions): Promise<RetrievalResult> {
+    const { query, userId, messages = [], k = 5 } = options;
+    if (!userId || !query.trim()) return { context: '', mode: 'none', count: 0 };
 
-{content}
+    const excludedHashes = currentTurnHashes(messages);
+    try {
+      const runtime = await this.getEmbeddingRuntime(userId);
+      if (!runtime) {
+        return await this.keywordMemory(userId, query, excludedHashes, k);
+      }
 
-摘要：
-`.trim());
+      const queryVector = await runtime.embeddings.embedQuery(query);
+      const vectorResult = await this.searchVectors(
+        userId,
+        runtime.modelKey,
+        queryVector,
+        excludedHashes,
+        k
+      );
+      if (vectorResult.count > 0) return vectorResult;
+      return await this.keywordMemory(userId, query, excludedHashes, k);
+    } catch (error) {
+      console.warn('Vector memory retrieval failed; using keyword memory:', error);
+      return await this.keywordMemory(userId, query, excludedHashes, k);
+    }
+  }
 
-    const userId = allDocs[0]?.metadata.userId as string | undefined;
+  /** Persist one completed Q&A as an episodic long-term memory. */
+  async addConversationTurn(
+    sessionId: string,
+    userMessage: string,
+    assistantMessage: string,
+    userId?: string,
+    resumeId?: string
+  ): Promise<void> {
+    if (!userId || !userMessage.trim() || !assistantMessage.trim()) return;
+
+    const content = turnContent(userMessage, assistantMessage);
+    const contentHash = hash(content);
+    let vector: number[] | null = null;
+    let modelKey: string | null = null;
+
+    try {
+      const runtime = await this.getEmbeddingRuntime(userId);
+      if (runtime) {
+        vector = await runtime.embeddings.embedQuery(content);
+        modelKey = runtime.modelKey;
+      }
+    } catch (error) {
+      // Text memory remains useful for keyword fallback even when embeddings fail.
+      console.warn('Unable to embed memory; saving text memory only:', error);
+    }
+
+    await prisma.$transaction(async (tx: any) => {
+      await tx.$executeRawUnsafe(
+        `INSERT INTO "ai_memories" (
+           "id", "user_id", "session_id", "resume_id", "content", "content_hash",
+           "metadata", "embedding", "embedding_dimension", "embedding_model"
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8::vector, $9, $10)
+         ON CONFLICT ("user_id", "session_id", "content_hash")
+         DO UPDATE SET
+           "content" = EXCLUDED."content",
+           "content_hash" = EXCLUDED."content_hash",
+           "metadata" = EXCLUDED."metadata",
+           "embedding" = COALESCE(EXCLUDED."embedding", "ai_memories"."embedding"),
+           "embedding_dimension" = COALESCE(EXCLUDED."embedding_dimension", "ai_memories"."embedding_dimension"),
+           "embedding_model" = COALESCE(EXCLUDED."embedding_model", "ai_memories"."embedding_model"),
+           "updated_at" = CURRENT_TIMESTAMP`,
+        crypto.randomUUID(),
+        userId,
+        sessionId,
+        resumeId || null,
+        content,
+        contentHash,
+        JSON.stringify({ sessionId, resumeId: resumeId || null, type: 'conversation_turn' }),
+        vector ? vectorLiteral(vector) : null,
+        vector?.length || null,
+        modelKey
+      );
+
+      await tx.$executeRawUnsafe(
+        `DELETE FROM "ai_memories"
+         WHERE "id" IN (
+           SELECT "id" FROM "ai_memories"
+           WHERE "user_id" = $1
+           ORDER BY "created_at" DESC
+           OFFSET $2
+         )`,
+        userId,
+        MAX_STORED_MEMORIES
+      );
+    });
+  }
+
+  async generateSessionSummary(sessionId: string, userId?: string): Promise<string> {
+    if (!userId) return '暂无对话记录';
+    const rows = (await prisma.$queryRawUnsafe(
+      `SELECT "content" FROM "ai_memories"
+       WHERE "user_id" = $1
+         AND "session_id" = $2
+       ORDER BY "created_at" ASC
+       LIMIT 100`,
+      userId,
+      sessionId
+    )) as Array<{ content: string }>;
+    if (rows.length === 0) return '暂无对话记录';
+
+    const summaryPrompt = PromptTemplate.fromTemplate(
+      `请为以下简历助手对话生成不超过100字的摘要：\n\n{content}\n\n摘要：`
+    );
     const llm = await createUserLLM(userId, { temperature: 0.3, maxTokens: 500 });
     const chain = RunnableSequence.from([
       summaryPrompt,
       llm,
       new StringOutputParser(),
     ]);
-
-    return await chain.invoke({ content: allContent });
+    return await chain.invoke({ content: rows.map((row) => row.content).join('\n\n') });
   }
 
-  clearSession(sessionId: string): void {
-    this.vectorStores.delete(sessionId);
-  }
-
-  clearAll(): void {
-    this.vectorStores.clear();
+  async clearSession(sessionId: string, userId?: string): Promise<void> {
+    if (!userId) return;
+    await prisma.$executeRawUnsafe(
+      `DELETE FROM "ai_memories"
+       WHERE "user_id" = $1
+         AND "session_id" = $2`,
+      userId,
+      sessionId
+    );
   }
 }
 
