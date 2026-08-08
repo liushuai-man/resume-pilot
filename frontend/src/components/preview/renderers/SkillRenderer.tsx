@@ -1,19 +1,11 @@
 import type { RendererProps } from './index';
 import { SectionWrapper } from './SectionWrapper';
 
-const LEVEL_LABELS: Record<string, string> = {
-  beginner: '入门',
-  intermediate: '熟练',
-  advanced: '精通',
-  expert: '专家',
-};
-
-const LEVEL_BARS: Record<string, number> = {
-  beginner: 1,
-  intermediate: 2,
-  advanced: 3,
-  expert: 4,
-};
+interface SkillLine {
+  id?: string;
+  name?: string;
+  category?: string;
+}
 
 export function SkillRenderer({
   section,
@@ -23,69 +15,21 @@ export function SkillRenderer({
   onClick,
 }: RendererProps) {
   if (section.type !== 'skill') return null;
-  const items = section.data as any[];
-  const safeItems = Array.isArray(items) ? items : [];
 
-  const baseSize = style.fontSize || 14;
-  const descSize = `${baseSize}px`;
-  const tagSize = `${Math.max(baseSize - 2, 10)}px`;
-  const primaryColor = style.primaryColor || '#2563eb';
+  const items = Array.isArray(section.data)
+    ? (section.data as SkillLine[]).filter((item) => item.name?.trim())
+    : [];
+  if (items.length === 0) return null;
 
-  const grouped: Record<string, any[]> = {};
-  for (const item of safeItems) {
-    const cat = item.category || '其他';
-    if (!grouped[cat]) grouped[cat] = [];
-    grouped[cat].push(item);
+  const grouped = new Map<string, SkillLine[]>();
+  for (const item of items) {
+    const category = item.category?.trim() || '';
+    grouped.set(category, [...(grouped.get(category) || []), item]);
   }
 
-  const hasCategories = Object.keys(grouped).length > 1;
-
-  const renderSkillTag = (skill: any) => {
-    const level = skill.level || 'intermediate';
-    const barCount = LEVEL_BARS[level] || 2;
-    const label = LEVEL_LABELS[level] || '';
-
-    return (
-      <span
-        key={skill.id}
-        title={`${skill.name} · ${label}`}
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '6px',
-          padding: variant === 'sidebar' ? '3px 8px' : '3px 10px',
-          backgroundColor:
-            variant === 'sidebar' ? 'rgba(255,255,255,0.1)' : '#f3f4f6',
-          color: variant === 'sidebar' ? '#e5e7eb' : '#374151',
-          borderRadius: '4px',
-          fontSize: tagSize,
-        }}
-      >
-        <span>{skill.name}</span>
-        <span style={{ display: 'inline-flex', gap: '2px' }}>
-          {[1, 2, 3, 4].map((i) => (
-            <span
-              key={i}
-              style={{
-                display: 'inline-block',
-                width: '4px',
-                height: '10px',
-                borderRadius: '1px',
-                backgroundColor:
-                  i <= barCount
-                    ? variant === 'sidebar'
-                      ? '#ffffff'
-                      : primaryColor
-                    : variant === 'sidebar'
-                      ? 'rgba(255,255,255,0.3)'
-                      : '#d1d5db',
-              }}
-            />
-          ))}
-        </span>
-      </span>
-    );
-  };
+  const baseSize = style.fontSize || 14;
+  const textColor = variant === 'sidebar' ? '#e5e7eb' : '#374151';
+  const subtitleColor = variant === 'sidebar' ? '#f3f4f6' : '#4b5563';
 
   return (
     <SectionWrapper
@@ -95,31 +39,45 @@ export function SkillRenderer({
       isHighlighted={isHighlighted}
       onClick={onClick}
     >
-      {hasCategories ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {Object.entries(grouped).map(([category, skills]) => (
-            <div key={category}>
-              <h4
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {Array.from(grouped.entries()).map(([category, skills]) => (
+          <div
+            key={category || 'uncategorized'}
+            style={{
+              breakInside: 'avoid',
+            }}
+          >
+            {category && (
+              <div
                 style={{
-                  fontSize: descSize,
+                  color: subtitleColor,
+                  fontSize: `${Math.max(baseSize - 1, 11)}px`,
                   fontWeight: 600,
-                  margin: '0 0 6px 0',
-                  color: '#374151',
+                  lineHeight: 1.5,
+                  marginBottom: '2px',
                 }}
               >
                 {category}
-              </h4>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                {skills.map((skill) => renderSkillTag(skill))}
               </div>
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+              {skills.map((skill, index) => (
+                <div
+                  key={skill.id || `${category}-${index}`}
+                  style={{
+                    color: textColor,
+                    fontSize: `${Math.max(baseSize - 2, 10)}px`,
+                    lineHeight: 1.7,
+                    overflowWrap: 'anywhere',
+                  }}
+                >
+                  {skill.name}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-          {safeItems.map((skill) => renderSkillTag(skill))}
-        </div>
-      )}
+          </div>
+        ))}
+      </div>
     </SectionWrapper>
   );
 }

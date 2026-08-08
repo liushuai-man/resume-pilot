@@ -67,12 +67,31 @@ export const defaultResumeContent = {
     },
   ],
   skills: [
-    { id: 'skill-1', name: 'Java', level: '熟练', category: '后端' },
-    { id: 'skill-2', name: 'Python', level: '熟练', category: '后端' },
-    { id: 'skill-3', name: 'Spring Boot', level: '熟练', category: '后端' },
-    { id: 'skill-4', name: 'MySQL', level: '熟练', category: '数据库' },
-    { id: 'skill-5', name: 'Docker', level: '熟悉', category: '运维' },
-    { id: 'skill-6', name: 'Kubernetes', level: '熟悉', category: '运维' },
+    {
+      id: 'skill-1',
+      name: '熟悉 Java、Spring Boot，能够独立完成 RESTful API 设计与开发',
+      category: '后端开发',
+    },
+    {
+      id: 'skill-2',
+      name: '熟悉 MySQL 表结构设计、常用索引及基础性能优化',
+      category: '数据存储',
+    },
+    {
+      id: 'skill-3',
+      name: '了解 Redis 常见数据结构及缓存应用场景',
+      category: '数据存储',
+    },
+    {
+      id: 'skill-4',
+      name: '能够使用 Docker 完成应用容器化与环境部署',
+      category: '工程化',
+    },
+    {
+      id: 'skill-5',
+      name: '了解 Kubernetes 基础资源与常用运维操作',
+      category: '工程化',
+    },
   ],
   careerObjective:
     '希望能够在系统集成领域发挥自己的专业技能，为企业的数字化转型贡献力量。',

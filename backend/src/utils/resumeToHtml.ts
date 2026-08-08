@@ -16,6 +16,28 @@ export interface ResumeContent {
   campusExperiences?: any[];
 }
 
+function renderSkillGroups(skills: any[]): string {
+  const grouped = new Map<string, string[]>();
+  for (const skill of skills) {
+    const name = (typeof skill === 'string' ? skill : skill?.name || '').trim();
+    if (!name) continue;
+    const category = (
+      typeof skill === 'string' ? '' : skill?.category || ''
+    ).trim();
+    grouped.set(category, [...(grouped.get(category) || []), name]);
+  }
+
+  return Array.from(grouped.entries())
+    .map(
+      ([category, lines]) => `
+        <div style="margin-bottom: 8px; font-size: 12px; line-height: 1.7; break-inside: avoid;">
+          ${category ? `<strong style="display: block; margin-bottom: 2px;">${category}</strong>` : ''}
+          ${lines.map((line) => `<div>${line}</div>`).join('')}
+        </div>`
+    )
+    .join('');
+}
+
 function isFlatStructure(content: ResumeContent): boolean {
   return !!(content.basicInfo || content.education || content.experience);
 }
@@ -280,9 +302,7 @@ function generateClassicLayout(blocks: ResumeBlock[], styles: any): string {
         html += `
           <div class="section">
             <div class="section-title">专业技能</div>
-            <div class="skills">
-              ${skills.map((skill: string) => `<span class="skill-tag">${skill}</span>`).join('')}
-            </div>
+            <div>${renderSkillGroups(skills)}</div>
           </div>
         `;
         break;
@@ -402,9 +422,7 @@ function generateSidebarLayout(blocks: ResumeBlock[], styles: any): string {
     html += `
       <div class="sidebar-section">
         <div class="sidebar-section-title">专业技能</div>
-        <div>
-          ${skills.map((skill: string) => `<span class="sidebar-skill-tag">${skill}</span>`).join('')}
-        </div>
+        <div>${renderSkillGroups(skills)}</div>
       </div>
     `;
   }
@@ -709,9 +727,7 @@ function generateMinimalLayout(blocks: ResumeBlock[], styles: any): string {
         html += `
           <div class="section">
             <div class="section-title">专业技能</div>
-            <div class="skills">
-              ${skills.map((skill: string) => `<span class="skill-tag">${skill}</span>`).join('')}
-            </div>
+            <div>${renderSkillGroups(skills)}</div>
           </div>
         `;
         break;

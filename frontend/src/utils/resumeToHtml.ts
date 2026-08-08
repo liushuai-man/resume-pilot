@@ -1,5 +1,27 @@
 import type { ResumeContent } from '@/types/resume';
 
+function renderSkillGroups(skills: any[]): string {
+  const grouped = new Map<string, string[]>();
+  for (const skill of skills) {
+    const name = (typeof skill === 'string' ? skill : skill?.name || '').trim();
+    if (!name) continue;
+    const category = (
+      typeof skill === 'string' ? '' : skill?.category || ''
+    ).trim();
+    grouped.set(category, [...(grouped.get(category) || []), name]);
+  }
+
+  return Array.from(grouped.entries())
+    .map(
+      ([category, lines]) => `
+        <div style="margin-bottom: 8px; font-size: 13px; line-height: 1.7; break-inside: avoid;">
+          ${category ? `<strong style="display: block; margin-bottom: 2px;">${category}</strong>` : ''}
+          ${lines.map((line) => `<div>${line}</div>`).join('')}
+        </div>`
+    )
+    .join('');
+}
+
 export const generateResumeHtml = (
   content: ResumeContent,
   title: string
@@ -126,13 +148,11 @@ export const generateResumeHtml = (
         break;
       }
       case 'skills': {
-        const skills = block.data as string[];
+        const skills = Array.isArray(block.data) ? block.data : [];
         html += `
             <div class="section">
               <div class="section-title"><svg class="icon section-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.39-1.08-.7-1.66-.94l-.38-2.65c-.03-.24-.24-.42-.48-.42h-4c-.24 0-.45.18-.48.42l-.38 2.65c-.58.24-1.14.55-1.66.94l-2.49-1c-.22-.08-.49 0-.61.22l-2 3.46c-.12.22-.07.49.12.64l2.11 1.65c-.04.32-.07.64-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.39 1.08.7 1.66.94l.38 2.65c.03.24.24.42.48.42h4c.24 0 .45-.18.48-.42l.38-2.65c.58-.24 1.14-.55 1.66-.94l2.49 1c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zm-7.43 2.52c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>专业技能</div>
-              <div class="skills">
-                ${skills.map((skill: string) => `<span class="skill-tag">${skill}</span>`).join('')}
-              </div>
+              <div>${renderSkillGroups(skills)}</div>
             </div>
           `;
         break;

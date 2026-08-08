@@ -1,162 +1,170 @@
-import { useState } from 'react';
-import { TextInput } from './EditorCommon';
+import { TextArea, TextInput } from './EditorCommon';
 import type { SectionEditorProps } from './EditorCommon';
 
-function generateItemId() {
-  return `item-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
+interface SkillDraft {
+  id: string;
+  name: string;
+  category?: string;
 }
 
+const CATEGORY_OPTIONS = [
+  '编程语言',
+  '前端开发',
+  '后端开发',
+  '数据存储',
+  '工程化',
+  '测试与质量',
+  '工具与平台',
+  '语言能力',
+];
+
+function generateItemId() {
+  return `item-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+const buttonStyle = {
+  border: '1px solid #d1d5db',
+  borderRadius: '6px',
+  backgroundColor: '#ffffff',
+  cursor: 'pointer',
+  fontSize: '13px',
+} as const;
+
 export function SkillEditor({ data, onChange }: SectionEditorProps) {
-  const items = data || [];
-  const [newSkill, setNewSkill] = useState('');
-  const [newCategory, setNewCategory] = useState('');
+  const items: SkillDraft[] = Array.isArray(data) ? data : [];
 
-  const addSkill = () => {
-    if (!newSkill.trim()) return;
-    const newItem = {
-      id: generateItemId(),
-      name: newSkill.trim(),
-      level: 'intermediate' as const,
-      category: newCategory.trim() || undefined,
-    };
-    onChange([...items, newItem]);
-    setNewSkill('');
-    setNewCategory('');
+  const updateItem = (id: string, updates: Partial<SkillDraft>) => {
+    onChange(
+      items.map((item) => (item.id === id ? { ...item, ...updates } : item))
+    );
   };
 
-  const updateSkill = (index: number, updates: any) => {
-    const newItems = [...items];
-    newItems[index] = { ...newItems[index], ...updates };
-    onChange(newItems);
+  const removeItem = (id: string) => {
+    onChange(items.filter((item) => item.id !== id));
   };
 
-  const removeSkill = (index: number) => {
-    onChange(items.filter((_: any, i: number) => i !== index));
+  const addItem = () => {
+    onChange([...items, { id: generateItemId(), name: '', category: '' }]);
   };
 
   return (
     <div>
-      <div style={{ marginBottom: '16px' }}>
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-          <TextInput
-            value={newSkill}
-            onChange={(e) => setNewSkill(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                addSkill();
-              }
-            }}
-            placeholder="技能名称"
-            style={{ flex: 1 }}
-          />
-          <TextInput
-            value={newCategory}
-            onChange={(e) => setNewCategory(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                addSkill();
-              }
-            }}
-            placeholder="分类（选填）"
-            style={{ width: '120px' }}
-          />
-          <button
-            onClick={addSkill}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: '#4f46e5',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '13px',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            添加
-          </button>
-        </div>
-        <p style={{ fontSize: '12px', color: '#9ca3af', margin: 0 }}>
-          按回车快速添加
-        </p>
-      </div>
+      <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 14px' }}>
+        每项由“分类小标题（可选）”和“技能正文”组成。分类可从常用选项中选择，也可以自行填写。
+      </p>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        {items.map((item: any, index: number) => (
+      <datalist id="skill-category-options">
+        {CATEGORY_OPTIONS.map((option) => (
+          <option key={option} value={option} />
+        ))}
+      </datalist>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {items.map((item, index) => (
           <div
             key={item.id}
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '8px 12px',
+              padding: '14px',
+              border: '1px solid #e5e7eb',
+              borderRadius: '8px',
               backgroundColor: '#f9fafb',
-              borderRadius: '6px',
             }}
           >
-            <span style={{ flex: 1, fontSize: '14px', color: '#374151' }}>
-              {item.name}
-            </span>
-            {item.category && (
-              <span
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '10px',
+              }}
+            >
+              <span style={{ fontSize: '13px', fontWeight: 600, color: '#374151' }}>
+                技能项 {index + 1}
+              </span>
+              <button
+                type="button"
+                onClick={() => removeItem(item.id)}
                 style={{
-                  fontSize: '12px',
-                  color: '#6b7280',
-                  backgroundColor: '#e5e7eb',
-                  padding: '2px 8px',
-                  borderRadius: '4px',
+                  ...buttonStyle,
+                  padding: '4px 10px',
+                  color: '#dc2626',
+                  borderColor: '#fecaca',
                 }}
               >
-                {item.category}
-              </span>
-            )}
-            <select
-              value={item.level || 'intermediate'}
-              onChange={(e) => updateSkill(index, { level: e.target.value })}
+                删除
+              </button>
+            </div>
+
+            <label
               style={{
-                padding: '4px 8px',
-                border: '1px solid #d1d5db',
-                borderRadius: '4px',
+                display: 'block',
                 fontSize: '12px',
-                backgroundColor: 'white',
+                color: '#6b7280',
+                marginBottom: '4px',
               }}
             >
-              <option value="beginner">入门</option>
-              <option value="intermediate">熟练</option>
-              <option value="advanced">精通</option>
-              <option value="expert">专家</option>
-            </select>
-            <button
-              onClick={() => removeSkill(index)}
+              分类小标题（可选）
+            </label>
+            <TextInput
+              list="skill-category-options"
+              value={item.category || ''}
+              onChange={(event) =>
+                updateItem(item.id, { category: event.target.value })
+              }
+              placeholder="选择常用分类或自行输入"
+              style={{ marginBottom: '10px', fontWeight: 600 }}
+            />
+
+            <label
               style={{
-                color: '#ef4444',
-                fontSize: '18px',
-                backgroundColor: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                lineHeight: 1,
-                padding: '0 4px',
+                display: 'block',
+                fontSize: '12px',
+                color: '#6b7280',
+                marginBottom: '4px',
               }}
             >
-              ×
-            </button>
+              技能正文
+            </label>
+            <TextArea
+              value={item.name}
+              onChange={(event) =>
+                updateItem(item.id, { name: event.target.value })
+              }
+              placeholder="例如：熟悉 Spring Boot，能够独立完成 RESTful API 设计与开发。"
+              rows={2}
+              style={{ minHeight: '64px' }}
+            />
           </div>
         ))}
       </div>
 
+      <button
+        type="button"
+        onClick={addItem}
+        style={{
+          ...buttonStyle,
+          width: '100%',
+          marginTop: items.length > 0 ? '12px' : 0,
+          padding: '9px',
+          color: '#4f46e5',
+          borderColor: '#a5b4fc',
+          borderStyle: 'dashed',
+        }}
+      >
+        + 添加技能项
+      </button>
+
       {items.length === 0 && (
-        <div
+        <p
           style={{
             textAlign: 'center',
-            padding: '24px',
             color: '#9ca3af',
-            fontSize: '13px',
+            fontSize: '12px',
+            margin: '12px 0 0',
           }}
         >
-          暂无技能，添加你的第一个技能吧
-        </div>
+          分类可以留空，只填写技能正文即可
+        </p>
       )}
     </div>
   );

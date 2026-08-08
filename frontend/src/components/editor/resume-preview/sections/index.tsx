@@ -218,6 +218,13 @@ export function SkillsSection({
 }: SectionProps) {
   if (!content.skills || content.skills.length === 0) return null;
 
+  const grouped = new Map<string, typeof content.skills>();
+  for (const item of content.skills.filter((skill) => skill.name?.trim())) {
+    const category = item.category?.trim() || '';
+    grouped.set(category, [...(grouped.get(category) || []), item]);
+  }
+  if (grouped.size === 0) return null;
+
   return (
     <SectionWrapper
       title="专业技能"
@@ -228,38 +235,41 @@ export function SkillsSection({
       highlightClass={highlightClass('skills')}
       variant={variant}
     >
-      <div className="flex flex-wrap gap-2">
-        {content.skills.map((item) => {
-          if (variant === 'minimal') {
-            return (
-              <span
-                key={item.id}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
+        {Array.from(grouped.entries()).map(([category, skills]) => (
+          <div
+            key={category || 'uncategorized'}
+            style={{
+              lineHeight: 1.7,
+            }}
+          >
+            {category && (
+              <strong
                 style={{
-                  fontSize: '11px',
-                  color: '#888',
-                  padding: '2px 0',
-                  borderBottom: `1px solid ${primaryColor}40`,
+                  display: 'block',
+                  marginBottom: '2px',
+                  color: variant === 'sidebar' ? 'inherit' : '#4b5563',
+                  fontSize: variant === 'minimal' ? '11px' : '12px',
+                  fontWeight: 600,
                 }}
               >
-                {item.name}
-              </span>
-            );
-          }
-
-          return (
-            <span
-              key={item.id}
-              className="px-3 py-1 rounded text-sm"
+                {category}
+              </strong>
+            )}
+            <div
               style={{
-                backgroundColor: `${primaryColor}20`,
-                color: primaryColor,
-                border: `1px solid ${primaryColor}40`,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '2px',
+                fontSize: variant === 'minimal' ? '10px' : '11px',
               }}
             >
-              {item.name}
-            </span>
-          );
-        })}
+              {skills.map((item) => (
+                <div key={item.id}>{item.name}</div>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     </SectionWrapper>
   );

@@ -64,14 +64,26 @@ function getSavedSections(content: ResumeContent): ResumeSection[] | null {
         typeof section.type === 'string' &&
         typeof section.title === 'string'
     )
-    .map((section: any, index) => ({
-      ...section,
-      visible: section.visible !== false,
-      order: index,
-      data: Array.isArray(section.data)
-        ? section.data.map((item: any) => ({ ...item }))
-        : { ...(section.data || {}) },
-    })) as ResumeSection[];
+    .map((section: any, index) => {
+      const data = Array.isArray(section.data)
+        ? section.data.map((item: any) => {
+            if (section.type !== 'skill') return { ...item };
+            return {
+              id: item.id || genItemId('skill'),
+              name: typeof item === 'string' ? item : item.name || '',
+              category:
+                typeof item === 'string' ? undefined : item.category || undefined,
+            };
+          })
+        : { ...(section.data || {}) };
+
+      return {
+        ...section,
+        visible: section.visible !== false,
+        order: index,
+        data,
+      };
+    }) as ResumeSection[];
 }
 
 function hasProfileContent(content: ResumeContent): boolean {
@@ -172,7 +184,6 @@ function convertSkill(content: ResumeContent): SkillSection | null {
     data: list.map((skill) => ({
       id: skill.id || genItemId('skill'),
       name: skill.name || '',
-      level: (skill.level as any) || 'intermediate',
       category: skill.category,
     })),
   };
@@ -388,7 +399,6 @@ export function documentToContent(document: ResumeDocument): ResumeContent {
         content.skills = (section.data as any[]).map((item) => ({
           id: item.id,
           name: item.name,
-          level: item.level,
           category: item.category,
         }));
         break;

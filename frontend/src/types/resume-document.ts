@@ -114,8 +114,9 @@ export interface ProjectItem {
 
 export interface SkillItem {
   id: string;
+  /** 用户自行编写的一条技能描述。 */
   name: string;
-  level?: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+  /** 用户自定义分类，例如“编程语言”“后端开发”。 */
   category?: string;
 }
 
