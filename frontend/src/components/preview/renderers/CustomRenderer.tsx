@@ -28,7 +28,7 @@ export function CustomRenderer({
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         {items.map((item) => (
-          <div key={item.id}>
+          <div key={item.id} data-resume-item-id={item.id}>
             <div
               style={{
                 display: 'flex',

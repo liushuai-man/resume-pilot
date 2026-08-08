@@ -27,7 +27,11 @@ export function EducationRenderer({
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         {safeItems.map((item) => (
-          <div key={item.id} className="education-item">
+          <div
+            key={item.id}
+            className="education-item"
+            data-resume-item-id={item.id}
+          >
             <div
               style={{
                 display: 'flex',

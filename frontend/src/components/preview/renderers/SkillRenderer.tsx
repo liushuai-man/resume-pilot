@@ -64,6 +64,7 @@ export function SkillRenderer({
               {skills.map((skill, index) => (
                 <div
                   key={skill.id || `${category}-${index}`}
+                  data-resume-item-id={skill.id}
                   style={{
                     color: textColor,
                     fontSize: `${Math.max(baseSize - 2, 10)}px`,

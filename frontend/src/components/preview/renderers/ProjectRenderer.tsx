@@ -33,7 +33,11 @@ export function ProjectRenderer({
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {safeItems.map((item) => (
-          <div key={item.id} className="project-item">
+          <div
+            key={item.id}
+            className="project-item"
+            data-resume-item-id={item.id}
+          >
             <div
               style={{
                 display: 'flex',

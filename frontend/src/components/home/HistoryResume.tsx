@@ -3,25 +3,14 @@ import { Card, Text, Button, Group, Modal } from '@mantine/core';
 import { Eye, Edit3, Download, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { Resume, StyleConfig } from '@/types/resume';
-import type { ResumeDocument } from '@/types/resume-document';
 import { notification } from '@/components/common/Notification';
 import ThumbnailPreview from '@/components/home/ThumbnailPreview';
-import { ClassicTemplate } from '@/components/preview/templates/ClassicTemplate';
-import { ModernTemplate } from '@/components/preview/templates/ModernTemplate';
-import { MinimalTemplate } from '@/components/preview/templates/MinimalTemplate';
-import { SidebarTemplate } from '@/components/preview/templates/SidebarTemplate';
+import { DocumentPreview } from '@/components/preview/DocumentPreview';
 import { contentToDocument } from '@/utils/resume-migration';
 import { resumeApi } from '@/api/home.api';
 import { downloadPdf } from '@/utils/downloadPdf';
 import { formatDateTime } from '@/utils/format';
 import ConfirmModal from '@/components/common/ConfirmModal';
-
-const TEMPLATE_MAP: Record<string, React.ComponentType<{ document: ResumeDocument }>> = {
-  classic: ClassicTemplate as any,
-  modern: ModernTemplate as any,
-  minimal: MinimalTemplate as any,
-  sidebar: SidebarTemplate as any,
-};
 
 interface HistoryResumeProps {
   resume: Resume;
@@ -49,8 +38,6 @@ export default function HistoryResume({
     () => contentToDocument(content, templateStyle || null, layout),
     [content, templateStyle, layout]
   );
-
-  const TemplateComponent = TEMPLATE_MAP[layout] || ClassicTemplate;
 
   const handlePreview = () => {
     setPreviewModalOpen(true);
@@ -182,9 +169,7 @@ export default function HistoryResume({
             className="overflow-auto bg-gray-100"
             style={{ maxHeight: '70vh' }}
           >
-            <div className="min-h-full flex justify-center">
-              <TemplateComponent document={document} />
-            </div>
+            <DocumentPreview document={document} className="min-h-full" />
           </div>
 
           <div className="p-4 border-t-2 flex justify-end gap-3">

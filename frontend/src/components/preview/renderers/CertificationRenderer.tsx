@@ -28,6 +28,7 @@ export function CertificationRenderer({
         {safeItems.map((item) => (
           <div
             key={item.id}
+            data-resume-item-id={item.id}
             style={{
               display: 'flex',
               justifyContent: 'space-between',

@@ -3,22 +3,8 @@ import { Eye, Plus } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { LAYOUT_TEMPLATES } from '@/utils/template-demo-data';
 import ThumbnailPreview from '@/components/home/ThumbnailPreview';
-import { ClassicTemplate } from '@/components/preview/templates/ClassicTemplate';
-import { ModernTemplate } from '@/components/preview/templates/ModernTemplate';
-import { MinimalTemplate } from '@/components/preview/templates/MinimalTemplate';
-import { SidebarTemplate } from '@/components/preview/templates/SidebarTemplate';
+import { DocumentPreview } from '@/components/preview/DocumentPreview';
 import { contentToDocument } from '@/utils/resume-migration';
-import type { ResumeDocument } from '@/types/resume-document';
-
-const TEMPLATE_MAP: Record<
-  string,
-  React.ComponentType<{ document: ResumeDocument }>
-> = {
-  classic: ClassicTemplate as any,
-  modern: ModernTemplate as any,
-  minimal: MinimalTemplate as any,
-  sidebar: SidebarTemplate as any,
-};
 
 interface ResumeTemplateProps {
   onSelect: (layout: string) => void;
@@ -156,8 +142,6 @@ function TemplatePreviewModal({
     [template]
   );
 
-  const TemplateComponent = TEMPLATE_MAP[template.layout] || ClassicTemplate;
-
   return (
     <div className="bg-white border-t-2 border-gray-200 overflow-hidden">
       <div
@@ -166,9 +150,7 @@ function TemplatePreviewModal({
           maxHeight: '70vh',
         }}
       >
-        <div className="flex justify-center py-4">
-          <TemplateComponent document={document} />
-        </div>
+        <DocumentPreview document={document} />
       </div>
 
       <div className="p-4 border-t-2 flex justify-end">
