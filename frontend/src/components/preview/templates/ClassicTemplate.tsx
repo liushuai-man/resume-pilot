@@ -27,14 +27,15 @@ export function ClassicTemplate({ document, highlightSectionId, onSectionClick }
         const Renderer = getSectionRenderer(section.type);
         if (!Renderer) return null;
         return (
-          <Renderer
-            key={section.id}
-            section={section}
-            style={style}
-            variant="classic"
-            isHighlighted={highlightSectionId === section.id}
-            onClick={() => onSectionClick?.(section.id)}
-          />
+          <div key={section.id} data-resume-section-id={section.id}>
+            <Renderer
+              section={section}
+              style={style}
+              variant="classic"
+              isHighlighted={highlightSectionId === section.id}
+              onClick={() => onSectionClick?.(section.id)}
+            />
+          </div>
         );
       })}
     </div>

@@ -31,13 +31,15 @@ export function ModernTemplate({ document, highlightSectionId, onSectionClick }:
             const Renderer = getSectionRenderer(profileSection.type);
             if (!Renderer) return null;
             return (
-              <Renderer
-                section={profileSection}
-                style={style}
-                variant="modern"
-                isHighlighted={highlightSectionId === profileSection.id}
-                onClick={() => onSectionClick?.(profileSection.id)}
-              />
+              <div data-resume-section-id={profileSection.id}>
+                <Renderer
+                  section={profileSection}
+                  style={style}
+                  variant="modern"
+                  isHighlighted={highlightSectionId === profileSection.id}
+                  onClick={() => onSectionClick?.(profileSection.id)}
+                />
+              </div>
             );
           })()}
         </>
@@ -47,14 +49,15 @@ export function ModernTemplate({ document, highlightSectionId, onSectionClick }:
         const Renderer = getSectionRenderer(section.type);
         if (!Renderer) return null;
         return (
-          <Renderer
-            key={section.id}
-            section={section}
-            style={style}
-            variant="modern"
-            isHighlighted={highlightSectionId === section.id}
-            onClick={() => onSectionClick?.(section.id)}
-          />
+          <div key={section.id} data-resume-section-id={section.id}>
+            <Renderer
+              section={section}
+              style={style}
+              variant="modern"
+              isHighlighted={highlightSectionId === section.id}
+              onClick={() => onSectionClick?.(section.id)}
+            />
+          </div>
         );
       })}
     </div>
