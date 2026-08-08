@@ -6,7 +6,6 @@ import {
   getThumbnailPath,
 } from '../services/thumbnail.service';
 import { success, error } from '../utils/response';
-import { generateResumeHtml as renderResumeHtml } from '../utils/resumeToHtml';
 
 export const createResume = async (req: Request, res: Response) => {
   try {
@@ -128,15 +127,6 @@ export const exportResumePdf = async (req: Request, res: Response) => {
     });
     if (!resume) return error(res, '简历不存在', 404);
 
-    const template = resume.template_id
-      ? await prisma.template.findFirst({
-          where: { id: resume.template_id, is_deleted: false },
-          select: { style_config: true },
-        })
-      : null;
-    const styleConfig = template?.style_config ?? undefined;
-    const html = renderResumeHtml(resume.content as any, styleConfig);
-
     const puppeteer = (await import('puppeteer')).default;
     const browser = await puppeteer.launch({
       headless: true,
@@ -144,10 +134,44 @@ export const exportResumePdf = async (req: Request, res: Response) => {
     });
     try {
       const page = await browser.newPage();
-      await page.setContent(html, { waitUntil: 'networkidle0' });
+      await page.setViewport({ width: 794, height: 1123, deviceScaleFactor: 1 });
+
+      const frontendUrl = (
+        process.env.PDF_RENDER_URL ||
+        process.env.CORS_ORIGIN?.split(',')[0] ||
+        'http://localhost:5173'
+      ).replace(/\/$/, '');
+      const cookieHeader = req.headers.cookie;
+      if (cookieHeader) {
+        await page.setExtraHTTPHeaders({ cookie: cookieHeader });
+      }
+
+      const printUrl = `${frontendUrl}/resume/${encodeURIComponent(id)}/print`;
+      await page.goto(printUrl, { waitUntil: 'networkidle0' });
+      await Promise.race([
+        page.waitForSelector('[data-resume-preview-ready="true"]', {
+          timeout: 30_000,
+        }),
+        page.waitForSelector('[data-resume-print-error]', { timeout: 30_000 }).then(
+          () => {
+            throw new Error('打印页面无法加载简历');
+          }
+        ),
+      ]);
+      await page.evaluate(async () => {
+        const browserGlobal = globalThis as any;
+        await browserGlobal.document.fonts.ready;
+        await new Promise<void>((resolve) =>
+          browserGlobal.requestAnimationFrame(() =>
+            browserGlobal.requestAnimationFrame(() => resolve())
+          )
+        );
+      });
+      await page.emulateMediaType('print');
       const pdf = await page.pdf({
         format: 'A4',
         printBackground: true,
+        preferCSSPageSize: true,
         margin: { top: '0', right: '0', bottom: '0', left: '0' },
       });
       const filename = `${resume.title.replace(/[\\/:*?"<>|]/g, '_') || 'resume'}.pdf`;

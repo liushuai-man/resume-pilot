@@ -17,6 +17,8 @@ services:
   backend:
     image: ${BACKEND_IMAGE:-ghcr.io/liushuai-man/resume-pilot-backend}:${IMAGE_TAG:-latest}
     env_file: .env.production
+    environment:
+      PDF_RENDER_URL: http://frontend
     expose:
       - "4000"
     volumes:

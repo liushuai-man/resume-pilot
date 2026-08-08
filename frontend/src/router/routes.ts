@@ -17,6 +17,7 @@ const HomeLayout = React.lazy(() => import('@/layouts/HomeLayout'));
 const LoginPage = React.lazy(() => import('@/pages/LoginPage'));
 const HomePage = React.lazy(() => import('@/pages/HomePage'));
 const ResumeEditorPage = React.lazy(() => import('@/pages/ResumeEditorPage'));
+const ResumePrintPage = React.lazy(() => import('@/pages/ResumePrintPage'));
 const InterviewPage = React.lazy(() => import('@/pages/InterviewPage'));
 const InterviewHistoryPage = React.lazy(
   () => import('@/pages/InterviewHistoryPage')
@@ -51,6 +52,10 @@ export const routes: RouteConfig[] = [
   {
     path: '/resume/:id',
     element: protectedPage(React.createElement(ResumeEditorPage)),
+  },
+  {
+    path: '/resume/:id/print',
+    element: protectedPage(React.createElement(ResumePrintPage)),
   },
   {
     path: '/resume/interview',

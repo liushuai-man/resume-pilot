@@ -33,6 +33,7 @@ interface DocumentPreviewProps {
   showPageNumbers?: boolean;
   scale?: number;
   pageGap?: number;
+  printMode?: boolean;
 }
 
 interface PageFragment {
@@ -165,6 +166,7 @@ export function DocumentPreview({
   showPageNumbers = true,
   scale: scaleProp,
   pageGap = DEFAULT_PAGE_GAP,
+  printMode = false,
 }: DocumentPreviewProps = {}) {
   const store = useDocumentStore();
   const usesDocumentStore = documentProp === undefined;
@@ -383,6 +385,7 @@ export function DocumentPreview({
     <div
       ref={viewportRef}
       className={className}
+      data-resume-preview-ready={pageFragments.length > 0 ? 'true' : 'false'}
       style={{
         width: '100%',
         minHeight: '100%',
@@ -409,7 +412,7 @@ export function DocumentPreview({
         style={{
           width: `${stageWidth}px`,
           height: `${stageHeight}px`,
-          margin: '8px auto 24px',
+          margin: printMode ? '0' : '8px auto 24px',
           position: 'relative',
         }}
       >
@@ -446,9 +449,13 @@ export function DocumentPreview({
                   width: `${A4_PAGE_WIDTH}px`,
                   height: `${A4_PAGE_HEIGHT}px`,
                   backgroundColor: '#ffffff',
-                  boxShadow: '0 3px 14px rgba(15, 23, 42, 0.12)',
+                  boxShadow: printMode
+                    ? 'none'
+                    : '0 3px 14px rgba(15, 23, 42, 0.12)',
                   position: 'relative',
                   overflow: 'hidden',
+                  breakAfter:
+                    printMode && index < pages.length - 1 ? 'page' : 'auto',
                 }}
               >
                 <div style={{ width: '100%', height: '100%' }}>
@@ -458,7 +465,7 @@ export function DocumentPreview({
                     onSectionClick={handleSectionClick}
                   />
                 </div>
-                {showPageNumbers && (
+                {showPageNumbers && !printMode && (
                   <span
                     aria-hidden="true"
                     style={{
