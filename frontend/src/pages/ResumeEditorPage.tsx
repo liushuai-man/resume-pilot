@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import EditorLayout from '@/layouts/EditorLayout';
 import EditorToolbar from '@/components/editor/EditorHeaderToolbar';
 import { SectionList } from '@/components/editor/SectionList';
@@ -17,6 +17,7 @@ import { useAutoSave } from '@/hooks/useAutoSave';
 
 export default function ResumeEditorPage() {
   const { id: resumeId } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const { resume, template, loadResume, initStore, loadTemplate } =
     useResumeStore();
   const {
@@ -71,6 +72,21 @@ export default function ResumeEditorPage() {
       loadDocument(doc);
     }
   }, [resume, template, document, loadDocument]);
+
+  useEffect(() => {
+    const requestedSection = searchParams.get('section');
+    if (!document || !requestedSection) return;
+    const typeMap: Record<string, string> = {
+      basic: 'profile',
+      skills: 'skill',
+      projects: 'project',
+    };
+    const sectionType = typeMap[requestedSection] || requestedSection;
+    const section = document.sections.find((item) => item.type === sectionType);
+    if (!section) return;
+    setActiveSection(section.id);
+    setEditorModalOpen(true);
+  }, [document, searchParams, setActiveSection]);
 
   const handleSectionClick = (sectionId: string) => {
     setActiveSection(sectionId);

@@ -17,6 +17,7 @@ import { useNavigate } from 'react-router-dom';
 import { notification } from '@/components/common/Notification';
 import type { Resume } from '@/types/resume';
 import { getApiErrorMessage } from '@/utils/api-error';
+import PageHeader from '@/components/common/PageHeader';
 
 const MAX_RESUMES = 7;
 
@@ -117,7 +118,7 @@ export default function HomePage() {
 
       if (response.data) {
         notification.success('简历创建成功');
-        navigate(`/resume/${response.data.id}`);
+        navigate(`/resumes/${response.data.id}/edit`);
       }
     } catch (error) {
       console.error('创建简历失败:', error);
@@ -144,7 +145,7 @@ export default function HomePage() {
 
       if (response.data) {
         notification.success('简历创建成功');
-        navigate(`/resume/${response.data.id}`);
+        navigate(`/resumes/${response.data.id}/edit`);
       }
     } catch (error) {
       console.error('创建简历失败:', error);
@@ -160,19 +161,11 @@ export default function HomePage() {
   };
 
   return (
-    <Container className="max-w-6xl mx-auto">
+    <Container className="mx-auto max-w-7xl px-6">
       {/* 我的简历区域 */}
       <div className="mb-10">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-800">我的简历</h1>
-              <p className="text-gray-500 mt-1">
-                管理和创建你的简历，助力求职之路
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
+        <PageHeader eyebrow="RESUMES" title="我的简历" description="集中管理简历内容、模板与导出；岗位分析和面试结果保留在各自任务中。" />
+          <div className="mb-5 flex flex-wrap items-center justify-end gap-3 rounded-xl border border-gray-200 bg-white p-3">
             <Input
               placeholder="搜索简历名称..."
               value={searchKeyword}
@@ -216,7 +209,6 @@ export default function HomePage() {
                 className={sortOrder === 'asc' ? 'rotate-180' : ''}
               />
             </ActionIcon>
-          </div>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -249,7 +241,7 @@ export default function HomePage() {
       </div>
 
       {/* 精选模板区域 */}
-      <div className="bg-gray-50 rounded-xl p-6">
+      <div className="rounded-xl border border-gray-200 bg-white p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">精选模板</h1>

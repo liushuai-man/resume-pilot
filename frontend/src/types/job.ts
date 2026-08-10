@@ -46,3 +46,35 @@ export type EditableJobProfile = Pick<
   | 'preferredSkills'
   | 'keywords'
 >;
+
+export interface AtsIssue {
+  id: string;
+  category: 'parseability' | 'basic' | 'education' | 'evidence' | 'skills' | 'expression';
+  severity: 'error' | 'warning' | 'suggestion';
+  section: string;
+  itemId: string | null;
+  field: string;
+  title: string;
+  message: string;
+  availablePoints: number;
+}
+
+export interface AtsAnalysisResult {
+  jobDescriptionId: string;
+  resumeId: string;
+  resumeTitle: string;
+  resumeUpdatedAt: string;
+  score: number;
+  maxScore: 100;
+  scorerVersion: string;
+  analyzedAt: string;
+  summary: { errors: number; warnings: number; suggestions: number };
+  dimensions: Array<{
+    key: AtsIssue['category'];
+    label: string;
+    score: number;
+    maxScore: number;
+  }>;
+  issues: AtsIssue[];
+  limitations: string[];
+}

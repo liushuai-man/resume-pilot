@@ -1,14 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BarChart3, Check, Loader2, Plus, RefreshCw, Save, Trash2, X } from 'lucide-react';
+import { AlertCircle, BarChart3, Check, FileText, Loader2, Plus, RefreshCw, Save, Trash2, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { jobApi } from '@/api/job.api';
+import { resumeApi } from '@/api/home.api';
 import { notification } from '@/components/common/Notification';
 import { getApiErrorMessage } from '@/utils/api-error';
 import type {
   EditableJobProfile,
+  AtsAnalysisResult,
   JobDescription,
   JobProfile,
   JobRequirement,
 } from '@/types/job';
+import type { Resume } from '@/types/resume';
+import PageHeader from '@/components/common/PageHeader';
 
 const emptyRequirement = (): JobRequirement => ({
   name: '',
@@ -118,6 +123,10 @@ export default function JobCenterPage() {
   const [createError, setCreateError] = useState('');
   const [savedJobId, setSavedJobId] = useState<string | null>(null);
   const [workspaceTab, setWorkspaceTab] = useState<'profile' | 'match'>('profile');
+  const [resumes, setResumes] = useState<Resume[]>([]);
+  const [selectedResumeId, setSelectedResumeId] = useState('');
+  const [atsResult, setAtsResult] = useState<AtsAnalysisResult | null>(null);
+  const [atsBusy, setAtsBusy] = useState(false);
 
   const selected = useMemo(
     () => jobs.find((job) => job.id === selectedId) || null,
@@ -166,6 +175,11 @@ export default function JobCenterPage() {
 
   useEffect(() => {
     void loadJobs();
+    void resumeApi.getUserResumes({ excludeUploaded: true }).then((response) => {
+      if (response.code !== 200) throw new Error(response.message);
+      setResumes(response.data);
+      setSelectedResumeId(response.data[0]?.id || '');
+    }).catch((cause) => notification.error(getApiErrorMessage(cause, '简历列表加载失败')));
   }, []);
 
   const selectJob = async (job: JobDescription) => {
@@ -175,6 +189,7 @@ export default function JobCenterPage() {
     showProfile(job.latestProfile || null);
     setShowCreate(false);
     setWorkspaceTab('profile');
+    setAtsResult(null);
     try {
       await loadProfiles(job.id);
     } catch (cause) {
@@ -304,6 +319,24 @@ export default function JobCenterPage() {
     await loadJobs();
   };
 
+  const runAtsAnalysis = async () => {
+    if (!selected || !selectedResumeId) {
+      notification.error('请先选择一份简历');
+      return;
+    }
+    setAtsBusy(true);
+    try {
+      const response = await jobApi.analyzeAts(selected.id, selectedResumeId);
+      if (response.code !== 200) throw new Error(response.message);
+      setAtsResult(response.data);
+      notification.success('ATS 基础分析完成');
+    } catch (cause) {
+      notification.error(getApiErrorMessage(cause, 'ATS 基础分析失败'));
+    } finally {
+      setAtsBusy(false);
+    }
+  };
+
   if (loading) {
     return <div className="flex min-h-[480px] items-center justify-center"><Loader2 className="animate-spin" /></div>;
   }
@@ -317,15 +350,8 @@ export default function JobCenterPage() {
       : '待确认';
 
   return (
-    <div className="mx-auto max-w-[1500px] px-6">
-      <div className="mb-6 flex items-end justify-between">
-        <div>
-          <p className="text-sm font-medium text-blue-600">TARGET JOBS</p>
-          <h1 className="mt-1 text-3xl font-bold tracking-tight text-gray-900">目标岗位</h1>
-          <p className="mt-2 text-gray-500">以确认后的岗位画像统一驱动简历匹配、优化和模拟面试。</p>
-        </div>
-        <button disabled={busy} onClick={openCreate} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 font-medium text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"><Plus size={17} />添加 JD</button>
-      </div>
+    <div className="mx-auto max-w-[1440px] px-6">
+      <PageHeader eyebrow="TARGET JOBS" title="目标岗位" description="以确认后的岗位画像统一驱动简历评价、岗位匹配与模拟面试。" action={<button disabled={busy} onClick={openCreate} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 font-medium text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"><Plus size={17} />添加 JD</button>} />
       <div className="flex min-h-[680px] gap-5">
       <aside className="w-72 shrink-0 rounded-xl border border-gray-200 bg-white p-4">
         <div className="mb-4">
@@ -388,11 +414,81 @@ export default function JobCenterPage() {
               <button onClick={() => setWorkspaceTab('match')} className={`px-1 pb-3 text-sm font-medium ${workspaceTab === 'match' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}>ATS 与岗位匹配</button>
             </nav>
             {workspaceTab === 'match' ? (
-              <div className="flex min-h-[520px] flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50/60 text-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 text-blue-600"><BarChart3 size={24} /></div>
-                <h2 className="mt-4 text-lg font-semibold text-gray-900">ATS 与岗位匹配</h2>
-                <p className="mt-2 max-w-md text-sm leading-6 text-gray-500">这里将选择一份简历，并分别展示 ATS 基础分、JD 匹配度和可定位的问题。当前先完成岗位画像确认，评分能力将在阶段 2 接入。</p>
-                {!confirmed && <p className="mt-4 rounded-lg bg-amber-50 px-4 py-2 text-sm text-amber-700">请先确认当前岗位画像，后续评分才有稳定依据。</p>}
+              <div className="space-y-5">
+                <div className="flex flex-wrap items-end justify-between gap-4 rounded-xl border border-gray-200 bg-gray-50/60 p-5">
+                  <div className="min-w-[260px] flex-1">
+                    <div className="flex items-center gap-2"><BarChart3 size={20} className="text-blue-600" /><h2 className="text-lg font-semibold text-gray-900">ATS 结构初检</h2></div>
+                      <p className="mt-1 text-sm text-gray-500">从 0 分开始检查机器可读性和字段结构；内容质量、真实性与 JD 匹配会独立评价。</p>
+                    <select
+                      value={selectedResumeId}
+                      onChange={(event) => { setSelectedResumeId(event.target.value); setAtsResult(null); }}
+                      className="mt-4 w-full max-w-lg rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm"
+                    >
+                      <option value="">选择要分析的简历</option>
+                      {resumes.map((resume) => <option key={resume.id} value={resume.id}>{resume.title}</option>)}
+                    </select>
+                  </div>
+                  <button disabled={atsBusy || !selectedResumeId} onClick={runAtsAnalysis} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 font-medium text-white disabled:opacity-50">
+                    {atsBusy ? <Loader2 size={17} className="animate-spin" /> : <FileText size={17} />}开始体检
+                  </button>
+                </div>
+
+                {!confirmed && <p className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-700">ATS 基础体检可以直接使用；JD 岗位匹配需要先确认岗位画像。</p>}
+
+                {!atsResult ? (
+                  <div className="flex min-h-[340px] flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 text-center">
+                    <FileText size={30} className="text-gray-300" />
+                    <p className="mt-3 font-medium text-gray-700">选择简历后开始体检</p>
+                    <p className="mt-1 text-sm text-gray-400">将检查完整性、内容证据密度、可解析性、日期与内容表达。</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                      <p className="font-medium">本次结果的评价边界</p>
+                      <ul className="mt-1 list-disc space-y-1 pl-5 text-xs leading-5 text-blue-700">{atsResult.limitations.map((item) => <li key={item}>{item}</li>)}</ul>
+                    </div>
+                  <div className="grid grid-cols-[220px_minmax(0,1fr)] gap-5">
+                    <aside className="rounded-xl border border-gray-200 p-5 text-center">
+                      <div className={`mx-auto flex h-28 w-28 items-center justify-center rounded-full border-[10px] ${atsResult.score >= 80 ? 'border-green-100 text-green-600' : atsResult.score >= 60 ? 'border-amber-100 text-amber-600' : 'border-red-100 text-red-600'}`}>
+                        <span className="text-4xl font-bold">{atsResult.score}</span>
+                      </div>
+                      <p className="mt-3 font-semibold text-gray-800">ATS 结构分</p>
+                      <p className="mt-1 text-xs text-gray-400">{atsResult.scorerVersion}</p>
+                      <div className="mt-5 space-y-2 text-left">
+                        {atsResult.dimensions.map((dimension) => (
+                          <div key={dimension.key}>
+                            <div className="flex justify-between text-xs text-gray-500"><span>{dimension.label}</span><span>{dimension.score}/{dimension.maxScore}</span></div>
+                            <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-gray-100"><div className="h-full rounded-full bg-blue-500" style={{ width: `${dimension.maxScore ? dimension.score / dimension.maxScore * 100 : 0}%` }} /></div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="mt-5 grid grid-cols-3 gap-2 text-xs">
+                        <div><strong className="block text-base text-red-600">{atsResult.summary.errors}</strong>严重</div>
+                        <div><strong className="block text-base text-amber-600">{atsResult.summary.warnings}</strong>警告</div>
+                        <div><strong className="block text-base text-blue-600">{atsResult.summary.suggestions}</strong>建议</div>
+                      </div>
+                    </aside>
+                    <section className="min-w-0 rounded-xl border border-gray-200 p-5">
+                      <h3 className="font-semibold text-gray-900">可处理的问题</h3>
+                      <p className="mt-1 text-sm text-gray-500">优先补齐严重问题；每项都显示完善后还能获得的分数。</p>
+                      <div className="mt-4 max-h-[430px] space-y-3 overflow-auto pr-1">
+                        {atsResult.issues.map((issue) => (
+                          <div key={issue.id} className="rounded-lg border border-gray-200 p-4">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex min-w-0 gap-3">
+                                <AlertCircle size={18} className={issue.severity === 'error' ? 'mt-0.5 shrink-0 text-red-500' : issue.severity === 'warning' ? 'mt-0.5 shrink-0 text-amber-500' : 'mt-0.5 shrink-0 text-blue-500'} />
+                                <div><p className="font-medium text-gray-800">{issue.title}</p><p className="mt-1 text-sm leading-6 text-gray-500">{issue.message}</p><p className="mt-2 text-xs text-gray-400">{issue.section} / {issue.itemId || '模块'} / {issue.field}</p></div>
+                              </div>
+                              <span className={`shrink-0 rounded px-2 py-1 text-xs font-medium ${issue.availablePoints > 0 ? 'bg-blue-50 text-blue-600' : 'bg-red-50 text-red-600'}`}>{issue.availablePoints > 0 ? `可得 +${issue.availablePoints}` : '必须修正'}</span>
+                            </div>
+                            <Link to={`/resumes/${atsResult.resumeId}/edit?section=${encodeURIComponent(issue.section)}&itemId=${encodeURIComponent(issue.itemId || '')}&field=${encodeURIComponent(issue.field)}`} className="mt-3 inline-flex text-xs font-medium text-blue-600 hover:text-blue-700">编辑对应字段</Link>
+                          </div>
+                        ))}
+                        {atsResult.issues.length === 0 && <div className="rounded-lg bg-green-50 p-8 text-center text-sm text-green-700">未发现 ATS 基础问题，下一步可以进行 JD 岗位匹配。</div>}
+                      </div>
+                    </section>
+                  </div></div>
+                )}
               </div>
             ) : (
           <div className="grid grid-cols-[minmax(300px,0.85fr)_minmax(420px,1.15fr)] gap-6">

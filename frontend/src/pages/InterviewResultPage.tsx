@@ -138,7 +138,7 @@ const InterviewResultPage = () => {
           ))}
         </section>
 
-        <div className="flex justify-center gap-3 border-t border-slate-200 pt-8"><Button variant="outline" onClick={() => navigate('/resume/interview')}>重新面试</Button><Button onClick={() => navigate('/')}>返回首页</Button></div>
+        <div className="flex justify-center gap-3 border-t border-slate-200 pt-8"><Button variant="outline" onClick={() => navigate('/interviews')}>重新面试</Button><Button onClick={() => navigate('/resumes')}>返回我的简历</Button></div>
       </main>
     </div>
   );

@@ -55,10 +55,10 @@ export default function EditorHeaderToolbar({
         <Button
           variant="outline"
           size="xs"
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/resumes')}
           className="h-7 px-3 border-blue-400 text-blue-500 bg-white hover:bg-blue-50 hover:border-blue-600 hover:text-blue-700"
         >
-          首页
+          我的简历
         </Button>
         <Input
           value={editingTitle}
@@ -125,7 +125,7 @@ export default function EditorHeaderToolbar({
           className="h-7 px-3"
           onClick={() => {
             onSave();
-            navigate(`/resume/interview/${resumeId}`);
+            navigate(`/interviews/resume/${resumeId}`);
           }}
           disabled={isSaving}
         >

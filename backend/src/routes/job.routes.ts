@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   analyzeJob,
+  analyzeJobResumeAts,
   confirmJobProfile,
   createJob,
   deleteJob,
@@ -18,6 +19,7 @@ router.post('/', createJob);
 router.get('/:id', getJob);
 router.delete('/:id', deleteJob);
 router.post('/:id/analyze', analyzeJob);
+router.post('/:id/ats', analyzeJobResumeAts);
 router.get('/:id/profiles', listJobProfiles);
 router.put('/:id/profiles/:profileId', updateJobProfile);
 router.post('/:id/profiles/:profileId/confirm', confirmJobProfile);

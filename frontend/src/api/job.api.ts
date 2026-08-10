@@ -1,6 +1,7 @@
 import request from '@/utils/request';
 import type { ApiResponse } from '@/types';
 import type {
+  AtsAnalysisResult,
   EditableJobProfile,
   JobDescription,
   JobProfile,
@@ -18,6 +19,8 @@ export const jobApi = {
     request.get(`/jobs/${id}`),
   analyze: (id: string): Promise<ApiResponse<JobProfile>> =>
     request.post(`/jobs/${id}/analyze`),
+  analyzeAts: (id: string, resumeId: string): Promise<ApiResponse<AtsAnalysisResult>> =>
+    request.post(`/jobs/${id}/ats`, { resumeId }),
   listProfiles: (id: string): Promise<ApiResponse<JobProfile[]>> =>
     request.get(`/jobs/${id}/profiles`),
   updateProfile: (

@@ -19,6 +19,7 @@ import {
 import { interviewApi, InterviewResult } from '@/api/interview.api';
 import { formatDateTime } from '@/utils/format';
 import { notifications } from '@mantine/notifications';
+import PageHeader from '@/components/common/PageHeader';
 
 const InterviewHistoryPage = () => {
   const navigate = useNavigate();
@@ -91,18 +92,8 @@ const InterviewHistoryPage = () => {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-2">
-      <div>
-        <p className="text-sm font-medium text-blue-600">ACTIVITY</p>
-        <h1 className="mt-1 text-3xl font-bold tracking-tight text-gray-900">历史记录</h1>
-        <p className="mt-2 text-gray-500">集中查看面试、简历优化和岗位分析的历史结果。</p>
-      </div>
-
-      <nav className="mt-7 flex gap-6 border-b border-gray-200">
-        <button className="border-b-2 border-blue-600 px-1 pb-3 text-sm font-medium text-blue-600">面试记录</button>
-        <button disabled className="px-1 pb-3 text-sm text-gray-400">简历优化 <span className="ml-1 text-xs">即将开放</span></button>
-        <button disabled className="px-1 pb-3 text-sm text-gray-400">ATS 分析 <span className="ml-1 text-xs">即将开放</span></button>
-      </nav>
+    <div className="mx-auto max-w-7xl px-6 py-2">
+      <PageHeader eyebrow="INTERVIEW HISTORY" title="面试记录" description="查看每一次模拟面试及最终报告。ATS 分析归目标岗位，简历优化版本归我的简历。" action={<button onClick={() => navigate('/interviews')} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white">开始面试</button>} />
 
       {/* 内容 */}
       <div className="mx-auto mt-6 max-w-4xl">
@@ -131,7 +122,7 @@ const InterviewHistoryPage = () => {
                 withBorder
                 className="cursor-pointer hover:shadow-md transition-shadow"
                 onClick={() =>
-                  navigate(`/resume/interview/result/${result.id}`)
+                  navigate(`/interviews/results/${result.id}`)
                 }
               >
                 <div className="flex items-center justify-between">

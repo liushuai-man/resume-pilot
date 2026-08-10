@@ -414,8 +414,8 @@ const InterviewPage = () => {
               <ArrowLeft size={12} className="mr-1" />
               返回
             </Button>
-            <Text size="lg" fw={500} className="whitespace-nowrap">
-              在线面试
+            <Text size="lg" fw={600} className="whitespace-nowrap text-gray-900">
+              ResumePilot · 模拟面试
             </Text>
           </div>
 
@@ -591,7 +591,7 @@ const InterviewPage = () => {
                   variant="subtle"
                   size="xs"
                   leftSection={<History size={14} />}
-                  onClick={() => navigate('/resume/interview/history')}
+                  onClick={() => navigate('/interviews/history')}
                 >
                   面试记录
                 </Button>
@@ -732,7 +732,7 @@ const InterviewPage = () => {
                 feedbacks={feedbacks}
                 generating={finishing && !interviewResult}
                 onRestart={handleRestart}
-                onBackHome={() => navigate('/')}
+                onBackHome={() => navigate('/resumes')}
               />
             ) : (
               <InterviewChat

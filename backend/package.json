@@ -15,7 +15,8 @@
     "generate:thumbnails": "tsx src/scripts/generate-template-thumbnails.ts",
     "test:ai": "tsx scripts/test-ai-config.ts",
     "test:ai:all": "tsx scripts/test-ai-config.ts --all",
-    "test:job-profile": "tsx --test src/services/job-profile.service.test.ts"
+    "test:job-profile": "tsx --test src/services/job-profile.service.test.ts",
+    "test:ats": "tsx --test src/services/ats-analysis.service.test.ts"
   },
   "dependencies": {
     "@langchain/community": "^0.0.34",

@@ -10,6 +10,7 @@ import {
   assertProfileEvidence,
   parseJobDescription,
 } from '../services/job-profile.service';
+import { analyzeResumeForAts } from '../services/ats-analysis.service';
 
 const createJobSchema = z.object({
   title: z.string().trim().max(120).optional(),
@@ -32,6 +33,10 @@ const updateProfileSchema = z.object({
   requiredSkills: z.array(requirementSchema).max(50),
   preferredSkills: z.array(requirementSchema).max(50),
   keywords: z.array(z.string().trim().min(1).max(100)).max(20),
+});
+
+const atsAnalysisSchema = z.object({
+  resumeId: z.string().uuid('简历 ID 无效'),
 });
 
 const profileData = (profile: any) => ({
@@ -269,6 +274,37 @@ export const confirmJobProfile = async (req: AuthRequest, res: Response) => {
     });
   });
   return success(res, profileData(profile), '岗位画像已确认');
+};
+
+export const analyzeJobResumeAts = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return error(res, '未登录', 401);
+    const input = atsAnalysisSchema.safeParse(req.body);
+    if (!input.success) return badRequest(res, input.error.issues[0]?.message);
+    const [job, resume] = await Promise.all([
+      prisma.jobDescription.findFirst({
+        where: { id: req.params.id, user_id: userId, is_deleted: false },
+        select: { id: true },
+      }),
+      prisma.resume.findFirst({
+        where: { id: input.data.resumeId, user_id: userId, is_deleted: false },
+        select: { id: true, title: true, content: true, updated_at: true },
+      }),
+    ]);
+    if (!job) return notFound(res, '目标岗位不存在');
+    if (!resume) return notFound(res, '简历不存在');
+    return success(res, {
+      jobDescriptionId: job.id,
+      resumeId: resume.id,
+      resumeTitle: resume.title,
+      resumeUpdatedAt: resume.updated_at,
+      ...analyzeResumeForAts(resume.content),
+    }, 'ATS 基础分析完成');
+  } catch (cause) {
+    console.error('ATS 基础分析失败:', cause);
+    return error(res, 'ATS 基础分析失败', 500);
+  }
 };
 
 export const deleteJob = async (req: AuthRequest, res: Response) => {

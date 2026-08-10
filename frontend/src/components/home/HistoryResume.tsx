@@ -44,7 +44,7 @@ export default function HistoryResume({
   };
 
   const handleEdit = () => {
-    navigate(`/resume/${id}`);
+    navigate(`/resumes/${id}/edit`);
   };
 
   const handleExportPdf = async () => {
@@ -86,12 +86,12 @@ export default function HistoryResume({
 
   const handleEditFromPreview = () => {
     setPreviewModalOpen(false);
-    navigate(`/resume/${id}`);
+    navigate(`/resumes/${id}/edit`);
   };
 
   return (
     <>
-      <Card className="aspect-[5/6] flex flex-col overflow-hidden border-2 border-gray-200 rounded-md p-0">
+      <Card className="aspect-[5/6] flex flex-col overflow-hidden border border-gray-200 rounded-xl p-0 shadow-none transition hover:border-blue-200 hover:shadow-sm">
         {/* 标题栏 */}
         <div className="px-3 py-2 bg-white">
           <Text size="sm" fw="medium" className="text-gray-800 mb-1 truncate">

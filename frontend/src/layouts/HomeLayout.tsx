@@ -65,17 +65,17 @@ export default function HomeLayout() {
   };
 
   const navItems = [
-    { label: '我的简历', path: '/', icon: FileText, active: location.pathname === '/' },
+    { label: '我的简历', path: '/resumes', icon: FileText, active: location.pathname.startsWith('/resumes') },
     { label: '目标岗位', path: '/jobs', icon: Target, active: location.pathname.startsWith('/jobs') },
-    { label: '模拟面试', path: '/interviews', icon: UserRoundSearch, active: location.pathname.startsWith('/interviews') },
-    { label: '历史记录', path: '/history', icon: History, active: location.pathname.startsWith('/history') },
+    { label: '模拟面试', path: '/interviews', icon: UserRoundSearch, active: location.pathname === '/interviews' },
+    { label: '面试记录', path: '/interviews/history', icon: History, active: location.pathname.startsWith('/interviews/history') },
   ];
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
       {/* 顶部导航栏 */}
       <header className="sticky top-0 z-30 flex h-16 items-center border-b border-gray-200 bg-white px-5 lg:px-8">
-        <button onClick={() => navigate('/')} className="flex shrink-0 items-center gap-3 text-left">
+        <button onClick={() => navigate('/resumes')} className="flex shrink-0 items-center gap-3 text-left">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 shadow-sm shadow-blue-200">
             <Text fw="bold" c="white" size="sm">RP</Text>
           </div>

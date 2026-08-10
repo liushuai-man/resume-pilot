@@ -73,10 +73,10 @@ export default function EditorLayout({
         <div className="flex items-center gap-4 whitespace-nowrap">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
-              <span className="text-white font-bold text-sm">RA</span>
+              <span className="text-white font-bold text-sm">RP</span>
             </div>
             <span className="font-semibold text-gray-800 text-sm whitespace-nowrap">
-              AI 简历助手
+              ResumePilot
             </span>
           </div>
           <div className="h-5 w-px bg-gray-200 flex-shrink-0" />

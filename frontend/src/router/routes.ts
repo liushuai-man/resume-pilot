@@ -18,9 +18,6 @@ const HomeLayout = React.lazy(() => import('@/layouts/HomeLayout'));
 const LoginPage = React.lazy(() => import('@/pages/LoginPage'));
 const HomePage = React.lazy(() => import('@/pages/HomePage'));
 const JobCenterPage = React.lazy(() => import('@/pages/JobCenterPage'));
-const InterviewCenterPage = React.lazy(
-  () => import('@/pages/InterviewCenterPage')
-);
 const ResumeEditorPage = React.lazy(() => import('@/pages/ResumeEditorPage'));
 const ResumePrintPage = React.lazy(() => import('@/pages/ResumePrintPage'));
 const InterviewPage = React.lazy(() => import('@/pages/InterviewPage'));
@@ -51,14 +48,34 @@ export const routes: RouteConfig[] = [
     path: '/',
     layout: React.createElement(HomeLayout),
     children: [
-      { path: '', element: React.createElement(HomePage) },
+      { path: '', element: React.createElement(Navigate, { to: '/resumes', replace: true }) },
+      { path: 'resumes', element: React.createElement(HomePage) },
       { path: 'jobs', element: protectedPage(React.createElement(JobCenterPage)) },
-      { path: 'interviews', element: protectedPage(React.createElement(InterviewCenterPage)) },
-      { path: 'history', element: protectedPage(React.createElement(InterviewHistoryPage)) },
+      { path: 'interviews/history', element: protectedPage(React.createElement(InterviewHistoryPage)) },
     ],
   },
 
   // 主要功能布局
+  {
+    path: '/resumes/:id/edit',
+    element: protectedPage(React.createElement(ResumeEditorPage)),
+  },
+  {
+    path: '/resumes/:id/print',
+    element: protectedPage(React.createElement(ResumePrintPage)),
+  },
+  {
+    path: '/interviews',
+    element: protectedPage(React.createElement(InterviewPage)),
+  },
+  {
+    path: '/interviews/resume/:resumeId',
+    element: protectedPage(React.createElement(InterviewPage)),
+  },
+  {
+    path: '/interviews/results/:id',
+    element: protectedPage(React.createElement(InterviewResultPage)),
+  },
   {
     path: '/resume/:id',
     element: protectedPage(React.createElement(ResumeEditorPage)),
@@ -69,7 +86,7 @@ export const routes: RouteConfig[] = [
   },
   {
     path: '/resume/interview',
-    element: protectedPage(React.createElement(InterviewPage)),
+    element: protectedPage(React.createElement(Navigate, { to: '/interviews', replace: true })),
   },
   {
     path: '/resume/interview/:resumeId',
@@ -77,11 +94,15 @@ export const routes: RouteConfig[] = [
   },
   {
     path: '/resume/interview/history',
-    element: protectedPage(React.createElement(Navigate, { to: '/history', replace: true })),
+    element: protectedPage(React.createElement(Navigate, { to: '/interviews/history', replace: true })),
   },
   {
     path: '/resume/interview/result/:id',
     element: protectedPage(React.createElement(InterviewResultPage)),
+  },
+  {
+    path: '/history',
+    element: protectedPage(React.createElement(Navigate, { to: '/interviews/history', replace: true })),
   },
 
   // 404 页面
@@ -94,12 +115,12 @@ export const routes: RouteConfig[] = [
 // 路由名称常量
 export const ROUTE_NAMES = {
   LOGIN: '/auth/login',
-  HOME: '/',
-  RESUME_EDITOR: '/resume/:id',
-  RESUME_INTERVIEW: '/resume/interview',
+  HOME: '/resumes',
+  RESUME_EDITOR: '/resumes/:id/edit',
+  RESUME_INTERVIEW: '/interviews',
   JOBS: '/jobs',
   INTERVIEWS: '/interviews',
-  HISTORY: '/history',
+  HISTORY: '/interviews/history',
 };
 
 // 生成带参数的路由路径
