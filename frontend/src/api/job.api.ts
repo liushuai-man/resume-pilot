@@ -18,6 +18,8 @@ export const jobApi = {
     request.get(`/jobs/${id}`),
   analyze: (id: string): Promise<ApiResponse<JobProfile>> =>
     request.post(`/jobs/${id}/analyze`),
+  listProfiles: (id: string): Promise<ApiResponse<JobProfile[]>> =>
+    request.get(`/jobs/${id}/profiles`),
   updateProfile: (
     jobId: string,
     profileId: string,

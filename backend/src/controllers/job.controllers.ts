@@ -114,6 +114,26 @@ export const getJob = async (req: AuthRequest, res: Response) => {
   return job ? success(res, jobData(job)) : notFound(res, '目标岗位不存在');
 };
 
+export const listJobProfiles = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return error(res, '未登录', 401);
+    const job = await prisma.jobDescription.findFirst({
+      where: { id: req.params.id, user_id: userId, is_deleted: false },
+      select: { id: true },
+    });
+    if (!job) return notFound(res, '目标岗位不存在');
+    const profiles = await prisma.jobProfile.findMany({
+      where: { job_description_id: job.id, user_id: userId },
+      orderBy: { version: 'desc' },
+    });
+    return success(res, profiles.map(profileData));
+  } catch (cause) {
+    console.error('获取岗位画像版本失败:', cause);
+    return error(res, '获取岗位画像版本失败', 500);
+  }
+};
+
 export const analyzeJob = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
@@ -124,29 +144,35 @@ export const analyzeJob = async (req: AuthRequest, res: Response) => {
     if (!job) return notFound(res, '目标岗位不存在');
 
     const parsed = await parseJobDescription(userId, job.raw_text);
-    const latest = await prisma.jobProfile.findFirst({
-      where: { job_description_id: job.id },
-      orderBy: { version: 'desc' },
-      select: { version: true },
-    });
-    const profile = await prisma.jobProfile.create({
-      data: {
-        job_description_id: job.id,
-        user_id: userId,
-        version: (latest?.version || 0) + 1,
-        status: 'draft',
-        job_title: parsed.jobTitle,
-        seniority: parsed.seniority,
-        industry: parsed.industry,
-        responsibilities: parsed.responsibilities,
-        required_skills: parsed.requiredSkills,
-        preferred_skills: parsed.preferredSkills,
-        keywords: parsed.keywords,
-        confidence: parsed.confidence,
-        parser_version: JOB_PROFILE_PARSER_VERSION,
-        prompt_version: JOB_PROFILE_PROMPT_VERSION,
-        model_name: parsed.modelName,
-      },
+    const profile = await prisma.$transaction(async (transaction: Prisma.TransactionClient) => {
+      const latest = await transaction.jobProfile.findFirst({
+        where: { job_description_id: job.id },
+        orderBy: { version: 'desc' },
+        select: { version: true },
+      });
+      await transaction.jobProfile.updateMany({
+        where: { job_description_id: job.id, status: 'draft' },
+        data: { status: 'superseded' },
+      });
+      return transaction.jobProfile.create({
+        data: {
+          job_description_id: job.id,
+          user_id: userId,
+          version: (latest?.version || 0) + 1,
+          status: 'draft',
+          job_title: parsed.jobTitle,
+          seniority: parsed.seniority,
+          industry: parsed.industry,
+          responsibilities: parsed.responsibilities as unknown as Prisma.InputJsonValue,
+          required_skills: parsed.requiredSkills as unknown as Prisma.InputJsonValue,
+          preferred_skills: parsed.preferredSkills as unknown as Prisma.InputJsonValue,
+          keywords: parsed.keywords,
+          confidence: parsed.confidence,
+          parser_version: JOB_PROFILE_PARSER_VERSION,
+          prompt_version: JOB_PROFILE_PROMPT_VERSION,
+          model_name: parsed.modelName,
+        },
+      });
     });
     await prisma.jobDescription.update({
       where: { id: job.id },
@@ -169,12 +195,16 @@ export const updateJobProfile = async (req: AuthRequest, res: Response) => {
     const input = updateProfileSchema.safeParse(req.body);
     if (!input.success) return badRequest(res, input.error.issues[0]?.message);
     const existing = await prisma.jobProfile.findFirst({
-      where: { id: req.params.profileId, user_id: userId },
+      where: {
+        id: req.params.profileId,
+        job_description_id: req.params.id,
+        user_id: userId,
+      },
       include: { job_description: { select: { raw_text: true } } },
     });
     if (!existing) return notFound(res, '岗位画像不存在');
-    if (existing.status === 'confirmed') {
-      return badRequest(res, '已确认的岗位画像不可直接修改，请重新分析生成新版本');
+    if (existing.status !== 'draft') {
+      return badRequest(res, '只有待确认的岗位画像可以修改，请重新分析生成新版本');
     }
     try {
       assertProfileEvidence(existing.job_description.raw_text, input.data);
@@ -204,10 +234,17 @@ export const confirmJobProfile = async (req: AuthRequest, res: Response) => {
   const userId = req.user?.id;
   if (!userId) return error(res, '未登录', 401);
   const existing = await prisma.jobProfile.findFirst({
-    where: { id: req.params.profileId, user_id: userId },
+    where: {
+      id: req.params.profileId,
+      job_description_id: req.params.id,
+      user_id: userId,
+    },
     include: { job_description: { select: { raw_text: true } } },
   });
   if (!existing) return notFound(res, '岗位画像不存在');
+  if (existing.status !== 'draft') {
+    return badRequest(res, '只有待确认的岗位画像可以确认');
+  }
   try {
     assertProfileEvidence(existing.job_description.raw_text, {
       responsibilities: existing.responsibilities as any,

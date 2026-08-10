@@ -104,6 +104,7 @@ export default function JobCenterPage() {
   const [jobs, setJobs] = useState<JobDescription[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [profile, setProfile] = useState<JobProfile | null>(null);
+  const [profileVersions, setProfileVersions] = useState<JobProfile[]>([]);
   const [draft, setDraft] = useState<EditableJobProfile | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [rawText, setRawText] = useState('');
@@ -123,17 +124,39 @@ export default function JobCenterPage() {
     [jobs, selectedId]
   );
 
+  const showProfile = (nextProfile: JobProfile | null) => {
+    setProfile(nextProfile);
+    setDraft(nextProfile ? toEditable(nextProfile) : null);
+  };
+
+  const loadProfiles = async (jobId: string, preferredProfileId?: string) => {
+    const response = await jobApi.listProfiles(jobId);
+    if (response.code !== 200) throw new Error(response.message);
+    setProfileVersions(response.data);
+    const nextProfile =
+      response.data.find((item) => item.id === preferredProfileId) ||
+      response.data[0] ||
+      null;
+    showProfile(nextProfile);
+  };
+
   const loadJobs = async (preferredId?: string) => {
     try {
       const response = await jobApi.list();
       if (response.code !== 200) throw new Error(response.message);
       setJobs(response.data);
-      const nextId = preferredId || selectedId || response.data[0]?.id || null;
+      const nextId =
+        (preferredId && response.data.some((job) => job.id === preferredId) ? preferredId : null) ||
+        (selectedId && response.data.some((job) => job.id === selectedId) ? selectedId : null) ||
+        response.data[0]?.id ||
+        null;
       setSelectedId(nextId);
-      const nextProfile =
-        response.data.find((job) => job.id === nextId)?.latestProfile || null;
-      setProfile(nextProfile);
-      setDraft(nextProfile ? toEditable(nextProfile) : null);
+      if (nextId) {
+        await loadProfiles(nextId);
+      } else {
+        setProfileVersions([]);
+        showProfile(null);
+      }
     } catch (cause) {
       notification.error(getApiErrorMessage(cause, '目标岗位加载失败'));
     } finally {
@@ -145,13 +168,18 @@ export default function JobCenterPage() {
     void loadJobs();
   }, []);
 
-  const selectJob = (job: JobDescription) => {
+  const selectJob = async (job: JobDescription) => {
     if (busy) return;
     setSelectedId(job.id);
-    setProfile(job.latestProfile || null);
-    setDraft(job.latestProfile ? toEditable(job.latestProfile) : null);
+    setProfileVersions([]);
+    showProfile(job.latestProfile || null);
     setShowCreate(false);
     setWorkspaceTab('profile');
+    try {
+      await loadProfiles(job.id);
+    } catch (cause) {
+      notification.error(getApiErrorMessage(cause, '岗位画像版本加载失败'));
+    }
   };
 
   const openCreate = () => {
@@ -271,8 +299,8 @@ export default function JobCenterPage() {
     if (!selected || !window.confirm('确定删除这个目标岗位吗？')) return;
     await jobApi.remove(selected.id);
     setSelectedId(null);
-    setProfile(null);
-    setDraft(null);
+    setProfileVersions([]);
+    showProfile(null);
     await loadJobs();
   };
 
@@ -281,6 +309,12 @@ export default function JobCenterPage() {
   }
 
   const confirmed = profile?.status === 'confirmed';
+  const editable = profile?.status === 'draft';
+  const profileStatusLabel = profile?.status === 'confirmed'
+    ? '当前确认'
+    : profile?.status === 'superseded'
+      ? '历史版本'
+      : '待确认';
 
   return (
     <div className="mx-auto max-w-[1500px] px-6">
@@ -373,13 +407,29 @@ export default function JobCenterPage() {
             <div className="min-w-0 overflow-auto pr-1">
               <div className="sticky top-0 z-10 mb-5 flex items-center justify-between bg-white pb-3">
                 <div>
-                  <div className="flex items-center gap-2"><h2 className="text-xl font-bold">岗位画像</h2>{profile && <span className={`rounded-full px-2 py-1 text-xs ${confirmed ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>V{profile.version} · {confirmed ? '已确认' : '待确认'}</span>}</div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-bold">岗位画像</h2>
+                    {profile && <span className={`rounded-full px-2 py-1 text-xs ${confirmed ? 'bg-green-100 text-green-700' : profile.status === 'superseded' ? 'bg-gray-100 text-gray-600' : 'bg-amber-100 text-amber-700'}`}>V{profile.version} · {profileStatusLabel}</span>}
+                    {profileVersions.length > 1 && (
+                      <select
+                        aria-label="切换岗位画像版本"
+                        disabled={busy}
+                        value={profile?.id || ''}
+                        onChange={(event) => showProfile(profileVersions.find((item) => item.id === event.target.value) || null)}
+                        className="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600"
+                      >
+                        {profileVersions.map((item) => (
+                          <option key={item.id} value={item.id}>V{item.version} · {item.status === 'confirmed' ? '当前确认' : item.status === 'superseded' ? '历史版本' : '待确认'}</option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
                   {profile && <p className="mt-1 text-xs text-gray-400">{profile.modelName} · {profile.promptVersion} · 整体置信度 {Math.round((profile.confidence || 0) * 100)}%</p>}
                 </div>
                 <div className="flex gap-2">
                   {profile && <button disabled={busy} onClick={analyze} className="flex items-center gap-1 rounded-lg border px-3 py-2 text-sm">{busy ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />}重新分析</button>}
-                  {profile && !confirmed && <button disabled={busy} onClick={saveProfile} className="flex items-center gap-1 rounded-lg border px-3 py-2 text-sm"><Save size={15} />保存</button>}
-                  {profile && !confirmed && <button disabled={busy} onClick={confirmProfile} className="flex items-center gap-1 rounded-lg bg-green-600 px-3 py-2 text-sm text-white"><Check size={15} />确认画像</button>}
+                  {profile && editable && <button disabled={busy} onClick={saveProfile} className="flex items-center gap-1 rounded-lg border px-3 py-2 text-sm"><Save size={15} />保存</button>}
+                  {profile && editable && <button disabled={busy} onClick={confirmProfile} className="flex items-center gap-1 rounded-lg bg-green-600 px-3 py-2 text-sm text-white"><Check size={15} />确认画像</button>}
                 </div>
               </div>
 
@@ -388,14 +438,14 @@ export default function JobCenterPage() {
               ) : (
                 <div className="space-y-6">
                   <div className="grid grid-cols-3 gap-3">
-                    <label className="text-sm text-gray-500">岗位<input disabled={confirmed} value={draft.jobTitle} onChange={(e) => setDraft({ ...draft, jobTitle: e.target.value })} className="mt-1 w-full rounded border px-3 py-2 text-gray-800 disabled:bg-gray-50" /></label>
-                    <label className="text-sm text-gray-500">职级/年限<input disabled={confirmed} value={draft.seniority || ''} onChange={(e) => setDraft({ ...draft, seniority: e.target.value })} className="mt-1 w-full rounded border px-3 py-2 text-gray-800 disabled:bg-gray-50" /></label>
-                    <label className="text-sm text-gray-500">行业<input disabled={confirmed} value={draft.industry || ''} onChange={(e) => setDraft({ ...draft, industry: e.target.value })} className="mt-1 w-full rounded border px-3 py-2 text-gray-800 disabled:bg-gray-50" /></label>
+                    <label className="text-sm text-gray-500">岗位<input disabled={!editable} value={draft.jobTitle} onChange={(e) => setDraft({ ...draft, jobTitle: e.target.value })} className="mt-1 w-full rounded border px-3 py-2 text-gray-800 disabled:bg-gray-50" /></label>
+                    <label className="text-sm text-gray-500">职级/年限<input disabled={!editable} value={draft.seniority || ''} onChange={(e) => setDraft({ ...draft, seniority: e.target.value })} className="mt-1 w-full rounded border px-3 py-2 text-gray-800 disabled:bg-gray-50" /></label>
+                    <label className="text-sm text-gray-500">行业<input disabled={!editable} value={draft.industry || ''} onChange={(e) => setDraft({ ...draft, industry: e.target.value })} className="mt-1 w-full rounded border px-3 py-2 text-gray-800 disabled:bg-gray-50" /></label>
                   </div>
-                  <RequirementEditor title="岗位职责" value={draft.responsibilities} disabled={confirmed} onChange={(value) => setDraft({ ...draft, responsibilities: value })} />
-                  <RequirementEditor title="必备能力" value={draft.requiredSkills} disabled={confirmed} onChange={(value) => setDraft({ ...draft, requiredSkills: value })} />
-                  <RequirementEditor title="加分项" value={draft.preferredSkills} disabled={confirmed} onChange={(value) => setDraft({ ...draft, preferredSkills: value })} />
-                  <section><h3 className="font-semibold text-gray-800">关键词</h3><textarea disabled={confirmed} value={draft.keywords.join('、')} onChange={(e) => setDraft({ ...draft, keywords: e.target.value.split(/[、,，\n]/).map((v) => v.trim()).filter(Boolean).slice(0, 20) })} className="mt-2 min-h-20 w-full rounded border p-3 text-sm disabled:bg-gray-50" /></section>
+                  <RequirementEditor title="岗位职责" value={draft.responsibilities} disabled={!editable} onChange={(value) => setDraft({ ...draft, responsibilities: value })} />
+                  <RequirementEditor title="必备能力" value={draft.requiredSkills} disabled={!editable} onChange={(value) => setDraft({ ...draft, requiredSkills: value })} />
+                  <RequirementEditor title="加分项" value={draft.preferredSkills} disabled={!editable} onChange={(value) => setDraft({ ...draft, preferredSkills: value })} />
+                  <section><h3 className="font-semibold text-gray-800">关键词</h3><textarea disabled={!editable} value={draft.keywords.join('、')} onChange={(e) => setDraft({ ...draft, keywords: e.target.value.split(/[、,，\n]/).map((v) => v.trim()).filter(Boolean).slice(0, 20) })} className="mt-2 min-h-20 w-full rounded border p-3 text-sm disabled:bg-gray-50" /></section>
                 </div>
               )}
             </div>

@@ -5,6 +5,7 @@ import {
   createJob,
   deleteJob,
   getJob,
+  listJobProfiles,
   listJobs,
   updateJobProfile,
 } from '../controllers/job.controllers';
@@ -17,6 +18,7 @@ router.post('/', createJob);
 router.get('/:id', getJob);
 router.delete('/:id', deleteJob);
 router.post('/:id/analyze', analyzeJob);
+router.get('/:id/profiles', listJobProfiles);
 router.put('/:id/profiles/:profileId', updateJobProfile);
 router.post('/:id/profiles/:profileId/confirm', confirmJobProfile);
 
