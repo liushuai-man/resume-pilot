@@ -45,7 +45,7 @@ function RequirementEditor({
         <p className="rounded-md bg-gray-50 p-3 text-sm text-gray-400">未识别到相关内容</p>
       )}
       {value.map((item, index) => (
-        <div key={index} className="rounded-lg border border-gray-200 p-3">
+        <div key={index} className={`rounded-lg border p-3 ${item.confidence < 0.7 ? 'border-amber-300 bg-amber-50/50' : 'border-gray-200'}`}>
           <div className="flex gap-2">
             <input
               value={item.name}
@@ -80,8 +80,9 @@ function RequirementEditor({
             className="mt-2 min-h-16 w-full resize-y rounded border border-gray-200 px-3 py-2 text-sm text-gray-600 disabled:bg-gray-50"
             placeholder="对应的 JD 原文证据"
           />
-          <p className="mt-1 text-xs text-gray-400">
-            AI 置信度 {Math.round(item.confidence * 100)}%
+          <p className={`mt-1 text-xs ${item.confidence < 0.7 ? 'font-medium text-amber-700' : 'text-gray-400'}`}>
+            原始 AI 置信度 {Math.round(item.confidence * 100)}%
+            {item.confidence < 0.7 ? ' · 需要重点确认' : ''}
           </p>
         </div>
       ))}
@@ -110,6 +111,11 @@ export default function JobCenterPage() {
   const [company, setCompany] = useState('');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [createProgress, setCreateProgress] = useState<
+    'idle' | 'saving' | 'analyzing' | 'error'
+  >('idle');
+  const [createError, setCreateError] = useState('');
+  const [savedJobId, setSavedJobId] = useState<string | null>(null);
   const [workspaceTab, setWorkspaceTab] = useState<'profile' | 'match'>('profile');
 
   const selected = useMemo(
@@ -140,11 +146,31 @@ export default function JobCenterPage() {
   }, []);
 
   const selectJob = (job: JobDescription) => {
+    if (busy) return;
     setSelectedId(job.id);
     setProfile(job.latestProfile || null);
     setDraft(job.latestProfile ? toEditable(job.latestProfile) : null);
     setShowCreate(false);
     setWorkspaceTab('profile');
+  };
+
+  const openCreate = () => {
+    if (busy) return;
+    setShowCreate(true);
+    setCreateProgress('idle');
+    setCreateError('');
+    setSavedJobId(null);
+    setRawText('');
+    setTitle('');
+    setCompany('');
+  };
+
+  const closeCreate = () => {
+    if (busy) return;
+    setShowCreate(false);
+    setCreateProgress('idle');
+    setCreateError('');
+    setSavedJobId(null);
   };
 
   const createAndAnalyze = async () => {
@@ -153,24 +179,39 @@ export default function JobCenterPage() {
       return;
     }
     setBusy(true);
-    let createdJobId: string | undefined;
+    setCreateError('');
+    let createdJobId = savedJobId || undefined;
     try {
-      const created = await jobApi.create({ title, company, rawText });
-      if (created.code !== 200) throw new Error(created.message);
-      createdJobId = created.data.id;
-      setSelectedId(created.data.id);
+      if (!createdJobId) {
+        setCreateProgress('saving');
+        const created = await jobApi.create({ title, company, rawText });
+        if (created.code !== 200) throw new Error(created.message);
+        createdJobId = created.data.id;
+        setSavedJobId(createdJobId);
+        setSelectedId(createdJobId);
+      }
+
+      setCreateProgress('analyzing');
+      const analyzed = await jobApi.analyze(createdJobId);
+      if (analyzed.code !== 200) throw new Error(analyzed.message);
+      await loadJobs(createdJobId);
       setShowCreate(false);
+      setCreateProgress('idle');
+      setSavedJobId(null);
       setRawText('');
       setTitle('');
       setCompany('');
-      const analyzed = await jobApi.analyze(created.data.id);
-      if (analyzed.code !== 200) throw new Error(analyzed.message);
       notification.success('JD 已保存，岗位画像已生成');
-      await loadJobs(created.data.id);
     } catch (cause) {
-      notification.error(
-        getApiErrorMessage(cause, 'JD 已保存，但岗位画像生成失败，请稍后重试')
+      const message = getApiErrorMessage(
+        cause,
+        createdJobId
+          ? 'JD 已保存，但岗位画像生成失败，请稍后重试'
+          : 'JD 保存失败，请稍后重试'
       );
+      setCreateProgress('error');
+      setCreateError(message);
+      notification.error(message);
       await loadJobs(createdJobId);
     } finally {
       setBusy(false);
@@ -249,7 +290,7 @@ export default function JobCenterPage() {
           <h1 className="mt-1 text-3xl font-bold tracking-tight text-gray-900">目标岗位</h1>
           <p className="mt-2 text-gray-500">以确认后的岗位画像统一驱动简历匹配、优化和模拟面试。</p>
         </div>
-        <button onClick={() => setShowCreate(true)} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 font-medium text-white shadow-sm hover:bg-blue-700"><Plus size={17} />添加 JD</button>
+        <button disabled={busy} onClick={openCreate} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 font-medium text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"><Plus size={17} />添加 JD</button>
       </div>
       <div className="flex min-h-[680px] gap-5">
       <aside className="w-72 shrink-0 rounded-xl border border-gray-200 bg-white p-4">
@@ -277,14 +318,33 @@ export default function JobCenterPage() {
           <div className="mx-auto max-w-4xl">
             <h2 className="text-xl font-bold">添加目标岗位</h2>
             <p className="mt-1 text-sm text-gray-500">粘贴完整 JD，系统会提取要求并保留原文证据。</p>
+            {createProgress !== 'idle' && (
+              <div className={`mt-5 rounded-xl border p-4 ${createProgress === 'error' ? 'border-red-200 bg-red-50' : 'border-blue-200 bg-blue-50'}`}>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`flex h-8 w-8 items-center justify-center rounded-full ${savedJobId ? 'bg-green-100 text-green-600' : createProgress === 'error' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+                      {savedJobId ? <Check size={17} /> : createProgress === 'error' ? <X size={17} /> : <Loader2 size={17} className="animate-spin" />}
+                    </div>
+                    <div><p className="text-sm font-medium text-gray-800">1. 保存 JD</p><p className="text-xs text-gray-500">{savedJobId ? '已保存' : createProgress === 'error' ? '保存失败' : '正在保存原文...'}</p></div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className={`flex h-8 w-8 items-center justify-center rounded-full ${createProgress === 'error' ? 'bg-red-100 text-red-600' : createProgress === 'analyzing' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
+                      {createProgress === 'analyzing' ? <Loader2 size={17} className="animate-spin" /> : createProgress === 'error' ? <X size={17} /> : <span className="text-sm">2</span>}
+                    </div>
+                    <div><p className="text-sm font-medium text-gray-800">2. 生成岗位画像</p><p className="text-xs text-gray-500">{createProgress === 'analyzing' ? 'AI 正在分析职责和能力要求...' : createProgress === 'error' ? '分析未完成，可以重试' : '等待保存完成'}</p></div>
+                  </div>
+                </div>
+                {createError && <p className="mt-3 border-t border-red-200 pt-3 text-sm text-red-700">{createError}</p>}
+              </div>
+            )}
             <div className="mt-5 grid grid-cols-2 gap-4">
-              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="岗位名称（可选）" className="rounded-lg border border-gray-200 px-3 py-2" />
-              <input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="公司名称（可选）" className="rounded-lg border border-gray-200 px-3 py-2" />
+              <input disabled={busy || Boolean(savedJobId)} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="岗位名称（可选）" className="rounded-lg border border-gray-200 px-3 py-2 disabled:bg-gray-50" />
+              <input disabled={busy || Boolean(savedJobId)} value={company} onChange={(e) => setCompany(e.target.value)} placeholder="公司名称（可选）" className="rounded-lg border border-gray-200 px-3 py-2 disabled:bg-gray-50" />
             </div>
-            <textarea value={rawText} onChange={(e) => setRawText(e.target.value)} placeholder="在这里粘贴 JD 原文..." className="mt-4 min-h-[420px] w-full resize-y rounded-lg border border-gray-200 p-4 leading-7" />
+            <textarea disabled={busy || Boolean(savedJobId)} value={rawText} onChange={(e) => setRawText(e.target.value)} placeholder="在这里粘贴 JD 原文..." className="mt-4 min-h-[420px] w-full resize-y rounded-lg border border-gray-200 p-4 leading-7 disabled:bg-gray-50" />
             <div className="mt-4 flex justify-end gap-3">
-              <button onClick={() => setShowCreate(false)} className="rounded-lg border px-4 py-2">取消</button>
-              <button disabled={busy} onClick={createAndAnalyze} className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white disabled:opacity-50">{busy && <Loader2 size={16} className="animate-spin" />}保存并分析</button>
+              <button disabled={busy} onClick={closeCreate} className="rounded-lg border px-4 py-2 disabled:opacity-50">{savedJobId ? '查看已保存 JD' : '取消'}</button>
+              <button disabled={busy} onClick={createAndAnalyze} className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white disabled:opacity-50">{busy && <Loader2 size={16} className="animate-spin" />}{savedJobId ? '重新分析' : '保存并分析'}</button>
             </div>
           </div>
         ) : selected ? (
@@ -314,17 +374,17 @@ export default function JobCenterPage() {
               <div className="sticky top-0 z-10 mb-5 flex items-center justify-between bg-white pb-3">
                 <div>
                   <div className="flex items-center gap-2"><h2 className="text-xl font-bold">岗位画像</h2>{profile && <span className={`rounded-full px-2 py-1 text-xs ${confirmed ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>V{profile.version} · {confirmed ? '已确认' : '待确认'}</span>}</div>
-                  {profile && <p className="mt-1 text-xs text-gray-400">{profile.modelName} · {profile.promptVersion}</p>}
+                  {profile && <p className="mt-1 text-xs text-gray-400">{profile.modelName} · {profile.promptVersion} · 整体置信度 {Math.round((profile.confidence || 0) * 100)}%</p>}
                 </div>
                 <div className="flex gap-2">
-                  <button disabled={busy} onClick={analyze} className="flex items-center gap-1 rounded-lg border px-3 py-2 text-sm"><RefreshCw size={15} />{profile ? '重新分析' : '生成画像'}</button>
+                  {profile && <button disabled={busy} onClick={analyze} className="flex items-center gap-1 rounded-lg border px-3 py-2 text-sm">{busy ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />}重新分析</button>}
                   {profile && !confirmed && <button disabled={busy} onClick={saveProfile} className="flex items-center gap-1 rounded-lg border px-3 py-2 text-sm"><Save size={15} />保存</button>}
                   {profile && !confirmed && <button disabled={busy} onClick={confirmProfile} className="flex items-center gap-1 rounded-lg bg-green-600 px-3 py-2 text-sm text-white"><Check size={15} />确认画像</button>}
                 </div>
               </div>
 
               {!profile || !draft ? (
-                <div className="rounded-lg border border-dashed py-24 text-center"><p className="text-gray-500">这个 JD 尚未生成岗位画像</p><button onClick={analyze} className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-white">开始分析</button></div>
+                <div className="rounded-lg border border-dashed py-24 text-center"><p className="text-gray-500">这个 JD 尚未完成岗位画像分析</p><p className="mt-2 text-sm text-gray-400">可能是模型配置、网络或结构化输出校验失败。</p><button disabled={busy} onClick={analyze} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white disabled:opacity-50">{busy && <Loader2 size={16} className="animate-spin" />}重试分析</button></div>
               ) : (
                 <div className="space-y-6">
                   <div className="grid grid-cols-3 gap-3">
@@ -343,7 +403,7 @@ export default function JobCenterPage() {
             )}
           </div>
         ) : (
-          <div className="flex h-full flex-col items-center justify-center text-center"><h2 className="text-xl font-bold">建立你的目标岗位</h2><p className="mt-2 text-gray-500">从粘贴一份真实 JD 开始。</p><button onClick={() => setShowCreate(true)} className="mt-5 rounded-lg bg-blue-600 px-4 py-2 text-white">添加 JD</button></div>
+          <div className="flex h-full flex-col items-center justify-center text-center"><h2 className="text-xl font-bold">建立你的目标岗位</h2><p className="mt-2 text-gray-500">从粘贴一份真实 JD 开始。</p><button onClick={openCreate} className="mt-5 rounded-lg bg-blue-600 px-4 py-2 text-white">添加 JD</button></div>
         )}
       </section>
       </div>

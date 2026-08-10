@@ -7,6 +7,7 @@ import { badRequest, created, error, notFound, success } from '../utils/response
 import {
   JOB_PROFILE_PARSER_VERSION,
   JOB_PROFILE_PROMPT_VERSION,
+  assertProfileEvidence,
   parseJobDescription,
 } from '../services/job-profile.service';
 
@@ -169,10 +170,16 @@ export const updateJobProfile = async (req: AuthRequest, res: Response) => {
     if (!input.success) return badRequest(res, input.error.issues[0]?.message);
     const existing = await prisma.jobProfile.findFirst({
       where: { id: req.params.profileId, user_id: userId },
+      include: { job_description: { select: { raw_text: true } } },
     });
     if (!existing) return notFound(res, '岗位画像不存在');
     if (existing.status === 'confirmed') {
       return badRequest(res, '已确认的岗位画像不可直接修改，请重新分析生成新版本');
+    }
+    try {
+      assertProfileEvidence(existing.job_description.raw_text, input.data);
+    } catch (cause: any) {
+      return badRequest(res, cause.message || '岗位画像的原文证据无效');
     }
     const profile = await prisma.jobProfile.update({
       where: { id: existing.id },
@@ -198,8 +205,18 @@ export const confirmJobProfile = async (req: AuthRequest, res: Response) => {
   if (!userId) return error(res, '未登录', 401);
   const existing = await prisma.jobProfile.findFirst({
     where: { id: req.params.profileId, user_id: userId },
+    include: { job_description: { select: { raw_text: true } } },
   });
   if (!existing) return notFound(res, '岗位画像不存在');
+  try {
+    assertProfileEvidence(existing.job_description.raw_text, {
+      responsibilities: existing.responsibilities as any,
+      requiredSkills: existing.required_skills as any,
+      preferredSkills: existing.preferred_skills as any,
+    });
+  } catch (cause: any) {
+    return badRequest(res, cause.message || '岗位画像的原文证据无效');
+  }
   const profile = await prisma.$transaction(async (transaction: Prisma.TransactionClient) => {
     await transaction.jobProfile.updateMany({
       where: {

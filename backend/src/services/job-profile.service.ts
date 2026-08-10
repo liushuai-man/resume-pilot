@@ -25,12 +25,52 @@ const profileSchema = z.object({
   confidence: z.number().min(0).max(1),
 });
 
+const normalizeEvidenceText = (value: string) =>
+  value.normalize('NFKC').replace(/\s+/g, '').toLocaleLowerCase();
+
+export function assertProfileEvidence(
+  rawText: string,
+  profile: Pick<
+    ParsedJobProfile,
+    'responsibilities' | 'requiredSkills' | 'preferredSkills'
+  >
+): void {
+  const normalizedSource = normalizeEvidenceText(rawText);
+  const requirements = [
+    ...profile.responsibilities,
+    ...profile.requiredSkills,
+    ...profile.preferredSkills,
+  ];
+
+  for (const requirement of requirements) {
+    const evidence = normalizeEvidenceText(requirement.evidence);
+    if (!evidence || !normalizedSource.includes(evidence)) {
+      throw new Error(`岗位要求“${requirement.name}”的证据无法在 JD 原文中定位`);
+    }
+  }
+}
+
 function parseJsonOutput(output: string): unknown {
   const cleaned = output
     .trim()
     .replace(/^```(?:json)?\s*/i, '')
     .replace(/\s*```$/, '');
   return JSON.parse(cleaned);
+}
+
+export function parseJobProfileOutput(
+  output: string,
+  rawText: string
+): ParsedJobProfile {
+  const parsed = profileSchema.parse(parseJsonOutput(output));
+  const profile: ParsedJobProfile = {
+    ...parsed,
+    seniority: parsed.seniority || undefined,
+    industry: parsed.industry || undefined,
+    keywords: [...new Set(parsed.keywords)],
+  };
+  assertProfileEvidence(rawText, profile);
+  return profile;
 }
 
 export async function parseJobDescription(
@@ -45,12 +85,10 @@ export async function parseJobDescription(
   const output = await llm.pipe(new StringOutputParser()).invoke(
     buildJobProfilePrompt(rawText)
   );
-  const parsed = profileSchema.parse(parseJsonOutput(output));
+  const parsed = parseJobProfileOutput(output, rawText);
 
   return {
     ...parsed,
-    seniority: parsed.seniority || undefined,
-    industry: parsed.industry || undefined,
     modelName: config.model_name,
   };
 }

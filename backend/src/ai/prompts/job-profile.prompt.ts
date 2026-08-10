@@ -18,10 +18,11 @@ export const buildJobProfilePrompt = (rawText: string) => `
 
 要求：
 1. confidence 在 0 到 1 之间。
-2. evidence 必须能在 JD 原文中找到，不要编造。
+2. evidence 必须逐字复制 JD 中一段连续原文，不得改写、概括、拼接或使用省略号。
 3. 区分必备能力与“优先、加分、熟悉更佳”等加分项。
 4. 合并语义重复项，关键词最多 20 个。
 
-JD 原文：
+<job_description>
 ${rawText}
+</job_description>
 `;
