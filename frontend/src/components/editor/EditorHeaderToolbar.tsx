@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button, Input, Badge, Loader } from '@mantine/core';
-import { Save, Download, Bot } from 'lucide-react';
+import { Save, Download, UserRoundSearch } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface EditorToolbarProps {
@@ -129,8 +129,8 @@ export default function EditorHeaderToolbar({
           }}
           disabled={isSaving}
         >
-          <Bot size={12} className="mr-1" />
-          在线面试
+          <UserRoundSearch size={12} className="mr-1" />
+          模拟面试
         </Button>
       </div>
     </div>

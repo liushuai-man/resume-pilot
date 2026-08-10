@@ -1,4 +1,5 @@
 import React from 'react';
+import { Navigate } from 'react-router-dom';
 import ProtectedRoute from '@/components/common/ProtectedRoute';
 
 // 路由配置类型
@@ -16,6 +17,10 @@ const HomeLayout = React.lazy(() => import('@/layouts/HomeLayout'));
 // 页面组件（延迟加载）
 const LoginPage = React.lazy(() => import('@/pages/LoginPage'));
 const HomePage = React.lazy(() => import('@/pages/HomePage'));
+const JobCenterPage = React.lazy(() => import('@/pages/JobCenterPage'));
+const InterviewCenterPage = React.lazy(
+  () => import('@/pages/InterviewCenterPage')
+);
 const ResumeEditorPage = React.lazy(() => import('@/pages/ResumeEditorPage'));
 const ResumePrintPage = React.lazy(() => import('@/pages/ResumePrintPage'));
 const InterviewPage = React.lazy(() => import('@/pages/InterviewPage'));
@@ -45,7 +50,12 @@ export const routes: RouteConfig[] = [
   {
     path: '/',
     layout: React.createElement(HomeLayout),
-    children: [{ path: '', element: React.createElement(HomePage) }],
+    children: [
+      { path: '', element: React.createElement(HomePage) },
+      { path: 'jobs', element: protectedPage(React.createElement(JobCenterPage)) },
+      { path: 'interviews', element: protectedPage(React.createElement(InterviewCenterPage)) },
+      { path: 'history', element: protectedPage(React.createElement(InterviewHistoryPage)) },
+    ],
   },
 
   // 主要功能布局
@@ -67,7 +77,7 @@ export const routes: RouteConfig[] = [
   },
   {
     path: '/resume/interview/history',
-    element: protectedPage(React.createElement(InterviewHistoryPage)),
+    element: protectedPage(React.createElement(Navigate, { to: '/history', replace: true })),
   },
   {
     path: '/resume/interview/result/:id',
@@ -87,6 +97,9 @@ export const ROUTE_NAMES = {
   HOME: '/',
   RESUME_EDITOR: '/resume/:id',
   RESUME_INTERVIEW: '/resume/interview',
+  JOBS: '/jobs',
+  INTERVIEWS: '/interviews',
+  HISTORY: '/history',
 };
 
 // 生成带参数的路由路径

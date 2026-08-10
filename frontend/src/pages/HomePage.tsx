@@ -1,12 +1,11 @@
 import {
-  Button,
   Text,
   Container,
   Input,
   Select,
   ActionIcon,
 } from '@mantine/core';
-import { FileText, Search, X, ArrowUpDown } from 'lucide-react';
+import { Search, X, ArrowUpDown } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import EmptyResume from '@/components/home/EmptyResume';
 import HistoryResume from '@/components/home/HistoryResume';
@@ -174,15 +173,6 @@ export default function HomePage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 px-4 border-blue-400 text-blue-500 bg-white hover:bg-blue-50 hover:border-blue-600 hover:text-blue-700 flex-shrink-0"
-              onClick={() => navigate('/resume/interview')}
-            >
-              <FileText size={14} className="mr-2" />
-              在线面试
-            </Button>
             <Input
               placeholder="搜索简历名称..."
               value={searchKeyword}

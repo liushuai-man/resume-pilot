@@ -6,13 +6,11 @@ import {
   Text,
   Group,
   Stack,
-  Title,
   Loader,
   Badge,
   RingProgress,
 } from '@mantine/core';
 import {
-  ArrowLeft,
   Calendar,
   FileText,
   ChevronRight,
@@ -86,32 +84,28 @@ const InterviewHistoryPage = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex min-h-[480px] items-center justify-center">
         <Loader size="xl" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* 顶部导航栏 */}
-      <div className="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-10">
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="xs"
-            onClick={() => navigate(-1)}
-            className="h-7 px-3 border-blue-400 text-blue-500 bg-white hover:bg-blue-50 hover:border-blue-600 hover:text-blue-700"
-          >
-            <ArrowLeft size={12} className="mr-1" />
-            返回
-          </Button>
-          <Title order={4}>面试记录</Title>
-        </div>
+    <div className="mx-auto max-w-6xl px-6 py-2">
+      <div>
+        <p className="text-sm font-medium text-blue-600">ACTIVITY</p>
+        <h1 className="mt-1 text-3xl font-bold tracking-tight text-gray-900">历史记录</h1>
+        <p className="mt-2 text-gray-500">集中查看面试、简历优化和岗位分析的历史结果。</p>
       </div>
 
+      <nav className="mt-7 flex gap-6 border-b border-gray-200">
+        <button className="border-b-2 border-blue-600 px-1 pb-3 text-sm font-medium text-blue-600">面试记录</button>
+        <button disabled className="px-1 pb-3 text-sm text-gray-400">简历优化 <span className="ml-1 text-xs">即将开放</span></button>
+        <button disabled className="px-1 pb-3 text-sm text-gray-400">ATS 分析 <span className="ml-1 text-xs">即将开放</span></button>
+      </nav>
+
       {/* 内容 */}
-      <div className="max-w-4xl mx-auto p-6">
+      <div className="mx-auto mt-6 max-w-4xl">
         {results.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20">
             <FileText size={48} className="text-gray-300 mb-4" />
@@ -121,7 +115,7 @@ const InterviewHistoryPage = () => {
             <Button
               variant="outline"
               mt="md"
-              onClick={() => navigate('/resume/interview')}
+              onClick={() => navigate('/interviews')}
             >
               开始面试
             </Button>

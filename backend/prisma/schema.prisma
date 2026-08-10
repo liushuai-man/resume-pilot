@@ -20,6 +20,8 @@ model User {
   resumes       Resume[]
   model_configs UserModelConfig[]
   ai_memories   AiMemory[]
+  job_descriptions JobDescription[]
+  job_profiles     JobProfile[]
 
   @@map("users")
 }
@@ -133,6 +135,51 @@ model UserModelConfig {
   @@index([user_id])
   @@index([user_id, purpose])
   @@map("user_model_configs")
+}
+
+model JobDescription {
+  id           String       @id @default(uuid())
+  user_id      String
+  title        String?
+  company      String?
+  raw_text     String
+  source_url   String?
+  is_deleted   Boolean      @default(false)
+  created_at   DateTime     @default(now())
+  updated_at   DateTime     @updatedAt
+  user         User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  profiles     JobProfile[]
+
+  @@index([user_id, updated_at])
+  @@map("job_descriptions")
+}
+
+model JobProfile {
+  id                 String         @id @default(uuid())
+  job_description_id String
+  user_id            String
+  version            Int
+  status             String         @default("draft")
+  job_title          String
+  seniority          String?
+  industry           String?
+  responsibilities   Json           @default("[]")
+  required_skills    Json           @default("[]")
+  preferred_skills   Json           @default("[]")
+  keywords           Json           @default("[]")
+  confidence         Float?
+  parser_version     String
+  prompt_version     String
+  model_name         String?
+  confirmed_at       DateTime?
+  created_at         DateTime       @default(now())
+  updated_at         DateTime       @updatedAt
+  job_description    JobDescription @relation(fields: [job_description_id], references: [id], onDelete: Cascade)
+  user               User           @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([job_description_id, version])
+  @@index([user_id, updated_at])
+  @@map("job_profiles")
 }
 
 model AiMemory {
