@@ -78,3 +78,11 @@ export interface AtsAnalysisResult {
   issues: AtsIssue[];
   limitations: string[];
 }
+
+export interface JobMatchAnalysis {
+  id: string; jobDescriptionId: string; jobProfileId: string; jobProfileVersion: number;
+  resumeId: string; resumeUpdatedAt: string; score: number; overallConfidence: number;
+  modelName: string; promptVersion: string; evaluatorVersion: string; createdAt: string; stale: boolean;
+  dimensions: Array<{ key: string; score: number; maxScore: number; confidence: number; reason: string }>;
+  requirements: Array<{ requirementId: string; category: 'responsibility' | 'required_skill' | 'preferred_skill'; requirementName: string; jdEvidence: string; status: 'matched' | 'insufficient_evidence' | 'gap' | 'needs_confirmation'; resumeFieldId: string | null; resumeEvidence: string | null; reason: string; confidence: number; section: string | null; itemId: string | null; field: string | null }>;
+}

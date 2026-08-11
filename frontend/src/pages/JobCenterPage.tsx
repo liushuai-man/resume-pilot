@@ -11,6 +11,7 @@ import type {
   JobDescription,
   JobProfile,
   JobRequirement,
+  JobMatchAnalysis,
 } from '@/types/job';
 import type { Resume } from '@/types/resume';
 import PageHeader from '@/components/common/PageHeader';
@@ -128,9 +129,11 @@ export default function JobCenterPage() {
   const [selectedResumeId, setSelectedResumeId] = useState('');
   const [atsResult, setAtsResult] = useState<AtsAnalysisResult | null>(null);
   const [atsBusy, setAtsBusy] = useState(false);
-  const [analysisView, setAnalysisView] = useState<'structure' | 'quality'>('structure');
+  const [analysisView, setAnalysisView] = useState<'structure' | 'quality' | 'match'>('structure');
   const [contentQuality, setContentQuality] = useState<ContentQualityAnalysis | null>(null);
   const [qualityBusy, setQualityBusy] = useState(false);
+  const [matchResult, setMatchResult] = useState<JobMatchAnalysis | null>(null);
+  const [matchBusy, setMatchBusy] = useState(false);
 
   const selected = useMemo(
     () => jobs.find((job) => job.id === selectedId) || null,
@@ -148,6 +151,17 @@ export default function JobCenterPage() {
       setContentQuality(response.data);
     } catch (cause) {
       notification.error(getApiErrorMessage(cause, '最近内容质量报告加载失败'));
+    }
+  };
+
+  const loadLatestMatch = async (jobId: string, resumeId: string) => {
+    if (!jobId || !resumeId) { setMatchResult(null); return; }
+    try {
+      const response = await jobApi.getLatestMatch(jobId, resumeId);
+      if (response.code !== 200) throw new Error(response.message);
+      setMatchResult(response.data);
+    } catch (cause) {
+      notification.error(getApiErrorMessage(cause, '最近岗位匹配报告加载失败'));
     }
   };
 
@@ -201,6 +215,10 @@ export default function JobCenterPage() {
       if (initialResumeId) void loadLatestContentQuality(initialResumeId);
     }).catch((cause) => notification.error(getApiErrorMessage(cause, '简历列表加载失败')));
   }, []);
+
+  useEffect(() => {
+    if (selectedId && selectedResumeId) void loadLatestMatch(selectedId, selectedResumeId);
+  }, [selectedId, selectedResumeId]);
 
   const selectJob = async (job: JobDescription) => {
     if (busy) return;
@@ -377,11 +395,24 @@ export default function JobCenterPage() {
     }
   };
 
+  const runJobMatch = async () => {
+    if (!selected || !selectedResumeId) return notification.error('请先选择一份简历');
+    if (!profileVersions.some((item) => item.status === 'confirmed')) return notification.error('请先确认当前岗位画像');
+    setMatchBusy(true);
+    try {
+      const response = await jobApi.analyzeMatch(selected.id, selectedResumeId);
+      if (response.code !== 200) throw new Error(response.message);
+      setMatchResult(response.data); setAnalysisView('match'); notification.success('岗位匹配完成');
+    } catch (cause) { notification.error(getApiErrorMessage(cause, '岗位匹配失败')); }
+    finally { setMatchBusy(false); }
+  };
+
   if (loading) {
     return <div className="flex min-h-[480px] items-center justify-center"><Loader2 className="animate-spin" /></div>;
   }
 
   const confirmed = profile?.status === 'confirmed';
+  const hasConfirmedProfile = profileVersions.some((item) => item.status === 'confirmed');
   const editable = profile?.status === 'draft';
   const profileStatusLabel = profile?.status === 'confirmed'
     ? '当前确认'
@@ -461,7 +492,7 @@ export default function JobCenterPage() {
                       <p className="mt-1 text-sm text-gray-500">从 0 分开始检查机器可读性和字段结构；内容质量、真实性与 JD 匹配会独立评价。</p>
                     <select
                       value={selectedResumeId}
-                      onChange={(event) => { const resumeId = event.target.value; setSelectedResumeId(resumeId); setAtsResult(null); setContentQuality(null); void loadLatestContentQuality(resumeId); }}
+                      onChange={(event) => { const resumeId = event.target.value; setSelectedResumeId(resumeId); setAtsResult(null); setContentQuality(null); setMatchResult(null); void loadLatestContentQuality(resumeId); }}
                       className="mt-4 w-full max-w-lg rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm"
                     >
                       <option value="">选择要分析的简历</option>
@@ -469,25 +500,30 @@ export default function JobCenterPage() {
                     </select>
                   </div>
                   <div className="flex gap-2">
-                    <button disabled={atsBusy || qualityBusy || !selectedResumeId} onClick={runAtsAnalysis} className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 font-medium text-gray-700 disabled:opacity-50">
+                    <button disabled={atsBusy || qualityBusy || matchBusy || !selectedResumeId} onClick={runAtsAnalysis} className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 font-medium text-gray-700 disabled:opacity-50">
                       {atsBusy ? <Loader2 size={17} className="animate-spin" /> : <FileText size={17} />}结构初检
                     </button>
-                    <button disabled={atsBusy || qualityBusy || !selectedResumeId} onClick={runContentQuality} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 font-medium text-white disabled:opacity-50">
+                    <button disabled={atsBusy || qualityBusy || matchBusy || !selectedResumeId} onClick={runContentQuality} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 font-medium text-white disabled:opacity-50">
                       {qualityBusy ? <Loader2 size={17} className="animate-spin" /> : <Sparkles size={17} />}AI 内容评价
                     </button>
+                    <button disabled={atsBusy || qualityBusy || matchBusy || !selectedResumeId || !hasConfirmedProfile} onClick={runJobMatch} className="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2.5 font-medium text-white disabled:opacity-50">{matchBusy ? <Loader2 size={17} className="animate-spin" /> : <BarChart3 size={17} />}岗位匹配</button>
                   </div>
                 </div>
 
-                {!confirmed && <p className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-700">ATS 基础体检可以直接使用；JD 岗位匹配需要先确认岗位画像。</p>}
+                {!hasConfirmedProfile && <p className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-700">ATS 基础体检可以直接使用；JD 岗位匹配需要先确认岗位画像。</p>}
 
-                {(atsResult || contentQuality) && (
+                {(atsResult || contentQuality || matchResult) && (
                   <nav className="flex gap-5 border-b border-gray-200">
                     <button onClick={() => setAnalysisView('structure')} className={`pb-2 text-sm font-medium ${analysisView === 'structure' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}>ATS 结构分</button>
                     <button onClick={() => setAnalysisView('quality')} className={`pb-2 text-sm font-medium ${analysisView === 'quality' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}>内容质量分</button>
+                    <button onClick={() => setAnalysisView('match')} className={`pb-2 text-sm font-medium ${analysisView === 'match' ? 'border-b-2 border-violet-600 text-violet-600' : 'text-gray-500'}`}>岗位匹配分</button>
                   </nav>
                 )}
 
-                {analysisView === 'quality' ? (
+                {analysisView === 'match' ? (
+                  !matchResult ? <div className="flex min-h-[340px] flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 text-center"><BarChart3 size={30} className="text-gray-300" /><p className="mt-3 font-medium text-gray-700">尚未运行岗位匹配</p><p className="mt-1 text-sm text-gray-400">只使用当前已确认岗位画像与所选简历。</p></div> :
+                  <div className="grid grid-cols-[260px_minmax(0,1fr)] gap-5"><aside className="rounded-xl border border-gray-200 bg-white p-5"><div className="text-center"><span className="text-4xl font-bold text-violet-600">{matchResult.score}</span><span className="text-gray-400"> / 100</span><p className="mt-2 font-semibold">岗位匹配分</p><p className="mt-1 text-xs text-gray-400">岗位画像 V{matchResult.jobProfileVersion}</p></div><div className="mt-5 space-y-3">{matchResult.dimensions.map((d) => <div key={d.key}><div className="flex justify-between text-xs text-gray-500"><span>{d.key}</span><span>{d.score}/{d.maxScore}</span></div><div className="mt-1 h-1.5 rounded bg-gray-100"><div className="h-full rounded bg-violet-500" style={{width:`${d.score/d.maxScore*100}%`}} /></div><p className="mt-1 text-xs text-gray-400">{d.reason}</p></div>)}</div><p className="mt-4 border-t pt-3 text-xs text-gray-400">{matchResult.modelName} · {matchResult.promptVersion}<br />整体置信度 {Math.round(matchResult.overallConfidence*100)}%</p></aside><section className="rounded-xl border border-gray-200 bg-white p-5"><div className="flex justify-between"><div><h3 className="font-semibold">岗位要求逐项匹配</h3><p className="mt-1 text-sm text-gray-500">结论与 ATS、内容质量分开。</p></div>{matchResult.stale && <span className="h-fit rounded bg-amber-50 px-2 py-1 text-xs text-amber-700">报告已过期</span>}</div><div className="mt-4 max-h-[520px] space-y-3 overflow-auto">{matchResult.requirements.map((item) => <article key={item.requirementId} className="rounded-lg border p-4"><div className="flex flex-wrap items-center gap-2"><span className="font-medium text-gray-800">{item.requirementName}</span><span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-500">{item.category==='responsibility'?'岗位职责':item.category==='required_skill'?'必备能力':'加分项'}</span><span className={`rounded px-2 py-0.5 text-xs ${item.status==='matched'?'bg-green-50 text-green-700':item.status==='gap'?'bg-red-50 text-red-700':'bg-amber-50 text-amber-700'}`}>{item.status==='matched'?'已匹配':item.status==='insufficient_evidence'?'证据不足':item.status==='gap'?'能力缺口':'待确认'}</span><span className="text-xs text-gray-400">置信度 {Math.round(item.confidence*100)}%</span></div><p className="mt-2 text-xs text-gray-400">JD 证据：{item.jdEvidence}</p>{item.resumeEvidence && <blockquote className="mt-3 border-l-2 pl-3 text-sm text-gray-600">{item.resumeEvidence}</blockquote>}<p className="mt-3 text-sm text-gray-700">{item.reason}</p>{item.section && <Link to={`/resumes/${matchResult.resumeId}/edit?section=${encodeURIComponent(item.section)}&itemId=${encodeURIComponent(item.itemId||'')}&field=${encodeURIComponent(item.field||'')}`} className="mt-3 inline-flex text-xs font-medium text-blue-600">查看简历证据</Link>}</article>)}</div></section></div>
+                ) : analysisView === 'quality' ? (
                   !contentQuality ? (
                     <div className="flex min-h-[340px] flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 text-center">
                       <Sparkles size={30} className="text-gray-300" />

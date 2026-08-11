@@ -2,6 +2,7 @@ import request from '@/utils/request';
 import type { ApiResponse } from '@/types';
 import type {
   AtsAnalysisResult,
+  JobMatchAnalysis,
   EditableJobProfile,
   JobDescription,
   JobProfile,
@@ -21,6 +22,10 @@ export const jobApi = {
     request.post(`/jobs/${id}/analyze`),
   analyzeAts: (id: string, resumeId: string): Promise<ApiResponse<AtsAnalysisResult>> =>
     request.post(`/jobs/${id}/ats`, { resumeId }),
+  analyzeMatch: (id: string, resumeId: string): Promise<ApiResponse<JobMatchAnalysis>> =>
+    request.post(`/jobs/${id}/match`, { resumeId }),
+  getLatestMatch: (id: string, resumeId: string): Promise<ApiResponse<JobMatchAnalysis | null>> =>
+    request.get(`/jobs/${id}/match/latest`, { params: { resumeId } }),
   listProfiles: (id: string): Promise<ApiResponse<JobProfile[]>> =>
     request.get(`/jobs/${id}/profiles`),
   updateProfile: (

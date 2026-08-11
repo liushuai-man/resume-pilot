@@ -17,7 +17,10 @@
     "test:ai:all": "tsx scripts/test-ai-config.ts --all",
     "test:job-profile": "tsx --test src/services/job-profile.service.test.ts",
     "test:ats": "tsx --test src/services/ats-analysis.service.test.ts",
-    "test:content-quality": "tsx --test src/services/content-quality.service.test.ts"
+    "test:content-quality": "tsx --test src/services/content-quality.service.test.ts",
+    "test:job-match": "tsx --test src/services/job-match.service.test.ts",
+    "calibrate:content-quality": "tsx src/evals/content-quality.calibration.ts"
+    ,"calibrate:job-match": "tsx src/evals/job-match.calibration.ts"
   },
   "dependencies": {
     "@langchain/community": "^0.0.34",

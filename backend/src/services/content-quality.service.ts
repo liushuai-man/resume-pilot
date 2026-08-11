@@ -127,11 +127,20 @@ export function parseContentQualityOutput(output: string, fields: ResumeQualityF
   };
 }
 
-export async function evaluateResumeContent(userId: string, content: unknown): Promise<ContentQualityResult> {
+export async function evaluateResumeContent(
+  userId: string,
+  content: unknown,
+  options?: { maxRetries?: number; timeout?: number },
+): Promise<ContentQualityResult> {
   const fields = extractResumeQualityFields(content);
   if (fields.length === 0) throw new Error('简历没有可评价的文本字段');
   const config = await getUserModelClientConfig(userId);
-  const llm = await createUserLLM(userId, { temperature: 0.1, maxTokens: 3500 });
+  const llm = await createUserLLM(userId, {
+    temperature: 0.1,
+    maxTokens: 3500,
+    maxRetries: options?.maxRetries,
+    timeout: options?.timeout,
+  });
   const output = await llm.pipe(new StringOutputParser()).invoke(buildContentQualityPrompt(fields));
   return { ...parseContentQualityOutput(output, fields), modelName: config.model_name };
 }

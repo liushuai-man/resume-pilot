@@ -23,6 +23,7 @@ model User {
   job_descriptions JobDescription[]
   job_profiles     JobProfile[]
   content_analyses ResumeContentAnalysis[]
+  job_match_analyses JobMatchAnalysis[]
 
   @@map("users")
 }
@@ -41,6 +42,7 @@ model Resume {
   user              User              @relation(fields: [user_id], references: [id], onDelete: Cascade)
   ai_memories       AiMemory[]
   content_analyses  ResumeContentAnalysis[]
+  job_match_analyses JobMatchAnalysis[]
 
   @@index([user_id])
   @@map("resumes")
@@ -200,10 +202,34 @@ model JobProfile {
   updated_at         DateTime       @updatedAt
   job_description    JobDescription @relation(fields: [job_description_id], references: [id], onDelete: Cascade)
   user               User           @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  match_analyses     JobMatchAnalysis[]
 
   @@unique([job_description_id, version])
   @@index([user_id, updated_at])
   @@map("job_profiles")
+}
+
+model JobMatchAnalysis {
+  id                 String     @id @default(uuid())
+  user_id            String
+  resume_id          String
+  resume_updated_at  DateTime
+  job_profile_id     String
+  score              Int
+  dimensions         Json
+  requirements       Json
+  overall_confidence Float
+  model_name         String
+  prompt_version     String
+  evaluator_version  String
+  created_at         DateTime   @default(now())
+  user               User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  resume             Resume     @relation(fields: [resume_id], references: [id], onDelete: Cascade)
+  job_profile        JobProfile @relation(fields: [job_profile_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, created_at])
+  @@index([resume_id, job_profile_id, created_at])
+  @@map("job_match_analyses")
 }
 
 model AiMemory {

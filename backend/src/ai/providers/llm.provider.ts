@@ -14,9 +14,9 @@ export async function getUserModelClientConfig(userId?: string) {
 
 export async function createUserLLM(
   userId?: string,
-  options?: { temperature?: number; maxTokens?: number }
+  options?: { temperature?: number; maxTokens?: number; maxRetries?: number; timeout?: number }
 ) {
-  const { temperature = 0.7, maxTokens = 1000 } = options || {};
+  const { temperature = 0.7, maxTokens = 1000, maxRetries, timeout = 100000 } = options || {};
   const config = await getUserModelClientConfig(userId);
   const apiKey = await getDecryptedApiKey(config);
 
@@ -25,7 +25,8 @@ export async function createUserLLM(
     openAIApiKey: apiKey,
     temperature,
     maxTokens,
-    timeout: 100000,
+    timeout,
+    maxRetries,
     configuration: {
       baseURL: config.base_url || undefined,
     },

@@ -11,6 +11,7 @@ import {
   parseJobDescription,
 } from '../services/job-profile.service';
 import { analyzeResumeForAts } from '../services/ats-analysis.service';
+import { buildMatchRequirements, evaluateJobMatch } from '../services/job-match.service';
 
 const createJobSchema = z.object({
   title: z.string().trim().max(120).optional(),
@@ -305,6 +306,68 @@ export const analyzeJobResumeAts = async (req: AuthRequest, res: Response) => {
     console.error('ATS 基础分析失败:', cause);
     return error(res, 'ATS 基础分析失败', 500);
   }
+};
+
+const matchData = (analysis: any, resumeUpdatedAt: Date, currentProfileId: string) => {
+  const requirementMap = new Map(buildMatchRequirements(analysis.job_profile).map((item) => [item.id, item]));
+  const requirements = Array.isArray(analysis.requirements) ? analysis.requirements.map((item: any) => {
+    const snapshot = requirementMap.get(item.requirementId);
+    return { ...item, category: item.category || snapshot?.category, requirementName: item.requirementName || snapshot?.name, jdEvidence: item.jdEvidence || snapshot?.jdEvidence };
+  }) : [];
+  return ({
+  id: analysis.id, jobDescriptionId: analysis.job_profile.job_description_id,
+  jobProfileId: analysis.job_profile_id, jobProfileVersion: analysis.job_profile.version,
+  resumeId: analysis.resume_id, resumeUpdatedAt: analysis.resume_updated_at,
+  score: analysis.score, dimensions: analysis.dimensions, requirements,
+  overallConfidence: analysis.overall_confidence, modelName: analysis.model_name,
+  promptVersion: analysis.prompt_version, evaluatorVersion: analysis.evaluator_version,
+  createdAt: analysis.created_at,
+  stale: analysis.resume_updated_at.getTime() !== resumeUpdatedAt.getTime() || analysis.job_profile_id !== currentProfileId,
+  });
+};
+
+export const analyzeJobResumeMatch = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return error(res, '未登录', 401);
+    const input = atsAnalysisSchema.safeParse(req.body);
+    if (!input.success) return badRequest(res, input.error.issues[0]?.message);
+    const profile = await prisma.jobProfile.findFirst({
+      where: { job_description_id: req.params.id, user_id: userId, status: 'confirmed', job_description: { is_deleted: false } },
+      orderBy: { confirmed_at: 'desc' },
+    });
+    if (!profile) return badRequest(res, '请先确认当前岗位画像，再运行岗位匹配');
+    const resume = await prisma.resume.findFirst({ where: { id: input.data.resumeId, user_id: userId, is_deleted: false } });
+    if (!resume) return notFound(res, '简历不存在');
+    const result = await evaluateJobMatch(userId, profile, resume.content);
+    const analysis = await prisma.jobMatchAnalysis.create({ data: {
+      user_id: userId, resume_id: resume.id, resume_updated_at: resume.updated_at, job_profile_id: profile.id,
+      score: result.score, dimensions: result.dimensions as unknown as Prisma.InputJsonValue,
+      requirements: result.requirements as unknown as Prisma.InputJsonValue, overall_confidence: result.overallConfidence,
+      model_name: result.modelName, prompt_version: result.promptVersion, evaluator_version: result.evaluatorVersion,
+    }, include: { job_profile: true } });
+    return success(res, matchData(analysis, resume.updated_at, profile.id), '岗位匹配完成');
+  } catch (cause: any) {
+    console.error('岗位匹配失败:', cause);
+    return error(res, cause?.message?.includes('默认模型') ? cause.message : '岗位匹配失败，请检查模型配置或稍后重试', 500);
+  }
+};
+
+export const getLatestJobResumeMatch = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return error(res, '未登录', 401);
+    const input = atsAnalysisSchema.safeParse({ resumeId: req.query.resumeId });
+    if (!input.success) return badRequest(res, input.error.issues[0]?.message);
+    const [resume, profile] = await Promise.all([
+      prisma.resume.findFirst({ where: { id: input.data.resumeId, user_id: userId, is_deleted: false }, select: { id: true, updated_at: true } }),
+      prisma.jobProfile.findFirst({ where: { job_description_id: req.params.id, user_id: userId, status: 'confirmed' }, orderBy: { confirmed_at: 'desc' }, select: { id: true } }),
+    ]);
+    if (!resume) return notFound(res, '简历不存在');
+    if (!profile) return success(res, null);
+    const analysis = await prisma.jobMatchAnalysis.findFirst({ where: { user_id: userId, resume_id: resume.id, job_profile: { job_description_id: req.params.id } }, orderBy: { created_at: 'desc' }, include: { job_profile: true } });
+    return success(res, analysis ? matchData(analysis, resume.updated_at, profile.id) : null);
+  } catch (cause) { console.error('获取岗位匹配报告失败:', cause); return error(res, '获取岗位匹配报告失败', 500); }
 };
 
 export const deleteJob = async (req: AuthRequest, res: Response) => {
