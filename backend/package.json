@@ -21,6 +21,7 @@
     "test:job-match": "tsx --test src/services/job-match.service.test.ts",
     "calibrate:content-quality": "tsx src/evals/content-quality.calibration.ts"
     ,"calibrate:job-match": "tsx src/evals/job-match.calibration.ts"
+    ,"diagnose:model": "tsx src/evals/model-connectivity.ts"
   },
   "dependencies": {
     "@langchain/community": "^0.0.34",
