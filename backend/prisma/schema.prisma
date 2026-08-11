@@ -22,6 +22,7 @@ model User {
   ai_memories   AiMemory[]
   job_descriptions JobDescription[]
   job_profiles     JobProfile[]
+  content_analyses ResumeContentAnalysis[]
 
   @@map("users")
 }
@@ -39,6 +40,7 @@ model Resume {
   interview_results InterviewResult[]
   user              User              @relation(fields: [user_id], references: [id], onDelete: Cascade)
   ai_memories       AiMemory[]
+  content_analyses  ResumeContentAnalysis[]
 
   @@index([user_id])
   @@map("resumes")
@@ -135,6 +137,28 @@ model UserModelConfig {
   @@index([user_id])
   @@index([user_id, purpose])
   @@map("user_model_configs")
+}
+
+model ResumeContentAnalysis {
+  id                String   @id @default(uuid())
+  user_id           String
+  resume_id         String
+  resume_updated_at DateTime
+  content_hash      String
+  score             Int
+  dimensions        Json
+  issues            Json
+  overall_confidence Float
+  model_name        String
+  prompt_version    String
+  evaluator_version String
+  created_at        DateTime @default(now())
+  user              User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  resume            Resume   @relation(fields: [resume_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, created_at])
+  @@index([resume_id, created_at])
+  @@map("resume_content_analyses")
 }
 
 model JobDescription {

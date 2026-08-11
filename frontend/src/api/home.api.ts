@@ -1,6 +1,7 @@
 import request from '@/utils/request';
 import type { Resume, Template } from '@/types/resume';
 import { ApiResponse } from '@/types';
+import type { ContentQualityAnalysis } from '@/types/content-quality';
 
 export const resumeApi = {
   getTemplates: async (): Promise<ApiResponse<Template[]>> => {
@@ -44,6 +45,14 @@ export const resumeApi = {
     return await request.get(`/resume/${id}/export-pdf`, {
       responseType: 'blob',
     });
+  },
+
+  analyzeContentQuality: async (id: string): Promise<ApiResponse<ContentQualityAnalysis>> => {
+    return await request.post(`/resume/${id}/content-quality`);
+  },
+
+  getLatestContentQuality: async (id: string): Promise<ApiResponse<ContentQualityAnalysis | null>> => {
+    return await request.get(`/resume/${id}/content-quality`);
   },
 };
 

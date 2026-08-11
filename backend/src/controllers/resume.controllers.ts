@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import type { Prisma } from '@prisma/client';
 import { prisma } from '../database/prisma';
 import {
   generateThumbnail,
@@ -6,6 +7,78 @@ import {
   getThumbnailPath,
 } from '../services/thumbnail.service';
 import { success, error } from '../utils/response';
+import { evaluateResumeContent, hashResumeContent } from '../services/content-quality.service';
+
+const contentAnalysisData = (analysis: any, currentResumeUpdatedAt?: Date) => ({
+  id: analysis.id,
+  resumeId: analysis.resume_id,
+  resumeUpdatedAt: analysis.resume_updated_at,
+  score: analysis.score,
+  dimensions: analysis.dimensions,
+  issues: analysis.issues,
+  overallConfidence: analysis.overall_confidence,
+  modelName: analysis.model_name,
+  promptVersion: analysis.prompt_version,
+  evaluatorVersion: analysis.evaluator_version,
+  createdAt: analysis.created_at,
+  stale: currentResumeUpdatedAt
+    ? analysis.resume_updated_at.getTime() !== currentResumeUpdatedAt.getTime()
+    : false,
+});
+
+export const analyzeResumeContentQuality = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) return error(res, '未授权', 401);
+    const resume = await prisma.resume.findFirst({
+      where: { id: req.params.id, user_id: userId, is_deleted: false },
+    });
+    if (!resume) return error(res, '简历不存在', 404);
+    const result = await evaluateResumeContent(userId, resume.content);
+    const analysis = await prisma.resumeContentAnalysis.create({
+      data: {
+        user_id: userId,
+        resume_id: resume.id,
+        resume_updated_at: resume.updated_at,
+        content_hash: hashResumeContent(resume.content),
+        score: result.score,
+        dimensions: result.dimensions as unknown as Prisma.InputJsonValue,
+        issues: result.issues as unknown as Prisma.InputJsonValue,
+        overall_confidence: result.overallConfidence,
+        model_name: result.modelName,
+        prompt_version: result.promptVersion,
+        evaluator_version: result.evaluatorVersion,
+      },
+    });
+    return res.status(201).json({ code: 200, message: '内容质量评价完成', data: contentAnalysisData(analysis, resume.updated_at) });
+  } catch (cause: any) {
+    console.error('内容质量评价失败:', cause);
+    const message = cause?.message?.includes('默认模型') || cause?.message?.includes('可评价')
+      ? cause.message
+      : '内容质量评价失败，请检查模型配置或稍后重试';
+    return error(res, message, 500);
+  }
+};
+
+export const getLatestResumeContentQuality = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) return error(res, '未授权', 401);
+    const resume = await prisma.resume.findFirst({
+      where: { id: req.params.id, user_id: userId, is_deleted: false },
+      select: { id: true, updated_at: true },
+    });
+    if (!resume) return error(res, '简历不存在', 404);
+    const analysis = await prisma.resumeContentAnalysis.findFirst({
+      where: { resume_id: resume.id, user_id: userId },
+      orderBy: { created_at: 'desc' },
+    });
+    return success(res, analysis ? contentAnalysisData(analysis, resume.updated_at) : null);
+  } catch (cause) {
+    console.error('获取内容质量评价失败:', cause);
+    return error(res, '获取内容质量评价失败', 500);
+  }
+};
 
 export const createResume = async (req: Request, res: Response) => {
   try {

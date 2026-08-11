@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertCircle, BarChart3, Check, FileText, Loader2, Plus, RefreshCw, Save, Trash2, X } from 'lucide-react';
+import { AlertCircle, BarChart3, Check, FileText, Loader2, Plus, RefreshCw, Save, Sparkles, Trash2, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { jobApi } from '@/api/job.api';
 import { resumeApi } from '@/api/home.api';
@@ -14,6 +14,7 @@ import type {
 } from '@/types/job';
 import type { Resume } from '@/types/resume';
 import PageHeader from '@/components/common/PageHeader';
+import type { ContentQualityAnalysis } from '@/types/content-quality';
 
 const emptyRequirement = (): JobRequirement => ({
   name: '',
@@ -127,11 +128,28 @@ export default function JobCenterPage() {
   const [selectedResumeId, setSelectedResumeId] = useState('');
   const [atsResult, setAtsResult] = useState<AtsAnalysisResult | null>(null);
   const [atsBusy, setAtsBusy] = useState(false);
+  const [analysisView, setAnalysisView] = useState<'structure' | 'quality'>('structure');
+  const [contentQuality, setContentQuality] = useState<ContentQualityAnalysis | null>(null);
+  const [qualityBusy, setQualityBusy] = useState(false);
 
   const selected = useMemo(
     () => jobs.find((job) => job.id === selectedId) || null,
     [jobs, selectedId]
   );
+
+  const loadLatestContentQuality = async (resumeId: string) => {
+    if (!resumeId) {
+      setContentQuality(null);
+      return;
+    }
+    try {
+      const response = await resumeApi.getLatestContentQuality(resumeId);
+      if (response.code !== 200) throw new Error(response.message);
+      setContentQuality(response.data);
+    } catch (cause) {
+      notification.error(getApiErrorMessage(cause, '最近内容质量报告加载失败'));
+    }
+  };
 
   const showProfile = (nextProfile: JobProfile | null) => {
     setProfile(nextProfile);
@@ -178,7 +196,9 @@ export default function JobCenterPage() {
     void resumeApi.getUserResumes({ excludeUploaded: true }).then((response) => {
       if (response.code !== 200) throw new Error(response.message);
       setResumes(response.data);
-      setSelectedResumeId(response.data[0]?.id || '');
+      const initialResumeId = response.data[0]?.id || '';
+      setSelectedResumeId(initialResumeId);
+      if (initialResumeId) void loadLatestContentQuality(initialResumeId);
     }).catch((cause) => notification.error(getApiErrorMessage(cause, '简历列表加载失败')));
   }, []);
 
@@ -329,11 +349,31 @@ export default function JobCenterPage() {
       const response = await jobApi.analyzeAts(selected.id, selectedResumeId);
       if (response.code !== 200) throw new Error(response.message);
       setAtsResult(response.data);
+      setAnalysisView('structure');
       notification.success('ATS 基础分析完成');
     } catch (cause) {
       notification.error(getApiErrorMessage(cause, 'ATS 基础分析失败'));
     } finally {
       setAtsBusy(false);
+    }
+  };
+
+  const runContentQuality = async () => {
+    if (!selectedResumeId) {
+      notification.error('请先选择一份简历');
+      return;
+    }
+    setQualityBusy(true);
+    try {
+      const response = await resumeApi.analyzeContentQuality(selectedResumeId);
+      if (response.code !== 200) throw new Error(response.message);
+      setContentQuality(response.data);
+      setAnalysisView('quality');
+      notification.success('AI 内容质量评价完成');
+    } catch (cause) {
+      notification.error(getApiErrorMessage(cause, '内容质量评价失败'));
+    } finally {
+      setQualityBusy(false);
     }
   };
 
@@ -421,21 +461,67 @@ export default function JobCenterPage() {
                       <p className="mt-1 text-sm text-gray-500">从 0 分开始检查机器可读性和字段结构；内容质量、真实性与 JD 匹配会独立评价。</p>
                     <select
                       value={selectedResumeId}
-                      onChange={(event) => { setSelectedResumeId(event.target.value); setAtsResult(null); }}
+                      onChange={(event) => { const resumeId = event.target.value; setSelectedResumeId(resumeId); setAtsResult(null); setContentQuality(null); void loadLatestContentQuality(resumeId); }}
                       className="mt-4 w-full max-w-lg rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm"
                     >
                       <option value="">选择要分析的简历</option>
                       {resumes.map((resume) => <option key={resume.id} value={resume.id}>{resume.title}</option>)}
                     </select>
                   </div>
-                  <button disabled={atsBusy || !selectedResumeId} onClick={runAtsAnalysis} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 font-medium text-white disabled:opacity-50">
-                    {atsBusy ? <Loader2 size={17} className="animate-spin" /> : <FileText size={17} />}开始体检
-                  </button>
+                  <div className="flex gap-2">
+                    <button disabled={atsBusy || qualityBusy || !selectedResumeId} onClick={runAtsAnalysis} className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 font-medium text-gray-700 disabled:opacity-50">
+                      {atsBusy ? <Loader2 size={17} className="animate-spin" /> : <FileText size={17} />}结构初检
+                    </button>
+                    <button disabled={atsBusy || qualityBusy || !selectedResumeId} onClick={runContentQuality} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 font-medium text-white disabled:opacity-50">
+                      {qualityBusy ? <Loader2 size={17} className="animate-spin" /> : <Sparkles size={17} />}AI 内容评价
+                    </button>
+                  </div>
                 </div>
 
                 {!confirmed && <p className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-700">ATS 基础体检可以直接使用；JD 岗位匹配需要先确认岗位画像。</p>}
 
-                {!atsResult ? (
+                {(atsResult || contentQuality) && (
+                  <nav className="flex gap-5 border-b border-gray-200">
+                    <button onClick={() => setAnalysisView('structure')} className={`pb-2 text-sm font-medium ${analysisView === 'structure' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}>ATS 结构分</button>
+                    <button onClick={() => setAnalysisView('quality')} className={`pb-2 text-sm font-medium ${analysisView === 'quality' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}>内容质量分</button>
+                  </nav>
+                )}
+
+                {analysisView === 'quality' ? (
+                  !contentQuality ? (
+                    <div className="flex min-h-[340px] flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 text-center">
+                      <Sparkles size={30} className="text-gray-300" />
+                      <p className="mt-3 font-medium text-gray-700">尚未运行内容质量评价</p>
+                      <p className="mt-1 text-sm text-gray-400">使用你的默认模型检查连贯性、信息有效性、证据具体性、一致性与专业性。</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-[260px_minmax(0,1fr)] gap-5">
+                      <aside className="rounded-xl border border-gray-200 bg-white p-5">
+                        <div className="text-center"><span className="text-4xl font-bold text-blue-600">{contentQuality.score}</span><span className="text-gray-400"> / 100</span><p className="mt-2 font-semibold text-gray-800">内容质量分</p></div>
+                        <div className="mt-5 space-y-3">
+                          {contentQuality.dimensions.map((dimension) => (
+                            <div key={dimension.key}><div className="flex justify-between text-xs text-gray-500"><span>{dimension.key}</span><span>{dimension.score}/{dimension.maxScore}</span></div><div className="mt-1 h-1.5 rounded-full bg-gray-100"><div className="h-full rounded-full bg-violet-500" style={{ width: `${dimension.score / dimension.maxScore * 100}%` }} /></div><p className="mt-1 text-xs leading-5 text-gray-400">{dimension.reason}</p></div>
+                          ))}
+                        </div>
+                        <p className="mt-4 border-t pt-3 text-xs leading-5 text-gray-400">{contentQuality.modelName} · {contentQuality.promptVersion}<br />整体置信度 {Math.round(contentQuality.overallConfidence * 100)}%</p>
+                      </aside>
+                      <section className="rounded-xl border border-gray-200 bg-white p-5">
+                        <div className="flex items-start justify-between"><div><h3 className="font-semibold text-gray-900">字段级语义问题</h3><p className="mt-1 text-sm text-gray-500">低于 70% 置信度的结论只标记为待确认。</p></div>{contentQuality.stale && <span className="rounded bg-amber-50 px-2 py-1 text-xs text-amber-700">简历已修改，报告已过期</span>}</div>
+                        <div className="mt-4 max-h-[520px] space-y-3 overflow-auto pr-1">
+                          {contentQuality.issues.map((issue, index) => (
+                            <article key={`${issue.fieldId}-${index}`} className="rounded-lg border border-gray-200 p-4">
+                              <div className="flex items-center gap-2"><span className={`rounded px-2 py-0.5 text-xs ${issue.status === 'needs_confirmation' ? 'bg-amber-50 text-amber-700' : issue.severity === 'error' ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-blue-700'}`}>{issue.status === 'needs_confirmation' ? '待确认' : issue.severity === 'error' ? '严重' : issue.severity === 'warning' ? '警告' : '建议'}</span><span className="text-xs text-gray-400">置信度 {Math.round(issue.confidence * 100)}%</span></div>
+                              <blockquote className="mt-3 border-l-2 border-gray-200 pl-3 text-sm text-gray-600">{issue.evidence}</blockquote>
+                              <p className="mt-3 text-sm leading-6 text-gray-700">{issue.reason}</p><p className="mt-1 text-sm leading-6 text-blue-700">建议：{issue.suggestion}</p>
+                              <Link to={`/resumes/${contentQuality.resumeId}/edit?section=${encodeURIComponent(issue.section)}&itemId=${encodeURIComponent(issue.itemId || '')}&field=${encodeURIComponent(issue.field)}`} className="mt-3 inline-flex text-xs font-medium text-blue-600">编辑对应字段</Link>
+                            </article>
+                          ))}
+                          {contentQuality.issues.length === 0 && <div className="rounded-lg bg-green-50 p-8 text-center text-sm text-green-700">模型未发现明确的内容质量问题。</div>}
+                        </div>
+                      </section>
+                    </div>
+                  )
+                ) : !atsResult ? (
                   <div className="flex min-h-[340px] flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 text-center">
                     <FileText size={30} className="text-gray-300" />
                     <p className="mt-3 font-medium text-gray-700">选择简历后开始体检</p>

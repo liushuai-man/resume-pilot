@@ -8,6 +8,8 @@ import {
   getTemplates,
   getTemplateById,
   exportResumePdf,
+  analyzeResumeContentQuality,
+  getLatestResumeContentQuality,
 } from '../controllers/resume.controllers';
 import { authMiddleware } from '../middlewares/auth.middleware';
 
@@ -17,6 +19,8 @@ router.get('/templates', getTemplates);
 router.get('/templates/:id', getTemplateById);
 router.get('/', authMiddleware, getUserResumes);
 router.get('/:id/export-pdf', authMiddleware, exportResumePdf);
+router.get('/:id/content-quality', authMiddleware, getLatestResumeContentQuality);
+router.post('/:id/content-quality', authMiddleware, analyzeResumeContentQuality);
 router.get('/:id', authMiddleware, getResumeById);
 router.post('/', authMiddleware, createResume);
 router.put('/:id', authMiddleware, updateResume);
