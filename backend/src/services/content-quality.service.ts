@@ -140,6 +140,7 @@ export async function evaluateResumeContent(
     maxTokens: 3500,
     maxRetries: options?.maxRetries,
     timeout: options?.timeout,
+    modelKwargs: { response_format: { type: 'json_object' }, thinking_budget: 512 },
   });
   const output = await llm.pipe(new StringOutputParser()).invoke(buildContentQualityPrompt(fields));
   return { ...parseContentQualityOutput(output, fields), modelName: config.model_name };

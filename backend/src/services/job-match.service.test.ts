@@ -33,9 +33,11 @@ test('拒绝编造的简历证据', () => {
   assert.throws(() => parseJobMatchOutput(JSON.stringify(invalid), requirements, fields), /证据无法定位/);
 });
 
-test('低置信度结论只能进入待确认', () => {
+test('低置信度结论由后端强制归一化为待确认', () => {
   const invalid = JSON.parse(output); invalid.requirements[0].confidence = .4;
-  assert.throws(() => parseJobMatchOutput(JSON.stringify(invalid), requirements, fields), /低置信度/);
+  const result = parseJobMatchOutput(JSON.stringify(invalid), requirements, fields);
+  assert.equal(result.requirements[0].status, 'needs_confirmation');
+  assert.equal(result.requirements[0].resumeEvidence, null);
 });
 
 test('岗位要求必须逐项且不重复评价', () => {

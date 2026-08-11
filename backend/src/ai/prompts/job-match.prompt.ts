@@ -1,7 +1,7 @@
 import type { ResumeQualityField } from './content-quality.prompt';
 
 export const JOB_MATCH_PROMPT_VERSION = 'job-match-v2';
-export const JOB_MATCH_EVALUATOR_VERSION = '1.0.0';
+export const JOB_MATCH_EVALUATOR_VERSION = '1.1.0';
 
 export interface MatchRequirement { id: string; category: 'responsibility' | 'required_skill' | 'preferred_skill'; name: string; jdEvidence: string }
 

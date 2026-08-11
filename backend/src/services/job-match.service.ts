@@ -31,13 +31,15 @@ export function parseJobMatchOutput(output: string, requirements: MatchRequireme
     const requirement = requirementMap.get(item.requirementId);
     if (!requirement || seen.has(item.requirementId)) throw new Error('岗位要求引用无效或重复');
     seen.add(item.requirementId);
-    if (item.confidence < 0.7 && item.status !== 'needs_confirmation') throw new Error('低置信度要求必须待确认');
-    if (item.status === 'matched' || item.status === 'insufficient_evidence') {
-      const field = item.resumeFieldId ? fieldMap.get(item.resumeFieldId) : null;
-      if (!field || !item.resumeEvidence || !normalize(field.content).includes(normalize(item.resumeEvidence))) throw new Error('简历匹配证据无法定位');
-      return { ...item, category: requirement.category, requirementName: requirement.name, jdEvidence: requirement.jdEvidence, section: field.section, itemId: field.itemId, field: field.field };
+    const normalizedItem = item.confidence < 0.7
+      ? { ...item, status: 'needs_confirmation' as const }
+      : item;
+    if (normalizedItem.status === 'matched' || normalizedItem.status === 'insufficient_evidence') {
+      const field = normalizedItem.resumeFieldId ? fieldMap.get(normalizedItem.resumeFieldId) : null;
+      if (!field || !normalizedItem.resumeEvidence || !normalize(field.content).includes(normalize(normalizedItem.resumeEvidence))) throw new Error('简历匹配证据无法定位');
+      return { ...normalizedItem, category: requirement.category, requirementName: requirement.name, jdEvidence: requirement.jdEvidence, section: field.section, itemId: field.itemId, field: field.field };
     }
-    return { ...item, category: requirement.category, requirementName: requirement.name, jdEvidence: requirement.jdEvidence, resumeFieldId: null, resumeEvidence: null, section: null, itemId: null, field: null };
+    return { ...normalizedItem, category: requirement.category, requirementName: requirement.name, jdEvidence: requirement.jdEvidence, resumeFieldId: null, resumeEvidence: null, section: null, itemId: null, field: null };
   });
   if (seen.size !== requirements.length) throw new Error('岗位要求评价不完整');
   const dimensions = keys.map((key) => { const item = dimensionMap.get(key)!; if (item.score > maxScores[key]) throw new Error('岗位匹配分数无效'); return { ...item, maxScore: maxScores[key] }; });
@@ -49,7 +51,13 @@ export async function evaluateJobMatch(userId: string, profile: any, resumeConte
   const requirements = buildMatchRequirements(profile);
   if (!fields.length || !requirements.length) throw new Error('简历或岗位画像没有可匹配内容');
   const config = await getUserModelClientConfig(userId);
-  const llm = await createUserLLM(userId, { temperature: 0.1, maxTokens: 5000, maxRetries: options?.maxRetries, timeout: options?.timeout });
+  const llm = await createUserLLM(userId, {
+    temperature: 0.1,
+    maxTokens: 5000,
+    maxRetries: options?.maxRetries,
+    timeout: options?.timeout,
+    modelKwargs: { response_format: { type: 'json_object' }, thinking_budget: 512 },
+  });
   const output = await llm.pipe(new StringOutputParser()).invoke(buildJobMatchPrompt(profile, requirements, fields));
   return { ...parseJobMatchOutput(output, requirements, fields), modelName: config.model_name };
 }
