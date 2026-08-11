@@ -549,7 +549,7 @@ export default function JobCenterPage() {
                               <div className="flex items-center gap-2"><span className={`rounded px-2 py-0.5 text-xs ${issue.status === 'needs_confirmation' ? 'bg-amber-50 text-amber-700' : issue.severity === 'error' ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-blue-700'}`}>{issue.status === 'needs_confirmation' ? '待确认' : issue.severity === 'error' ? '严重' : issue.severity === 'warning' ? '警告' : '建议'}</span><span className="text-xs text-gray-400">置信度 {Math.round(issue.confidence * 100)}%</span></div>
                               <blockquote className="mt-3 border-l-2 border-gray-200 pl-3 text-sm text-gray-600">{issue.evidence}</blockquote>
                               <p className="mt-3 text-sm leading-6 text-gray-700">{issue.reason}</p><p className="mt-1 text-sm leading-6 text-blue-700">建议：{issue.suggestion}</p>
-                              <Link to={`/resumes/${contentQuality.resumeId}/edit?section=${encodeURIComponent(issue.section)}&itemId=${encodeURIComponent(issue.itemId || '')}&field=${encodeURIComponent(issue.field)}`} className="mt-3 inline-flex text-xs font-medium text-blue-600">编辑对应字段</Link>
+                              <Link to={`/resumes/${contentQuality.resumeId}/edit?section=${encodeURIComponent(issue.section)}&itemId=${encodeURIComponent(issue.itemId || '')}&field=${encodeURIComponent(issue.field)}&analysisId=${encodeURIComponent(contentQuality.id)}&qualityIssue=${index}`} className="mt-3 inline-flex text-xs font-medium text-blue-600">定位并优化</Link>
                             </article>
                           ))}
                           {contentQuality.issues.length === 0 && <div className="rounded-lg bg-green-50 p-8 text-center text-sm text-green-700">模型未发现明确的内容质量问题。</div>}

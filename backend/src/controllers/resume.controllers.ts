@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import type { Prisma } from '@prisma/client';
+import { z } from 'zod';
 import { prisma } from '../database/prisma';
 import {
   generateThumbnail,
@@ -8,6 +9,10 @@ import {
 } from '../services/thumbnail.service';
 import { success, error } from '../utils/response';
 import { evaluateResumeContent, hashResumeContent } from '../services/content-quality.service';
+import { generateResumeOptimization } from '../services/resume-optimization.service';
+import type { ContentQualityIssue } from '../types/content-quality.types';
+
+const optimizationSchema = z.object({ analysisId: z.string().uuid(), issueIndex: z.number().int().min(0), userFacts: z.string().trim().max(4000).optional().default('') });
 
 const contentAnalysisData = (analysis: any, currentResumeUpdatedAt?: Date) => ({
   id: analysis.id,
@@ -77,6 +82,28 @@ export const getLatestResumeContentQuality = async (req: Request, res: Response)
   } catch (cause) {
     console.error('获取内容质量评价失败:', cause);
     return error(res, '获取内容质量评价失败', 500);
+  }
+};
+
+export const optimizeResumeContentIssue = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) return error(res, '未授权', 401);
+    const input = optimizationSchema.safeParse(req.body);
+    if (!input.success) return error(res, input.error.issues[0]?.message || '请求无效', 400);
+    const resume = await prisma.resume.findFirst({ where: { id: req.params.id, user_id: userId, is_deleted: false }, select: { id: true, updated_at: true } });
+    if (!resume) return error(res, '简历不存在', 404);
+    const latest = await prisma.resumeContentAnalysis.findFirst({ where: { resume_id: resume.id, user_id: userId }, orderBy: { created_at: 'desc' } });
+    if (!latest || latest.id !== input.data.analysisId) return error(res, '该问题不是最新内容质量报告，请重新评价后再优化', 409);
+    if (latest.resume_updated_at.getTime() !== resume.updated_at.getTime()) return error(res, '简历已修改，请重新评价后再优化', 409);
+    const issues = Array.isArray(latest.issues) ? latest.issues as unknown as ContentQualityIssue[] : [];
+    const issue = issues[input.data.issueIndex];
+    if (!issue) return error(res, '内容质量问题不存在', 404);
+    const result = await generateResumeOptimization(userId, issue, input.data.userFacts);
+    return success(res, { analysisId: latest.id, issueIndex: input.data.issueIndex, fieldId: issue.fieldId, ...result });
+  } catch (cause) {
+    console.error('生成局部优化建议失败:', cause);
+    return error(res, '生成局部优化建议失败，请稍后重试', 500);
   }
 };
 

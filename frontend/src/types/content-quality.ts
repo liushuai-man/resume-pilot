@@ -36,3 +36,8 @@ export interface ContentQualityAnalysis {
   createdAt: string;
   stale: boolean;
 }
+
+export type ResumeOptimizationResult = {
+  analysisId: string; issueIndex: number; fieldId: string; originalText: string;
+  promptVersion: string; evaluatorVersion: string;
+} & ({ mode: 'needs_input'; questions: string[] } | { mode: 'suggestion'; suggestedText: string; reason: string; usedUserFacts: string[]; modelName?: string });

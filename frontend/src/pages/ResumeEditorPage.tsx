@@ -7,6 +7,7 @@ import { SectionEditorModal } from '@/components/editor/SectionEditorModal';
 import { DocumentPreview } from '@/components/preview/DocumentPreview';
 import { TemplateSettings } from '@/components/editor/TemplateSettings';
 import AIConversation from '@/components/editor/AIConversation';
+import ResumeOptimizationPanel from '@/components/editor/ResumeOptimizationPanel';
 import { downloadPdf } from '@/utils/downloadPdf';
 import { notification } from '@/components/common/Notification';
 import { useResumeStore } from '@/store/useResumeStore';
@@ -34,6 +35,9 @@ export default function ResumeEditorPage() {
   const [manualSaving, setManualSaving] = useState(false);
   const [showTemplateSettings, setShowTemplateSettings] = useState(false);
   const [editorModalOpen, setEditorModalOpen] = useState(false);
+  const optimizationAnalysisId = searchParams.get('analysisId');
+  const optimizationIssueIndex = Number(searchParams.get('qualityIssue'));
+  const showOptimization = Boolean(optimizationAnalysisId) && Number.isInteger(optimizationIssueIndex) && optimizationIssueIndex >= 0;
 
   useAutoSave(resumeId || '');
 
@@ -228,7 +232,9 @@ export default function ResumeEditorPage() {
         }
         leftPanel={leftPanelContent}
         rightPanel={
-          <AIConversation currentField="" />
+          showOptimization && resumeId && optimizationAnalysisId
+            ? <ResumeOptimizationPanel resumeId={resumeId} analysisId={optimizationAnalysisId} issueIndex={optimizationIssueIndex} />
+            : <AIConversation currentField="" />
         }
       >
         <DocumentPreview />
