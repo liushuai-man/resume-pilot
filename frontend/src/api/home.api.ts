@@ -4,6 +4,23 @@ import { ApiResponse } from '@/types';
 import type { AppliedResumeOptimization, AtsOptimizationResult, ContentQualityAnalysis, ResumeOptimizationResult } from '@/types/content-quality';
 import type { AtsAnalysisResult } from '@/types/job';
 
+export interface ResumeOptimizationHistoryItem {
+  id: string;
+  resumeId: string;
+  source: 'content_quality' | 'job_match' | 'ats';
+  targetId: string;
+  fieldId: string;
+  originalText: string;
+  finalText: string;
+  status: 'accepted' | 'rejected' | 'reverted';
+  scoreBefore: number | null;
+  scoreAfter: number | null;
+  resolved: boolean | null;
+  canRevert: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export const resumeApi = {
   getTemplates: async (): Promise<ApiResponse<Template[]>> => {
     return await request.get('/resume/templates');
@@ -71,6 +88,8 @@ export const resumeApi = {
   applyAtsOptimization: async (id: string, data: { issueId: string; suggestedText: string }): Promise<ApiResponse<AppliedResumeOptimization & { previousScore: number; ats: AtsAnalysisResult }>> => request.post(`/resume/${id}/ats/apply`, data),
   completeOptimizationAction: async (id: string, actionId: string, analysisId: string): Promise<ApiResponse<unknown>> => request.post(`/resume/${id}/optimization-actions/${actionId}/complete`, { analysisId }),
   rejectOptimizationSuggestion: async (id: string, suggestionToken: string): Promise<ApiResponse<{ actionId: string }>> => request.post(`/resume/${id}/optimization-actions/reject`, { suggestionToken }),
+  getOptimizationHistory: async (id: string, params?: { status?: ResumeOptimizationHistoryItem['status']; source?: ResumeOptimizationHistoryItem['source']; cursor?: string; limit?: number }): Promise<ApiResponse<{ items: ResumeOptimizationHistoryItem[]; nextCursor: string | null }>> => request.get(`/resume/${id}/optimizations`, { params }),
+  revertOptimization: async (id: string, actionId: string): Promise<ApiResponse<{ action: ResumeOptimizationHistoryItem; resume: Resume }>> => request.post(`/resume/${id}/optimizations/${actionId}/revert`),
 };
 
 export default resumeApi;

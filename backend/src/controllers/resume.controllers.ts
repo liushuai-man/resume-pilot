@@ -13,7 +13,7 @@ import { generateResumeOptimization } from '../services/resume-optimization.serv
 import { applyContentQualitySuggestion } from '../services/resume-version.service';
 import { analyzeResumeForAts } from '../services/ats-analysis.service';
 import { resolveAtsOptimizationField } from '../services/ats-optimization.service';
-import { optimizationActionData } from '../services/optimization-action.service';
+import { issueFromOptimizationAction, optimizationActionData, optimizationActionDataView } from '../services/optimization-action.service';
 import { createSuggestionToken, verifySuggestionToken } from '../services/suggestion-token.service';
 import type { ContentQualityIssue } from '../types/content-quality.types';
 
@@ -27,6 +27,12 @@ const atsOptimizationSchema = z.object({ issueId: z.string().trim().min(1).max(3
 const applyAtsOptimizationSchema = z.object({ issueId: z.string().trim().min(1).max(300), suggestedText: z.string().trim().min(1).max(4000) });
 const optimizationResultSchema = z.object({ analysisId: z.string().uuid() });
 const rejectSuggestionSchema = z.object({ suggestionToken: z.string().min(1).max(20_000) });
+const optimizationHistoryQuerySchema = z.object({
+  status: z.enum(['accepted', 'rejected', 'reverted']).optional(),
+  source: z.enum(['content_quality', 'job_match', 'ats']).optional(),
+  cursor: z.string().uuid().optional(),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+});
 
 const atsContentIssue = (issue: any, field: any): ContentQualityIssue => ({ fieldId: field.fieldId, section: field.section, itemId: field.itemId, field: field.field, evidence: field.content, dimension: 'professionalism', severity: issue.severity, reason: issue.message, suggestion: issue.title, confidence: 1, status: 'confirmed' });
 
@@ -241,6 +247,59 @@ export const restoreResumeVersion = async (req: Request, res: Response) => {
   } catch (cause: any) {
     console.error('恢复简历版本失败:', cause);
     return error(res, cause?.message || '恢复简历版本失败', cause?.statusCode || 500);
+  }
+};
+
+export const getResumeOptimizationHistory = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) return error(res, '未授权', 401);
+    const input = optimizationHistoryQuerySchema.safeParse(req.query);
+    if (!input.success) return error(res, input.error.issues[0]?.message || '查询参数无效', 400);
+    const resume = await prisma.resume.findFirst({ where: { id: req.params.id, user_id: userId, is_deleted: false }, select: { id: true } });
+    if (!resume) return error(res, '简历不存在', 404);
+    const { limit, cursor, status, source } = input.data;
+    const actions = await prisma.resumeOptimizationAction.findMany({
+      where: { resume_id: resume.id, user_id: userId, ...(status ? { status } : {}), ...(source ? { source } : {}) },
+      orderBy: [{ created_at: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    });
+    const hasMore = actions.length > limit;
+    const items = actions.slice(0, limit);
+    return success(res, { items: items.map(optimizationActionDataView), nextCursor: hasMore ? items.at(-1)?.id ?? null : null });
+  } catch (cause) {
+    console.error('获取优化历史失败:', cause);
+    return error(res, '获取优化历史失败', 500);
+  }
+};
+
+export const revertResumeOptimizationAction = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) return error(res, '未授权', 401);
+    const result = await prisma.$transaction(async (tx: any) => {
+      const resume = await tx.resume.findFirst({ where: { id: req.params.id, user_id: userId, is_deleted: false } });
+      if (!resume) throw Object.assign(new Error('简历不存在'), { statusCode: 404 });
+      const action = await tx.resumeOptimizationAction.findFirst({ where: { id: req.params.actionId, resume_id: resume.id, user_id: userId } });
+      if (!action) throw Object.assign(new Error('优化记录不存在'), { statusCode: 404 });
+      if (action.status !== 'accepted' || !action.version_id) throw Object.assign(new Error('该优化记录不可撤销或已经撤销'), { statusCode: 409 });
+      let content: unknown;
+      try {
+        content = applyContentQualitySuggestion(resume.content, issueFromOptimizationAction(action) as ContentQualityIssue, action.original_text);
+      } catch (cause: any) {
+        throw Object.assign(new Error(cause?.message?.includes('字段已变化') ? '目标字段已被后续修改，无法安全撤销' : cause?.message || '无法撤销该优化'), { statusCode: 409 });
+      }
+      await tx.resumeVersion.create({ data: { user_id: userId, resume_id: resume.id, title: resume.title, content: resume.content, source: 'before_optimization_revert', change_summary: `撤销优化 ${action.id}` } });
+      const updateResult = await tx.resumeOptimizationAction.updateMany({ where: { id: action.id, status: 'accepted' }, data: { status: 'reverted' } });
+      if (updateResult.count !== 1) throw Object.assign(new Error('该优化记录已经撤销'), { statusCode: 409 });
+      const updatedResume = await tx.resume.update({ where: { id: resume.id }, data: { content: content as Prisma.InputJsonValue, updated_at: new Date() } });
+      return { action: optimizationActionDataView({ ...action, status: 'reverted', updated_at: new Date() }), resume: updatedResume };
+    });
+    return success(res, result);
+  } catch (cause: any) {
+    console.error('撤销优化失败:', cause);
+    return error(res, cause?.message || '撤销优化失败', cause?.statusCode || 500);
   }
 };
 
