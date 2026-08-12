@@ -9,6 +9,7 @@ import { TemplateSettings } from '@/components/editor/TemplateSettings';
 import AIConversation from '@/components/editor/AIConversation';
 import ResumeOptimizationPanel from '@/components/editor/ResumeOptimizationPanel';
 import JobMatchOptimizationPanel from '@/components/editor/JobMatchOptimizationPanel';
+import AtsOptimizationPanel from '@/components/editor/AtsOptimizationPanel';
 import { downloadPdf } from '@/utils/downloadPdf';
 import { notification } from '@/components/common/Notification';
 import { useResumeStore } from '@/store/useResumeStore';
@@ -44,6 +45,7 @@ export default function ResumeEditorPage() {
   const matchAnalysisId = searchParams.get('matchAnalysisId');
   const matchRequirementIndex = Number(searchParams.get('matchRequirement'));
   const showMatchOptimization = Boolean(matchJobId && matchAnalysisId) && Number.isInteger(matchRequirementIndex) && matchRequirementIndex >= 0;
+  const atsIssueId = searchParams.get('atsIssue');
 
   useAutoSave(resumeId || '');
 
@@ -251,7 +253,9 @@ export default function ResumeEditorPage() {
         }
         leftPanel={leftPanelContent}
         rightPanel={
-          showMatchOptimization && resumeId && matchJobId && matchAnalysisId
+          atsIssueId && resumeId
+            ? <AtsOptimizationPanel resumeId={resumeId} issueId={atsIssueId} onResumeChanged={handleOptimizedResume} />
+            : showMatchOptimization && resumeId && matchJobId && matchAnalysisId
             ? <JobMatchOptimizationPanel jobId={matchJobId} resumeId={resumeId} analysisId={matchAnalysisId} requirementIndex={matchRequirementIndex} onResumeChanged={handleOptimizedResume} />
             : showOptimization && resumeId && optimizationAnalysisId
             ? <ResumeOptimizationPanel resumeId={resumeId} analysisId={optimizationAnalysisId} issueIndex={optimizationIssueIndex} onResumeChanged={handleOptimizedResume} />

@@ -13,6 +13,8 @@ import {
   optimizeResumeContentIssue,
   applyResumeContentOptimization,
   restoreResumeVersion,
+  optimizeResumeAtsIssue,
+  applyResumeAtsOptimization,
 } from '../controllers/resume.controllers';
 import { authMiddleware } from '../middlewares/auth.middleware';
 
@@ -26,6 +28,8 @@ router.get('/:id/content-quality', authMiddleware, getLatestResumeContentQuality
 router.post('/:id/content-quality', authMiddleware, analyzeResumeContentQuality);
 router.post('/:id/content-quality/optimize', authMiddleware, optimizeResumeContentIssue);
 router.post('/:id/content-quality/apply', authMiddleware, applyResumeContentOptimization);
+router.post('/:id/ats/optimize', authMiddleware, optimizeResumeAtsIssue);
+router.post('/:id/ats/apply', authMiddleware, applyResumeAtsOptimization);
 router.post('/:id/versions/:versionId/restore', authMiddleware, restoreResumeVersion);
 router.get('/:id', authMiddleware, getResumeById);
 router.post('/', authMiddleware, createResume);

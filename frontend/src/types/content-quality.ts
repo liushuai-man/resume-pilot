@@ -47,3 +47,5 @@ export interface AppliedResumeOptimization {
   fieldId: string;
   resume: import('./resume').Resume;
 }
+
+export type AtsOptimizationResult = { issueId: string; fieldId: string; originalText: string } & ({ mode: 'needs_input'; questions: string[] } | { mode: 'suggestion'; suggestedText: string; reason: string; usedUserFacts: string[] });

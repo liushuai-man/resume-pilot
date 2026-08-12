@@ -77,7 +77,7 @@ export function analyzeResumeForAts(input: unknown): AtsAnalysisResult {
   const scores: Record<AtsCategory, number> = { parseability: 0, basic: 0, education: 0, evidence: 0, skills: 0, expression: 0 };
 
   const award = (category: AtsCategory, points: number) => { scores[category] += points; };
-  const miss = (issue: Omit<AtsIssue, 'id'>) => issues.push({ ...issue, id: `${issue.section}:${issue.itemId || 'root'}:${issue.field}:${issues.length}` });
+  const miss = (issue: Omit<AtsIssue, 'id'>) => issues.push({ ...issue, id: `${issue.section}:${issue.itemId || 'root'}:${issue.field}:${issue.title}` });
 
   if (blocks.length > 0 || content.basicInfo) award('parseability', 15);
   else miss({ category: 'parseability', severity: 'error', section: 'resume', itemId: null, field: 'content', title: '简历内容无法结构化解析', message: '请使用在线编辑器创建简历，或重新确认导入后的结构化内容。', availablePoints: 15 });

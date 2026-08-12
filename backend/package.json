@@ -22,9 +22,11 @@
     "test:resume-optimization": "tsx --test src/services/resume-optimization.service.test.ts",
     "test:resume-version": "tsx --test src/services/resume-version.service.test.ts",
     "test:job-match-optimization": "tsx --test src/services/job-match-optimization.service.test.ts",
+    "test:ats-optimization": "tsx --test src/services/ats-optimization.service.test.ts",
     "calibrate:content-quality": "tsx src/evals/content-quality.calibration.ts",
     "calibrate:job-match": "tsx src/evals/job-match.calibration.ts",
     "calibrate:resume-optimization": "tsx src/evals/resume-optimization.calibration.ts",
+    "calibrate:ats-optimization": "tsx src/evals/ats-optimization.calibration.ts",
     "diagnose:model": "tsx src/evals/model-connectivity.ts"
   },
   "dependencies": {

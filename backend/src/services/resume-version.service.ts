@@ -29,7 +29,14 @@ function updateValue(target: any, issue: ContentQualityIssue, suggestedText: str
 }
 
 function updateCanonical(content: any, issue: ContentQualityIssue, suggestedText: string) {
-  if (issue.section === 'basic') return updateValue(content.basicInfo, issue, suggestedText);
+  if (issue.section === 'basic') {
+    if (updateValue(content.basicInfo, issue, suggestedText)) return true;
+    if (issue.field === 'summary' && typeof content.basicInfo?.bio === 'string') {
+      const bioIssue = { ...issue, field: 'bio' };
+      return updateValue(content.basicInfo, bioIssue, suggestedText);
+    }
+    return false;
+  }
   if (issue.section === 'objective') {
     if (issue.field !== 'content' || normalize(content.careerObjective) !== normalize(issue.evidence)) return false;
     content.careerObjective = suggestedText;

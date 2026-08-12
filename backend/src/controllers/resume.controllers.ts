@@ -11,6 +11,8 @@ import { success, error } from '../utils/response';
 import { evaluateResumeContent, hashResumeContent } from '../services/content-quality.service';
 import { generateResumeOptimization } from '../services/resume-optimization.service';
 import { applyContentQualitySuggestion } from '../services/resume-version.service';
+import { analyzeResumeForAts } from '../services/ats-analysis.service';
+import { resolveAtsOptimizationField } from '../services/ats-optimization.service';
 import type { ContentQualityIssue } from '../types/content-quality.types';
 
 const optimizationSchema = z.object({ analysisId: z.string().uuid(), issueIndex: z.number().int().min(0), userFacts: z.string().trim().max(4000).optional().default('') });
@@ -19,6 +21,10 @@ const applyOptimizationSchema = z.object({
   issueIndex: z.number().int().min(0),
   suggestedText: z.string().trim().min(1).max(4000),
 });
+const atsOptimizationSchema = z.object({ issueId: z.string().trim().min(1).max(300), userFacts: z.string().trim().max(4000).optional().default('') });
+const applyAtsOptimizationSchema = z.object({ issueId: z.string().trim().min(1).max(300), suggestedText: z.string().trim().min(1).max(4000) });
+
+const atsContentIssue = (issue: any, field: any): ContentQualityIssue => ({ fieldId: field.fieldId, section: field.section, itemId: field.itemId, field: field.field, evidence: field.content, dimension: 'professionalism', severity: issue.severity, reason: issue.message, suggestion: issue.title, confidence: 1, status: 'confirmed' });
 
 const contentAnalysisData = (analysis: any, currentResumeUpdatedAt?: Date) => ({
   id: analysis.id,
@@ -163,6 +169,50 @@ export const applyResumeContentOptimization = async (req: Request, res: Response
     console.error('应用局部优化建议失败:', cause);
     return error(res, cause?.message || '应用局部优化建议失败', cause?.statusCode || 500);
   }
+};
+
+export const optimizeResumeAtsIssue = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) return error(res, '未授权', 401);
+    const input = atsOptimizationSchema.safeParse(req.body);
+    if (!input.success) return error(res, input.error.issues[0]?.message || '请求无效', 400);
+    const resume = await prisma.resume.findFirst({ where: { id: req.params.id, user_id: userId, is_deleted: false } });
+    if (!resume) return error(res, '简历不存在', 404);
+    const issue = analyzeResumeForAts(resume.content).issues.find((item) => item.id === input.data.issueId);
+    if (!issue) return error(res, '该 ATS 问题已不存在，请重新运行结构初检', 409);
+    let field;
+    try { field = resolveAtsOptimizationField(resume.content, issue); }
+    catch (cause: any) { return error(res, cause.message, 400); }
+    if (!input.data.userFacts.trim()) return success(res, { mode: 'needs_input', issueId: issue.id, fieldId: field.fieldId, originalText: field.content, questions: ['这个字段应表达哪些真实信息？', '有哪些可确认的名称、方向或事实可以替换当前无意义内容？'] });
+    const result = await generateResumeOptimization(userId, atsContentIssue(issue, field), input.data.userFacts);
+    return success(res, { issueId: issue.id, fieldId: field.fieldId, ...result });
+  } catch (cause) { console.error('生成 ATS 优化建议失败:', cause); return error(res, '生成 ATS 优化建议失败，请稍后重试', 500); }
+};
+
+export const applyResumeAtsOptimization = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) return error(res, '未授权', 401);
+    const input = applyAtsOptimizationSchema.safeParse(req.body);
+    if (!input.success) return error(res, input.error.issues[0]?.message || '请求无效', 400);
+    const result = await prisma.$transaction(async (tx: any) => {
+      const resume = await tx.resume.findFirst({ where: { id: req.params.id, user_id: userId, is_deleted: false } });
+      if (!resume) throw Object.assign(new Error('简历不存在'), { statusCode: 404 });
+      const issue = analyzeResumeForAts(resume.content).issues.find((item) => item.id === input.data.issueId);
+      if (!issue) throw Object.assign(new Error('该 ATS 问题已不存在，请重新运行结构初检'), { statusCode: 409 });
+      let field;
+      try { field = resolveAtsOptimizationField(resume.content, issue); }
+      catch (cause: any) { throw Object.assign(cause, { statusCode: 400 }); }
+      let content;
+      try { content = applyContentQualitySuggestion(resume.content, atsContentIssue(issue, field), input.data.suggestedText); }
+      catch (cause: any) { throw Object.assign(cause, { statusCode: 409 }); }
+      const version = await tx.resumeVersion.create({ data: { user_id: userId, resume_id: resume.id, title: resume.title, content: resume.content, source: 'ats_optimization', change_summary: `${field.fieldId}: ${issue.title}` } });
+      const updatedResume = await tx.resume.update({ where: { id: resume.id }, data: { content: content as Prisma.InputJsonValue, updated_at: new Date() } });
+      return { versionId: version.id, resume: updatedResume, fieldId: field.fieldId, previousScore: analyzeResumeForAts(resume.content).score, ats: analyzeResumeForAts(content) };
+    });
+    return success(res, result);
+  } catch (cause: any) { console.error('应用 ATS 优化建议失败:', cause); return error(res, cause?.message || '应用 ATS 优化建议失败', cause?.statusCode || 500); }
 };
 
 export const restoreResumeVersion = async (req: Request, res: Response) => {

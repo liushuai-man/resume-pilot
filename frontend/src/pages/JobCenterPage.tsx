@@ -602,7 +602,7 @@ export default function JobCenterPage() {
                               </div>
                               <span className={`shrink-0 rounded px-2 py-1 text-xs font-medium ${issue.availablePoints > 0 ? 'bg-blue-50 text-blue-600' : 'bg-red-50 text-red-600'}`}>{issue.availablePoints > 0 ? `可得 +${issue.availablePoints}` : '必须修正'}</span>
                             </div>
-                            <Link to={`/resumes/${atsResult.resumeId}/edit?section=${encodeURIComponent(issue.section)}&itemId=${encodeURIComponent(issue.itemId || '')}&field=${encodeURIComponent(issue.field)}`} className="mt-3 inline-flex text-xs font-medium text-blue-600 hover:text-blue-700">编辑对应字段</Link>
+                            {(['basic', 'education', 'skills', 'objective'].includes(issue.section) && (Boolean(issue.itemId) || ['basic', 'objective'].includes(issue.section))) ? <Link to={`/resumes/${atsResult.resumeId}/edit?section=${encodeURIComponent(issue.section)}&itemId=${encodeURIComponent(issue.itemId || '')}&field=${encodeURIComponent(issue.field)}&atsIssue=${encodeURIComponent(issue.id)}`} className="mt-3 inline-flex text-xs font-medium text-blue-600 hover:text-blue-700">定位并修正</Link> : <Link to={`/resumes/${atsResult.resumeId}/edit?section=${encodeURIComponent(issue.section)}&itemId=${encodeURIComponent(issue.itemId || '')}&field=${encodeURIComponent(issue.field)}`} className="mt-3 inline-flex text-xs font-medium text-blue-600 hover:text-blue-700">编辑对应字段</Link>}
                           </div>
                         ))}
                         {atsResult.issues.length === 0 && <div className="rounded-lg bg-green-50 p-8 text-center text-sm text-green-700">未发现 ATS 基础问题，下一步可以进行 JD 岗位匹配。</div>}
