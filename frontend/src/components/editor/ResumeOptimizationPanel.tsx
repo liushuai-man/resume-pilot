@@ -135,6 +135,21 @@ export default function ResumeOptimizationPanel({
     }
   };
 
+  const rejectSuggestion = async () => {
+    if (result?.mode !== 'suggestion') return;
+    setApplying(true);
+    try {
+      const response = await resumeApi.rejectOptimizationSuggestion(resumeId, result.suggestionToken);
+      if (response.code !== 200) throw new Error(response.message);
+      setDecision('rejected');
+      notification.success('已记录拒绝本条建议');
+    } catch (cause) {
+      notification.error(getApiErrorMessage(cause, '拒绝建议失败'));
+    } finally {
+      setApplying(false);
+    }
+  };
+
   if (!issue) {
     return <div className="flex h-full items-center justify-center text-sm text-gray-400">正在加载诊断问题…</div>;
   }
@@ -239,7 +254,7 @@ export default function ResumeOptimizationPanel({
                 </button>
                 <button
                   disabled={decision === 'accepted'}
-                  onClick={() => setDecision('rejected')}
+                  onClick={() => void rejectSuggestion()}
                   className="flex items-center gap-1 rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 disabled:opacity-50"
                 >
                   <X size={15} />拒绝建议

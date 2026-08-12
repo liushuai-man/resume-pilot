@@ -89,4 +89,4 @@ export interface JobMatchAnalysis {
 
 export type JobMatchOptimizationResult = {
   analysisId: string; requirementIndex: number; fieldId: string; requirementName: string; jdEvidence: string; originalText: string; promptVersion: string; evaluatorVersion: string;
-} & ({ mode: 'needs_input'; questions: string[] } | { mode: 'suggestion'; suggestedText: string; reason: string; usedUserFacts: string[]; modelName?: string });
+} & ({ mode: 'needs_input'; questions: string[] } | { mode: 'suggestion'; suggestedText: string; reason: string; usedUserFacts: string[]; modelName?: string; suggestionToken: string });

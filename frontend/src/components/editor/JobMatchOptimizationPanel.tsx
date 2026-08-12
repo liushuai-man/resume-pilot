@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AlertCircle, Check, Loader2, RotateCcw, Sparkles } from 'lucide-react';
+import { AlertCircle, Check, Loader2, RotateCcw, Sparkles, X } from 'lucide-react';
 import { jobApi } from '@/api/job.api';
 import { resumeApi } from '@/api/home.api';
 import { notification } from '@/components/common/Notification';
@@ -30,6 +30,7 @@ export default function JobMatchOptimizationPanel({
   const [rematching, setRematching] = useState(false);
   const [rematchFailed, setRematchFailed] = useState(false);
   const [actionId, setActionId] = useState<string | null>(null);
+  const [rejected, setRejected] = useState(false);
 
   useEffect(() => {
     void jobApi.getLatestMatch(jobId, resumeId).then((response) => {
@@ -119,6 +120,21 @@ export default function JobMatchOptimizationPanel({
     }
   };
 
+  const reject = async () => {
+    if (result?.mode !== 'suggestion') return;
+    setLoading(true);
+    try {
+      const response = await resumeApi.rejectOptimizationSuggestion(resumeId, result.suggestionToken);
+      if (response.code !== 200) throw new Error(response.message);
+      setRejected(true);
+      notification.success('已记录拒绝本条建议');
+    } catch (cause) {
+      notification.error(getApiErrorMessage(cause, '拒绝建议失败'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const baselineRequirement = baseline?.requirements[requirementIndex];
   const rematchedRequirement = baselineRequirement
     ? rematch?.requirements.find((item) => item.requirementId === baselineRequirement.requirementId)
@@ -143,7 +159,7 @@ export default function JobMatchOptimizationPanel({
             {rematching && <p className="flex items-center gap-2 text-xs text-gray-600"><Loader2 size={14} className="animate-spin" />正在基于当前岗位画像重新匹配…</p>}
             {rematchFailed && !rematching && <div className="flex items-center justify-between rounded border border-amber-200 p-2"><span className="text-xs text-amber-700">重新匹配失败，不影响已应用内容。</span><button onClick={() => void rerunMatch()} className="text-xs font-medium text-violet-700">重试匹配</button></div>}
             {rematch && !rematching && <div className="rounded border border-emerald-200 p-3"><p className="text-xs font-medium text-gray-500">重新匹配结果</p><div className="mt-2 flex items-end gap-2"><span className="text-2xl font-semibold">{rematch.score}</span>{baseline && <span className="pb-1 text-xs text-gray-500">原 {baseline.score} 分</span>}{scoreDelta !== null && <span className={`pb-1 text-xs font-medium ${scoreDelta > 0 ? 'text-emerald-700' : scoreDelta < 0 ? 'text-red-600' : 'text-gray-500'}`}>{scoreDelta > 0 ? `+${scoreDelta}` : scoreDelta}</span>}</div><p className={`mt-2 text-xs ${rematchedRequirement?.status === 'matched' ? 'text-emerald-700' : 'text-amber-700'}`}>{rematchedRequirement?.status === 'matched' ? '该岗位要求已转为“已匹配”。' : rematchedRequirement ? `该岗位要求当前仍为“${rematchedRequirement.status === 'insufficient_evidence' ? '证据不足' : rematchedRequirement.status === 'gap' ? '能力缺口' : '待确认'}”。` : '新报告中未找到对应岗位要求，请返回岗位页核对。'}</p></div>}
-          </div> : <button disabled={loading} onClick={() => void apply()} className="flex items-center gap-1 rounded bg-violet-600 px-3 py-2 text-sm text-white"><Check size={15} />应用建议</button>}
+          </div> : rejected ? <div className="flex items-center justify-between rounded border bg-white p-3"><span className="flex items-center gap-1 text-xs text-gray-600"><X size={14} />已拒绝本条建议</span><button onClick={() => setRejected(false)} className="text-xs text-violet-700">恢复审阅</button></div> : <div className="flex gap-2"><button disabled={loading} onClick={() => void apply()} className="flex items-center gap-1 rounded bg-violet-600 px-3 py-2 text-sm text-white"><Check size={15} />应用建议</button><button disabled={loading} onClick={() => void reject()} className="flex items-center gap-1 rounded border bg-white px-3 py-2 text-sm text-gray-700"><X size={15} />拒绝建议</button></div>}
         </section>}
       </div>
     </div>

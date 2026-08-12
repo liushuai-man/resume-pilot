@@ -16,6 +16,7 @@ import { generateJobMatchOptimization } from '../services/job-match-optimization
 import { applyContentQualitySuggestion } from '../services/resume-version.service';
 import type { ContentQualityIssue } from '../types/content-quality.types';
 import { optimizationActionData } from '../services/optimization-action.service';
+import { createSuggestionToken } from '../services/suggestion-token.service';
 
 const createJobSchema = z.object({
   title: z.string().trim().max(120).optional(),
@@ -408,7 +409,8 @@ export const optimizeJobMatchRequirement = async (req: AuthRequest, res: Respons
     if (!requirement) return notFound(res, '岗位匹配要求不存在');
     if (requirement.status !== 'insufficient_evidence' || !requirement.resumeFieldId || !requirement.resumeEvidence || !requirement.section || !requirement.field) return badRequest(res, '仅支持优化可定位的“证据不足”问题');
     const result = await generateJobMatchOptimization(userId, requirement, input.data.userFacts);
-    return success(res, { analysisId: analysis.id, requirementIndex: input.data.requirementIndex, fieldId: requirement.resumeFieldId, requirementName: requirement.requirementName, jdEvidence: requirement.jdEvidence, ...result });
+    const suggestionToken = result.mode === 'suggestion' ? createSuggestionToken({ userId, resumeId: analysis.resume_id, source: 'job_match', targetId: `${analysis.id}:${requirement.requirementId}`, fieldId: requirement.resumeFieldId, originalText: result.originalText, suggestedText: result.suggestedText }) : undefined;
+    return success(res, { analysisId: analysis.id, requirementIndex: input.data.requirementIndex, fieldId: requirement.resumeFieldId, requirementName: requirement.requirementName, jdEvidence: requirement.jdEvidence, ...result, suggestionToken });
   } catch (cause) {
     console.error('生成岗位匹配优化建议失败:', cause);
     return error(res, '生成岗位匹配优化建议失败，请稍后重试', 500);

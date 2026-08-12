@@ -40,7 +40,7 @@ export interface ContentQualityAnalysis {
 export type ResumeOptimizationResult = {
   analysisId: string; issueIndex: number; fieldId: string; originalText: string;
   promptVersion: string; evaluatorVersion: string;
-} & ({ mode: 'needs_input'; questions: string[] } | { mode: 'suggestion'; suggestedText: string; reason: string; usedUserFacts: string[]; modelName?: string });
+} & ({ mode: 'needs_input'; questions: string[] } | { mode: 'suggestion'; suggestedText: string; reason: string; usedUserFacts: string[]; modelName?: string; suggestionToken: string });
 
 export interface AppliedResumeOptimization {
   versionId: string;
@@ -49,4 +49,4 @@ export interface AppliedResumeOptimization {
   resume: import('./resume').Resume;
 }
 
-export type AtsOptimizationResult = { issueId: string; fieldId: string; originalText: string } & ({ mode: 'needs_input'; questions: string[] } | { mode: 'suggestion'; suggestedText: string; reason: string; usedUserFacts: string[] });
+export type AtsOptimizationResult = { issueId: string; fieldId: string; originalText: string } & ({ mode: 'needs_input'; questions: string[] } | { mode: 'suggestion'; suggestedText: string; reason: string; usedUserFacts: string[]; suggestionToken: string });

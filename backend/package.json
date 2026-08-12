@@ -24,6 +24,7 @@
     "test:job-match-optimization": "tsx --test src/services/job-match-optimization.service.test.ts",
     "test:ats-optimization": "tsx --test src/services/ats-optimization.service.test.ts",
     "test:optimization-action": "tsx --test src/services/optimization-action.service.test.ts",
+    "test:suggestion-token": "tsx --test src/services/suggestion-token.service.test.ts",
     "calibrate:content-quality": "tsx src/evals/content-quality.calibration.ts",
     "calibrate:job-match": "tsx src/evals/job-match.calibration.ts",
     "calibrate:resume-optimization": "tsx src/evals/resume-optimization.calibration.ts",
