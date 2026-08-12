@@ -29,6 +29,7 @@ export default function JobMatchOptimizationPanel({
   const [rematch, setRematch] = useState<JobMatchAnalysis | null>(null);
   const [rematching, setRematching] = useState(false);
   const [rematchFailed, setRematchFailed] = useState(false);
+  const [actionId, setActionId] = useState<string | null>(null);
 
   useEffect(() => {
     void jobApi.getLatestMatch(jobId, resumeId).then((response) => {
@@ -60,6 +61,7 @@ export default function JobMatchOptimizationPanel({
       const response = await jobApi.analyzeMatch(jobId, resumeId);
       if (response.code !== 200) throw new Error(response.message);
       setRematch(response.data);
+      if (actionId) await resumeApi.completeOptimizationAction(resumeId, actionId, response.data.id);
     } catch (cause) {
       setRematchFailed(true);
       notification.error(getApiErrorMessage(cause, '建议已应用，但重新匹配失败'));
@@ -75,9 +77,22 @@ export default function JobMatchOptimizationPanel({
       const response = await jobApi.applyMatchOptimization(jobId, { analysisId, requirementIndex, suggestedText: draft.trim() });
       if (response.code !== 200) throw new Error(response.message);
       setVersionId(response.data.versionId);
+      setActionId(response.data.actionId);
       onResumeChanged(response.data.resume);
       notification.success('岗位匹配建议已应用，并已创建版本快照');
-      void rerunMatch();
+      setRematching(true);
+      setRematchFailed(false);
+      try {
+        const matchResponse = await jobApi.analyzeMatch(jobId, resumeId);
+        if (matchResponse.code !== 200) throw new Error(matchResponse.message);
+        setRematch(matchResponse.data);
+        await resumeApi.completeOptimizationAction(resumeId, response.data.actionId, matchResponse.data.id);
+      } catch (cause) {
+        setRematchFailed(true);
+        notification.error(getApiErrorMessage(cause, '建议已应用，但重新匹配失败'));
+      } finally {
+        setRematching(false);
+      }
     } catch (cause) {
       notification.error(getApiErrorMessage(cause, '应用建议失败'));
     } finally {
@@ -93,6 +108,7 @@ export default function JobMatchOptimizationPanel({
       if (response.code !== 200) throw new Error(response.message);
       onResumeChanged(response.data);
       setVersionId(null);
+      setActionId(null);
       setRematch(null);
       setRematchFailed(false);
       notification.success('已恢复应用前版本');

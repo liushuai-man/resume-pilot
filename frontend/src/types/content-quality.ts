@@ -44,6 +44,7 @@ export type ResumeOptimizationResult = {
 
 export interface AppliedResumeOptimization {
   versionId: string;
+  actionId: string;
   fieldId: string;
   resume: import('./resume').Resume;
 }

@@ -13,6 +13,7 @@ import { generateResumeOptimization } from '../services/resume-optimization.serv
 import { applyContentQualitySuggestion } from '../services/resume-version.service';
 import { analyzeResumeForAts } from '../services/ats-analysis.service';
 import { resolveAtsOptimizationField } from '../services/ats-optimization.service';
+import { optimizationActionData } from '../services/optimization-action.service';
 import type { ContentQualityIssue } from '../types/content-quality.types';
 
 const optimizationSchema = z.object({ analysisId: z.string().uuid(), issueIndex: z.number().int().min(0), userFacts: z.string().trim().max(4000).optional().default('') });
@@ -23,6 +24,7 @@ const applyOptimizationSchema = z.object({
 });
 const atsOptimizationSchema = z.object({ issueId: z.string().trim().min(1).max(300), userFacts: z.string().trim().max(4000).optional().default('') });
 const applyAtsOptimizationSchema = z.object({ issueId: z.string().trim().min(1).max(300), suggestedText: z.string().trim().min(1).max(4000) });
+const optimizationResultSchema = z.object({ analysisId: z.string().uuid() });
 
 const atsContentIssue = (issue: any, field: any): ContentQualityIssue => ({ fieldId: field.fieldId, section: field.section, itemId: field.itemId, field: field.field, evidence: field.content, dimension: 'professionalism', severity: issue.severity, reason: issue.message, suggestion: issue.title, confidence: 1, status: 'confirmed' });
 
@@ -162,7 +164,8 @@ export const applyResumeContentOptimization = async (req: Request, res: Response
         where: { id: resume.id },
         data: { content: updatedContent as Prisma.InputJsonValue, updated_at: new Date() },
       });
-      return { versionId: version.id, resume: updatedResume, fieldId: issue.fieldId };
+      const action = await tx.resumeOptimizationAction.create({ data: optimizationActionData({ userId, resumeId: resume.id, versionId: version.id, source: 'content_quality', targetId: `${latest.id}:${input.data.issueIndex}`, fieldId: issue.fieldId, originalText: issue.evidence, finalText: input.data.suggestedText, scoreBefore: latest.score }) });
+      return { versionId: version.id, actionId: action.id, resume: updatedResume, fieldId: issue.fieldId };
     });
     return success(res, result);
   } catch (cause: any) {
@@ -209,7 +212,9 @@ export const applyResumeAtsOptimization = async (req: Request, res: Response) =>
       catch (cause: any) { throw Object.assign(cause, { statusCode: 409 }); }
       const version = await tx.resumeVersion.create({ data: { user_id: userId, resume_id: resume.id, title: resume.title, content: resume.content, source: 'ats_optimization', change_summary: `${field.fieldId}: ${issue.title}` } });
       const updatedResume = await tx.resume.update({ where: { id: resume.id }, data: { content: content as Prisma.InputJsonValue, updated_at: new Date() } });
-      return { versionId: version.id, resume: updatedResume, fieldId: field.fieldId, previousScore: analyzeResumeForAts(resume.content).score, ats: analyzeResumeForAts(content) };
+      const before = analyzeResumeForAts(resume.content); const after = analyzeResumeForAts(content); const resolved = !after.issues.some((item) => item.id === issue.id);
+      const action = await tx.resumeOptimizationAction.create({ data: optimizationActionData({ userId, resumeId: resume.id, versionId: version.id, source: 'ats', targetId: issue.id, fieldId: field.fieldId, originalText: field.content, finalText: input.data.suggestedText, scoreBefore: before.score, scoreAfter: after.score, resolved }) });
+      return { versionId: version.id, actionId: action.id, resume: updatedResume, fieldId: field.fieldId, previousScore: before.score, ats: after };
     });
     return success(res, result);
   } catch (cause: any) { console.error('应用 ATS 优化建议失败:', cause); return error(res, cause?.message || '应用 ATS 优化建议失败', cause?.statusCode || 500); }
@@ -225,6 +230,7 @@ export const restoreResumeVersion = async (req: Request, res: Response) => {
       const version = await tx.resumeVersion.findFirst({ where: { id: req.params.versionId, resume_id: resume.id, user_id: userId } });
       if (!version) throw Object.assign(new Error('简历版本不存在'), { statusCode: 404 });
       await tx.resumeVersion.create({ data: { user_id: userId, resume_id: resume.id, title: resume.title, content: resume.content, source: 'before_restore', change_summary: `恢复至版本 ${version.id}` } });
+      await tx.resumeOptimizationAction.updateMany({ where: { version_id: version.id, user_id: userId, status: 'accepted' }, data: { status: 'reverted' } });
       return tx.resume.update({ where: { id: resume.id }, data: { title: version.title, content: version.content, updated_at: new Date() } });
     });
     return success(res, result);
@@ -232,6 +238,34 @@ export const restoreResumeVersion = async (req: Request, res: Response) => {
     console.error('恢复简历版本失败:', cause);
     return error(res, cause?.message || '恢复简历版本失败', cause?.statusCode || 500);
   }
+};
+
+export const completeResumeOptimizationAction = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) return error(res, '未授权', 401);
+    const input = optimizationResultSchema.safeParse(req.body);
+    if (!input.success) return error(res, '分析记录无效', 400);
+    const action = await prisma.resumeOptimizationAction.findFirst({ where: { id: req.params.actionId, user_id: userId, resume_id: req.params.id } });
+    if (!action) return error(res, '优化记录不存在', 404);
+    if (action.source === 'content_quality') {
+      const analysis = await prisma.resumeContentAnalysis.findFirst({ where: { id: input.data.analysisId, user_id: userId, resume_id: action.resume_id } });
+      if (!analysis) return error(res, '内容质量分析不存在', 404);
+      const issues = Array.isArray(analysis.issues) ? analysis.issues as any[] : [];
+      const updated = await prisma.resumeOptimizationAction.update({ where: { id: action.id }, data: { score_after: analysis.score, resolved: !issues.some((item) => item.fieldId === action.field_id) } });
+      return success(res, updated);
+    }
+    if (action.source === 'job_match') {
+      const analysis = await prisma.jobMatchAnalysis.findFirst({ where: { id: input.data.analysisId, user_id: userId, resume_id: action.resume_id } });
+      if (!analysis) return error(res, '岗位匹配分析不存在', 404);
+      const requirementId = action.target_id.split(':').slice(-2).join(':');
+      const requirements = Array.isArray(analysis.requirements) ? analysis.requirements as any[] : [];
+      const requirement = requirements.find((item) => item.requirementId === requirementId);
+      const updated = await prisma.resumeOptimizationAction.update({ where: { id: action.id }, data: { score_after: analysis.score, resolved: requirement?.status === 'matched' } });
+      return success(res, updated);
+    }
+    return error(res, '该优化记录无需异步回填', 400);
+  } catch (cause) { console.error('回填优化结果失败:', cause); return error(res, '回填优化结果失败', 500); }
 };
 
 export const createResume = async (req: Request, res: Response) => {

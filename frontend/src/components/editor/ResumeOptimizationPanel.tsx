@@ -31,6 +31,7 @@ export default function ResumeOptimizationPanel({
   const [reanalysis, setReanalysis] = useState<ContentQualityAnalysis | null>(null);
   const [reanalyzing, setReanalyzing] = useState(false);
   const [reanalysisFailed, setReanalysisFailed] = useState(false);
+  const [actionId, setActionId] = useState<string | null>(null);
 
   useEffect(() => {
     void resumeApi
@@ -87,9 +88,10 @@ export default function ResumeOptimizationPanel({
       if (response.code !== 200) throw new Error(response.message);
       setDecision('accepted');
       setAppliedVersionId(response.data.versionId);
+      setActionId(response.data.actionId);
       onResumeChanged(response.data.resume);
       notification.success('建议已应用，并已创建可恢复版本');
-      void rerunAnalysis();
+      void rerunAnalysis(response.data.actionId);
     } catch (cause) {
       notification.error(getApiErrorMessage(cause, '应用建议失败'));
     } finally {
@@ -97,13 +99,14 @@ export default function ResumeOptimizationPanel({
     }
   };
 
-  const rerunAnalysis = async () => {
+  const rerunAnalysis = async (actionId?: string) => {
     setReanalyzing(true);
     setReanalysisFailed(false);
     try {
       const response = await resumeApi.analyzeContentQuality(resumeId);
       if (response.code !== 200) throw new Error(response.message);
       setReanalysis(response.data);
+      if (actionId) await resumeApi.completeOptimizationAction(resumeId, actionId, response.data.id);
     } catch (cause) {
       setReanalysisFailed(true);
       notification.error(getApiErrorMessage(cause, '建议已应用，但重新评分失败'));
@@ -120,6 +123,7 @@ export default function ResumeOptimizationPanel({
       if (response.code !== 200) throw new Error(response.message);
       onResumeChanged(response.data);
       setAppliedVersionId(null);
+      setActionId(null);
       setDecision('reviewing');
       setReanalysis(null);
       setReanalysisFailed(false);
@@ -261,7 +265,7 @@ export default function ResumeOptimizationPanel({
                   {appliedVersionId && <button disabled={applying} onClick={() => void restoreVersion()} className="flex shrink-0 items-center gap-1 rounded border border-emerald-300 bg-white px-3 py-1.5 text-sm text-emerald-700 disabled:opacity-50"><RotateCcw size={14} />撤销应用</button>}
                 </div>
                 {reanalyzing && <p className="flex items-center gap-2 text-xs text-gray-600"><Loader2 size={14} className="animate-spin" />正在重新运行内容质量评分…</p>}
-                {reanalysisFailed && !reanalyzing && <div className="flex items-center justify-between gap-3 rounded border border-amber-200 bg-white p-2"><p className="text-xs text-amber-700">重新评分失败，不影响已应用内容。</p><button onClick={() => void rerunAnalysis()} className="text-xs font-medium text-violet-700">重试评分</button></div>}
+                {reanalysisFailed && !reanalyzing && <div className="flex items-center justify-between gap-3 rounded border border-amber-200 bg-white p-2"><p className="text-xs text-amber-700">重新评分失败，不影响已应用内容。</p><button onClick={() => void rerunAnalysis(actionId || undefined)} className="text-xs font-medium text-violet-700">重试评分</button></div>}
                 {reanalysis && !reanalyzing && (() => {
                   const issueResolved = !reanalysis.issues.some((item) => item.fieldId === issue.fieldId);
                   const scoreDelta = baselineScore === null ? null : reanalysis.score - baselineScore;

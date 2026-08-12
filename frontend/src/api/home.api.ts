@@ -69,6 +69,7 @@ export const resumeApi = {
   },
   optimizeAtsIssue: async (id: string, data: { issueId: string; userFacts?: string }): Promise<ApiResponse<AtsOptimizationResult>> => request.post(`/resume/${id}/ats/optimize`, data),
   applyAtsOptimization: async (id: string, data: { issueId: string; suggestedText: string }): Promise<ApiResponse<AppliedResumeOptimization & { previousScore: number; ats: AtsAnalysisResult }>> => request.post(`/resume/${id}/ats/apply`, data),
+  completeOptimizationAction: async (id: string, actionId: string, analysisId: string): Promise<ApiResponse<unknown>> => request.post(`/resume/${id}/optimization-actions/${actionId}/complete`, { analysisId }),
 };
 
 export default resumeApi;
