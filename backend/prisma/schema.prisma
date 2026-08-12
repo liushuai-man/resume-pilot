@@ -76,10 +76,14 @@ model ResumeOptimizationAction {
   resume_id       String
   version_id      String?
   source          String
+  action_type     String   @default("suggestion")
+  parent_action_id String?
   target_id       String
   field_id        String
   original_text   String
   final_text      String
+  reason          String?
+  evidence        String?
   status          String   @default("accepted")
   score_before    Int?
   score_after     Int?
@@ -93,6 +97,7 @@ model ResumeOptimizationAction {
   @@index([resume_id, created_at])
   @@index([user_id, source, status])
   @@index([version_id])
+  @@index([parent_action_id])
   @@map("resume_optimization_actions")
 }
 

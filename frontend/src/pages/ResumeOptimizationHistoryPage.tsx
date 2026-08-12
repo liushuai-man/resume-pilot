@@ -68,7 +68,7 @@ export default function ResumeOptimizationHistoryPage() {
     try {
       const response = await resumeApi.revertOptimization(id, pendingRevert.id);
       if (response.code !== 200) throw new Error(response.message);
-      setItems((current) => current.map((item) => item.id === pendingRevert.id ? response.data.action : item));
+      setItems((current) => [response.data.revertAction, ...current.map((item) => item.id === pendingRevert.id ? response.data.action : item)]);
       setPendingRevert(null);
       notification.success('优化已撤销，简历内容已恢复');
     } catch (error) {
@@ -107,12 +107,14 @@ export default function ResumeOptimizationHistoryPage() {
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="light">{sourceLabels[item.source]}</Badge>
+                  {item.actionType === 'revert' && <Badge color="violet">撤销事件</Badge>}
                   <Badge color={item.status === 'accepted' ? 'green' : item.status === 'reverted' ? 'gray' : 'orange'}>{statusLabels[item.status]}</Badge>
                   {item.resolved === true && <Badge color="teal" leftSection={<CheckCircle2 size={12} />}>问题已解决</Badge>}
                 </div>
                 <Text size="xs" c="dimmed">{formatDateTime(item.createdAt)}</Text>
               </div>
               <Text size="xs" c="dimmed" mt="md">字段：{item.fieldId}</Text>
+              {(item.reason || item.evidence) && <div className="mt-3 rounded-lg border border-blue-100 bg-blue-50 p-3"><Text size="xs" fw={600} c="blue">修改原因与依据</Text>{item.reason && <Text size="sm" mt={6}>{item.reason}</Text>}{item.evidence && item.evidence !== item.originalText && <Text size="xs" c="dimmed" mt={6}>依据：{item.evidence}</Text>}</div>}
               <div className="mt-3 grid gap-3 md:grid-cols-2">
                 <div className="rounded-lg bg-red-50 p-3"><Text size="xs" fw={600} c="red">修改前</Text><Text size="sm" mt={6} className="whitespace-pre-wrap">{item.originalText}</Text></div>
                 <div className="rounded-lg bg-green-50 p-3"><Text size="xs" fw={600} c="green">修改后</Text><Text size="sm" mt={6} className="whitespace-pre-wrap">{item.finalText}</Text></div>

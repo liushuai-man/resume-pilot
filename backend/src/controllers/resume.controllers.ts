@@ -173,7 +173,7 @@ export const applyResumeContentOptimization = async (req: Request, res: Response
         where: { id: resume.id },
         data: { content: updatedContent as Prisma.InputJsonValue, updated_at: new Date() },
       });
-      const action = await tx.resumeOptimizationAction.create({ data: optimizationActionData({ userId, resumeId: resume.id, versionId: version.id, source: 'content_quality', targetId: `${latest.id}:${input.data.issueIndex}`, fieldId: issue.fieldId, originalText: issue.evidence, finalText: input.data.suggestedText, scoreBefore: latest.score }) });
+      const action = await tx.resumeOptimizationAction.create({ data: optimizationActionData({ userId, resumeId: resume.id, versionId: version.id, source: 'content_quality', targetId: `${latest.id}:${input.data.issueIndex}`, fieldId: issue.fieldId, originalText: issue.evidence, finalText: input.data.suggestedText, reason: issue.reason, evidence: issue.evidence, scoreBefore: latest.score }) });
       return { versionId: version.id, actionId: action.id, resume: updatedResume, fieldId: issue.fieldId };
     });
     return success(res, result);
@@ -223,7 +223,7 @@ export const applyResumeAtsOptimization = async (req: Request, res: Response) =>
       const version = await tx.resumeVersion.create({ data: { user_id: userId, resume_id: resume.id, title: resume.title, content: resume.content, source: 'ats_optimization', change_summary: `${field.fieldId}: ${issue.title}` } });
       const updatedResume = await tx.resume.update({ where: { id: resume.id }, data: { content: content as Prisma.InputJsonValue, updated_at: new Date() } });
       const before = analyzeResumeForAts(resume.content); const after = analyzeResumeForAts(content); const resolved = !after.issues.some((item) => item.id === issue.id);
-      const action = await tx.resumeOptimizationAction.create({ data: optimizationActionData({ userId, resumeId: resume.id, versionId: version.id, source: 'ats', targetId: issue.id, fieldId: field.fieldId, originalText: field.content, finalText: input.data.suggestedText, scoreBefore: before.score, scoreAfter: after.score, resolved }) });
+      const action = await tx.resumeOptimizationAction.create({ data: optimizationActionData({ userId, resumeId: resume.id, versionId: version.id, source: 'ats', targetId: issue.id, fieldId: field.fieldId, originalText: field.content, finalText: input.data.suggestedText, reason: issue.message, evidence: field.content, scoreBefore: before.score, scoreAfter: after.score, resolved }) });
       return { versionId: version.id, actionId: action.id, resume: updatedResume, fieldId: field.fieldId, previousScore: before.score, ats: after };
     });
     return success(res, result);
@@ -290,11 +290,12 @@ export const revertResumeOptimizationAction = async (req: Request, res: Response
       } catch (cause: any) {
         throw Object.assign(new Error(cause?.message?.includes('字段已变化') ? '目标字段已被后续修改，无法安全撤销' : cause?.message || '无法撤销该优化'), { statusCode: 409 });
       }
-      await tx.resumeVersion.create({ data: { user_id: userId, resume_id: resume.id, title: resume.title, content: resume.content, source: 'before_optimization_revert', change_summary: `撤销优化 ${action.id}` } });
+      const revertVersion = await tx.resumeVersion.create({ data: { user_id: userId, resume_id: resume.id, title: resume.title, content: resume.content, source: 'before_optimization_revert', change_summary: `撤销优化 ${action.id}` } });
       const updateResult = await tx.resumeOptimizationAction.updateMany({ where: { id: action.id, status: 'accepted' }, data: { status: 'reverted' } });
       if (updateResult.count !== 1) throw Object.assign(new Error('该优化记录已经撤销'), { statusCode: 409 });
       const updatedResume = await tx.resume.update({ where: { id: resume.id }, data: { content: content as Prisma.InputJsonValue, updated_at: new Date() } });
-      return { action: optimizationActionDataView({ ...action, status: 'reverted', updated_at: new Date() }), resume: updatedResume };
+      const revertAction = await tx.resumeOptimizationAction.create({ data: { user_id: userId, resume_id: resume.id, version_id: revertVersion.id, source: action.source, action_type: 'revert', parent_action_id: action.id, target_id: action.target_id, field_id: action.field_id, original_text: action.final_text, final_text: action.original_text, reason: '用户撤销已应用的优化', evidence: action.reason, status: 'accepted', score_before: action.score_after, score_after: action.score_before, resolved: false } });
+      return { action: optimizationActionDataView({ ...action, status: 'reverted', updated_at: new Date() }), revertAction: optimizationActionDataView(revertAction), resume: updatedResume };
     });
     return success(res, result);
   } catch (cause: any) {

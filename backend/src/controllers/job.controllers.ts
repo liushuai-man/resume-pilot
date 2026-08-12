@@ -436,7 +436,7 @@ export const applyJobMatchOptimization = async (req: AuthRequest, res: Response)
       catch (cause: any) { throw Object.assign(cause, { statusCode: 409 }); }
       const version = await tx.resumeVersion.create({ data: { user_id: userId, resume_id: analysis.resume.id, title: analysis.resume.title, content: analysis.resume.content, source: 'job_match_optimization', change_summary: `${requirement.resumeFieldId}: ${requirement.requirementName}` } });
       const resume = await tx.resume.update({ where: { id: analysis.resume.id }, data: { content: content as Prisma.InputJsonValue, updated_at: new Date() } });
-      const action = await tx.resumeOptimizationAction.create({ data: optimizationActionData({ userId, resumeId: analysis.resume.id, versionId: version.id, source: 'job_match', targetId: `${analysis.id}:${requirement.requirementId}`, fieldId: requirement.resumeFieldId, originalText: requirement.resumeEvidence, finalText: input.data.suggestedText, scoreBefore: analysis.score }) });
+      const action = await tx.resumeOptimizationAction.create({ data: optimizationActionData({ userId, resumeId: analysis.resume.id, versionId: version.id, source: 'job_match', targetId: `${analysis.id}:${requirement.requirementId}`, fieldId: requirement.resumeFieldId, originalText: requirement.resumeEvidence, finalText: input.data.suggestedText, reason: requirement.reason, evidence: requirement.jdEvidence, scoreBefore: analysis.score }) });
       return { versionId: version.id, actionId: action.id, resume, fieldId: requirement.resumeFieldId };
     });
     return success(res, result);

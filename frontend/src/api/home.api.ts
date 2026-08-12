@@ -8,10 +8,14 @@ export interface ResumeOptimizationHistoryItem {
   id: string;
   resumeId: string;
   source: 'content_quality' | 'job_match' | 'ats';
+  actionType: 'suggestion' | 'revert';
+  parentActionId: string | null;
   targetId: string;
   fieldId: string;
   originalText: string;
   finalText: string;
+  reason: string | null;
+  evidence: string | null;
   status: 'accepted' | 'rejected' | 'reverted';
   scoreBefore: number | null;
   scoreAfter: number | null;
@@ -89,7 +93,7 @@ export const resumeApi = {
   completeOptimizationAction: async (id: string, actionId: string, analysisId: string): Promise<ApiResponse<unknown>> => request.post(`/resume/${id}/optimization-actions/${actionId}/complete`, { analysisId }),
   rejectOptimizationSuggestion: async (id: string, suggestionToken: string): Promise<ApiResponse<{ actionId: string }>> => request.post(`/resume/${id}/optimization-actions/reject`, { suggestionToken }),
   getOptimizationHistory: async (id: string, params?: { status?: ResumeOptimizationHistoryItem['status']; source?: ResumeOptimizationHistoryItem['source']; cursor?: string; limit?: number }): Promise<ApiResponse<{ items: ResumeOptimizationHistoryItem[]; nextCursor: string | null }>> => request.get(`/resume/${id}/optimizations`, { params }),
-  revertOptimization: async (id: string, actionId: string): Promise<ApiResponse<{ action: ResumeOptimizationHistoryItem; resume: Resume }>> => request.post(`/resume/${id}/optimizations/${actionId}/revert`),
+  revertOptimization: async (id: string, actionId: string): Promise<ApiResponse<{ action: ResumeOptimizationHistoryItem; revertAction: ResumeOptimizationHistoryItem; resume: Resume }>> => request.post(`/resume/${id}/optimizations/${actionId}/revert`),
 };
 
 export default resumeApi;
