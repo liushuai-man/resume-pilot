@@ -12,6 +12,9 @@ import {
 } from '../services/job-profile.service';
 import { analyzeResumeForAts } from '../services/ats-analysis.service';
 import { buildMatchRequirements, evaluateJobMatch } from '../services/job-match.service';
+import { generateJobMatchOptimization } from '../services/job-match-optimization.service';
+import { applyContentQualitySuggestion } from '../services/resume-version.service';
+import type { ContentQualityIssue } from '../types/content-quality.types';
 
 const createJobSchema = z.object({
   title: z.string().trim().max(120).optional(),
@@ -38,6 +41,22 @@ const updateProfileSchema = z.object({
 
 const atsAnalysisSchema = z.object({
   resumeId: z.string().uuid('简历 ID 无效'),
+});
+const matchOptimizationSchema = z.object({ analysisId: z.string().uuid(), requirementIndex: z.number().int().min(0), userFacts: z.string().trim().max(4000).optional().default('') });
+const applyMatchOptimizationSchema = z.object({ analysisId: z.string().uuid(), requirementIndex: z.number().int().min(0), suggestedText: z.string().trim().min(1).max(4000) });
+
+const matchRequirementIssue = (requirement: any): ContentQualityIssue => ({
+  fieldId: requirement.resumeFieldId,
+  section: requirement.section,
+  itemId: requirement.itemId,
+  field: requirement.field,
+  evidence: requirement.resumeEvidence,
+  dimension: 'evidenceSpecificity',
+  severity: 'warning',
+  reason: requirement.reason,
+  suggestion: `补充与岗位要求“${requirement.requirementName}”相关的真实使用场景`,
+  confidence: requirement.confidence,
+  status: 'confirmed',
 });
 
 const profileData = (profile: any) => ({
@@ -368,6 +387,59 @@ export const getLatestJobResumeMatch = async (req: AuthRequest, res: Response) =
     const analysis = await prisma.jobMatchAnalysis.findFirst({ where: { user_id: userId, resume_id: resume.id, job_profile: { job_description_id: req.params.id } }, orderBy: { created_at: 'desc' }, include: { job_profile: true } });
     return success(res, analysis ? matchData(analysis, resume.updated_at, profile.id) : null);
   } catch (cause) { console.error('获取岗位匹配报告失败:', cause); return error(res, '获取岗位匹配报告失败', 500); }
+};
+
+export const optimizeJobMatchRequirement = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return error(res, '未登录', 401);
+    const input = matchOptimizationSchema.safeParse(req.body);
+    if (!input.success) return badRequest(res, input.error.issues[0]?.message);
+    const analysis = await prisma.jobMatchAnalysis.findFirst({
+      where: { id: input.data.analysisId, user_id: userId, job_profile: { job_description_id: req.params.id } },
+      include: { resume: true, job_profile: true },
+    });
+    if (!analysis) return notFound(res, '岗位匹配报告不存在');
+    const latest = await prisma.jobMatchAnalysis.findFirst({ where: { user_id: userId, resume_id: analysis.resume_id, job_profile: { job_description_id: req.params.id } }, orderBy: { created_at: 'desc' } });
+    if (latest?.id !== analysis.id || analysis.resume.updated_at.getTime() !== analysis.resume_updated_at.getTime() || analysis.job_profile.status !== 'confirmed') return error(res, '岗位匹配报告已过期，请重新匹配后再优化', 409);
+    const requirements = Array.isArray(analysis.requirements) ? analysis.requirements as any[] : [];
+    const requirement = requirements[input.data.requirementIndex];
+    if (!requirement) return notFound(res, '岗位匹配要求不存在');
+    if (requirement.status !== 'insufficient_evidence' || !requirement.resumeFieldId || !requirement.resumeEvidence || !requirement.section || !requirement.field) return badRequest(res, '仅支持优化可定位的“证据不足”问题');
+    const result = await generateJobMatchOptimization(userId, requirement, input.data.userFacts);
+    return success(res, { analysisId: analysis.id, requirementIndex: input.data.requirementIndex, fieldId: requirement.resumeFieldId, requirementName: requirement.requirementName, jdEvidence: requirement.jdEvidence, ...result });
+  } catch (cause) {
+    console.error('生成岗位匹配优化建议失败:', cause);
+    return error(res, '生成岗位匹配优化建议失败，请稍后重试', 500);
+  }
+};
+
+export const applyJobMatchOptimization = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return error(res, '未登录', 401);
+    const input = applyMatchOptimizationSchema.safeParse(req.body);
+    if (!input.success) return badRequest(res, input.error.issues[0]?.message);
+    const result = await prisma.$transaction(async (tx: any) => {
+      const analysis = await tx.jobMatchAnalysis.findFirst({ where: { id: input.data.analysisId, user_id: userId, job_profile: { job_description_id: req.params.id } }, include: { resume: true, job_profile: true } });
+      if (!analysis) throw Object.assign(new Error('岗位匹配报告不存在'), { statusCode: 404 });
+      const latest = await tx.jobMatchAnalysis.findFirst({ where: { user_id: userId, resume_id: analysis.resume_id, job_profile: { job_description_id: req.params.id } }, orderBy: { created_at: 'desc' } });
+      if (latest?.id !== analysis.id || analysis.resume.updated_at.getTime() !== analysis.resume_updated_at.getTime() || analysis.job_profile.status !== 'confirmed') throw Object.assign(new Error('岗位匹配报告已过期，请重新匹配后再应用'), { statusCode: 409 });
+      const requirements = Array.isArray(analysis.requirements) ? analysis.requirements as any[] : [];
+      const requirement = requirements[input.data.requirementIndex];
+      if (!requirement || requirement.status !== 'insufficient_evidence' || !requirement.resumeFieldId || !requirement.resumeEvidence || !requirement.section || !requirement.field) throw Object.assign(new Error('仅支持应用可定位的“证据不足”建议'), { statusCode: 400 });
+      let content: unknown;
+      try { content = applyContentQualitySuggestion(analysis.resume.content, matchRequirementIssue(requirement), input.data.suggestedText); }
+      catch (cause: any) { throw Object.assign(cause, { statusCode: 409 }); }
+      const version = await tx.resumeVersion.create({ data: { user_id: userId, resume_id: analysis.resume.id, title: analysis.resume.title, content: analysis.resume.content, source: 'job_match_optimization', change_summary: `${requirement.resumeFieldId}: ${requirement.requirementName}` } });
+      const resume = await tx.resume.update({ where: { id: analysis.resume.id }, data: { content: content as Prisma.InputJsonValue, updated_at: new Date() } });
+      return { versionId: version.id, resume, fieldId: requirement.resumeFieldId };
+    });
+    return success(res, result);
+  } catch (cause: any) {
+    console.error('应用岗位匹配优化建议失败:', cause);
+    return error(res, cause?.message || '应用岗位匹配优化建议失败', cause?.statusCode || 500);
+  }
 };
 
 export const deleteJob = async (req: AuthRequest, res: Response) => {

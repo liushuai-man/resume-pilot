@@ -86,3 +86,7 @@ export interface JobMatchAnalysis {
   dimensions: Array<{ key: string; score: number; maxScore: number; confidence: number; reason: string }>;
   requirements: Array<{ requirementId: string; category: 'responsibility' | 'required_skill' | 'preferred_skill'; requirementName: string; jdEvidence: string; status: 'matched' | 'insufficient_evidence' | 'gap' | 'needs_confirmation'; resumeFieldId: string | null; resumeEvidence: string | null; reason: string; confidence: number; section: string | null; itemId: string | null; field: string | null }>;
 }
+
+export type JobMatchOptimizationResult = {
+  analysisId: string; requirementIndex: number; fieldId: string; requirementName: string; jdEvidence: string; originalText: string; promptVersion: string; evaluatorVersion: string;
+} & ({ mode: 'needs_input'; questions: string[] } | { mode: 'suggestion'; suggestedText: string; reason: string; usedUserFacts: string[]; modelName?: string });

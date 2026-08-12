@@ -21,6 +21,7 @@
     "test:job-match": "tsx --test src/services/job-match.service.test.ts",
     "test:resume-optimization": "tsx --test src/services/resume-optimization.service.test.ts",
     "test:resume-version": "tsx --test src/services/resume-version.service.test.ts",
+    "test:job-match-optimization": "tsx --test src/services/job-match-optimization.service.test.ts",
     "calibrate:content-quality": "tsx src/evals/content-quality.calibration.ts",
     "calibrate:job-match": "tsx src/evals/job-match.calibration.ts",
     "calibrate:resume-optimization": "tsx src/evals/resume-optimization.calibration.ts",

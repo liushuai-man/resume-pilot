@@ -6,7 +6,9 @@ import type {
   EditableJobProfile,
   JobDescription,
   JobProfile,
+  JobMatchOptimizationResult,
 } from '@/types/job';
+import type { AppliedResumeOptimization } from '@/types/content-quality';
 
 export const jobApi = {
   list: (): Promise<ApiResponse<JobDescription[]>> => request.get('/jobs'),
@@ -26,6 +28,10 @@ export const jobApi = {
     request.post(`/jobs/${id}/match`, { resumeId }),
   getLatestMatch: (id: string, resumeId: string): Promise<ApiResponse<JobMatchAnalysis | null>> =>
     request.get(`/jobs/${id}/match/latest`, { params: { resumeId } }),
+  optimizeMatchRequirement: (id: string, data: { analysisId: string; requirementIndex: number; userFacts?: string }): Promise<ApiResponse<JobMatchOptimizationResult>> =>
+    request.post(`/jobs/${id}/match/optimize`, data),
+  applyMatchOptimization: (id: string, data: { analysisId: string; requirementIndex: number; suggestedText: string }): Promise<ApiResponse<AppliedResumeOptimization>> =>
+    request.post(`/jobs/${id}/match/apply`, data),
   listProfiles: (id: string): Promise<ApiResponse<JobProfile[]>> =>
     request.get(`/jobs/${id}/profiles`),
   updateProfile: (
