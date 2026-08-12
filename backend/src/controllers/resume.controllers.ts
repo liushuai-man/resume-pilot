@@ -10,9 +10,15 @@ import {
 import { success, error } from '../utils/response';
 import { evaluateResumeContent, hashResumeContent } from '../services/content-quality.service';
 import { generateResumeOptimization } from '../services/resume-optimization.service';
+import { applyContentQualitySuggestion } from '../services/resume-version.service';
 import type { ContentQualityIssue } from '../types/content-quality.types';
 
 const optimizationSchema = z.object({ analysisId: z.string().uuid(), issueIndex: z.number().int().min(0), userFacts: z.string().trim().max(4000).optional().default('') });
+const applyOptimizationSchema = z.object({
+  analysisId: z.string().uuid(),
+  issueIndex: z.number().int().min(0),
+  suggestedText: z.string().trim().min(1).max(4000),
+});
 
 const contentAnalysisData = (analysis: any, currentResumeUpdatedAt?: Date) => ({
   id: analysis.id,
@@ -104,6 +110,77 @@ export const optimizeResumeContentIssue = async (req: Request, res: Response) =>
   } catch (cause) {
     console.error('生成局部优化建议失败:', cause);
     return error(res, '生成局部优化建议失败，请稍后重试', 500);
+  }
+};
+
+export const applyResumeContentOptimization = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) return error(res, '未授权', 401);
+    const input = applyOptimizationSchema.safeParse(req.body);
+    if (!input.success) return error(res, input.error.issues[0]?.message || '请求无效', 400);
+
+    const result = await prisma.$transaction(async (tx: any) => {
+      const resume = await tx.resume.findFirst({
+        where: { id: req.params.id, user_id: userId, is_deleted: false },
+      });
+      if (!resume) throw Object.assign(new Error('简历不存在'), { statusCode: 404 });
+      const latest = await tx.resumeContentAnalysis.findFirst({
+        where: { resume_id: resume.id, user_id: userId },
+        orderBy: { created_at: 'desc' },
+      });
+      if (!latest || latest.id !== input.data.analysisId || latest.resume_updated_at.getTime() !== resume.updated_at.getTime()) {
+        throw Object.assign(new Error('简历或分析报告已变化，请重新评价后再应用'), { statusCode: 409 });
+      }
+      const issues = Array.isArray(latest.issues) ? latest.issues as unknown as ContentQualityIssue[] : [];
+      const issue = issues[input.data.issueIndex];
+      if (!issue) throw Object.assign(new Error('内容质量问题不存在'), { statusCode: 404 });
+
+      let updatedContent: unknown;
+      try {
+        updatedContent = applyContentQualitySuggestion(resume.content, issue, input.data.suggestedText);
+      } catch (cause: any) {
+        throw Object.assign(cause, { statusCode: 409 });
+      }
+      const version = await tx.resumeVersion.create({
+        data: {
+          user_id: userId,
+          resume_id: resume.id,
+          title: resume.title,
+          content: resume.content,
+          source: 'content_quality_optimization',
+          change_summary: `${issue.fieldId}: ${issue.reason}`,
+        },
+      });
+      const updatedResume = await tx.resume.update({
+        where: { id: resume.id },
+        data: { content: updatedContent as Prisma.InputJsonValue, updated_at: new Date() },
+      });
+      return { versionId: version.id, resume: updatedResume, fieldId: issue.fieldId };
+    });
+    return success(res, result);
+  } catch (cause: any) {
+    console.error('应用局部优化建议失败:', cause);
+    return error(res, cause?.message || '应用局部优化建议失败', cause?.statusCode || 500);
+  }
+};
+
+export const restoreResumeVersion = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) return error(res, '未授权', 401);
+    const result = await prisma.$transaction(async (tx: any) => {
+      const resume = await tx.resume.findFirst({ where: { id: req.params.id, user_id: userId, is_deleted: false } });
+      if (!resume) throw Object.assign(new Error('简历不存在'), { statusCode: 404 });
+      const version = await tx.resumeVersion.findFirst({ where: { id: req.params.versionId, resume_id: resume.id, user_id: userId } });
+      if (!version) throw Object.assign(new Error('简历版本不存在'), { statusCode: 404 });
+      await tx.resumeVersion.create({ data: { user_id: userId, resume_id: resume.id, title: resume.title, content: resume.content, source: 'before_restore', change_summary: `恢复至版本 ${version.id}` } });
+      return tx.resume.update({ where: { id: resume.id }, data: { title: version.title, content: version.content, updated_at: new Date() } });
+    });
+    return success(res, result);
+  } catch (cause: any) {
+    console.error('恢复简历版本失败:', cause);
+    return error(res, cause?.message || '恢复简历版本失败', cause?.statusCode || 500);
   }
 };
 

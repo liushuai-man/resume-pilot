@@ -1,7 +1,7 @@
 import request from '@/utils/request';
 import type { Resume, Template } from '@/types/resume';
 import { ApiResponse } from '@/types';
-import type { ContentQualityAnalysis, ResumeOptimizationResult } from '@/types/content-quality';
+import type { AppliedResumeOptimization, ContentQualityAnalysis, ResumeOptimizationResult } from '@/types/content-quality';
 
 export const resumeApi = {
   getTemplates: async (): Promise<ApiResponse<Template[]>> => {
@@ -57,6 +57,14 @@ export const resumeApi = {
 
   optimizeContentIssue: async (id: string, data: { analysisId: string; issueIndex: number; userFacts?: string }): Promise<ApiResponse<ResumeOptimizationResult>> => {
     return await request.post(`/resume/${id}/content-quality/optimize`, data);
+  },
+
+  applyContentOptimization: async (id: string, data: { analysisId: string; issueIndex: number; suggestedText: string }): Promise<ApiResponse<AppliedResumeOptimization>> => {
+    return await request.post(`/resume/${id}/content-quality/apply`, data);
+  },
+
+  restoreVersion: async (id: string, versionId: string): Promise<ApiResponse<Resume>> => {
+    return await request.post(`/resume/${id}/versions/${versionId}/restore`);
   },
 };
 

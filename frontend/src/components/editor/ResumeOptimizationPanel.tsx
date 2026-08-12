@@ -3,6 +3,7 @@ import { AlertCircle, Check, Loader2, RotateCcw, Sparkles, X } from 'lucide-reac
 import { resumeApi } from '@/api/home.api';
 import { notification } from '@/components/common/Notification';
 import type { ContentQualityIssue, ResumeOptimizationResult } from '@/types/content-quality';
+import type { Resume } from '@/types/resume';
 import { getApiErrorMessage } from '@/utils/api-error';
 
 type ReviewDecision = 'reviewing' | 'accepted' | 'rejected' | null;
@@ -11,10 +12,12 @@ export default function ResumeOptimizationPanel({
   resumeId,
   analysisId,
   issueIndex,
+  onResumeChanged,
 }: {
   resumeId: string;
   analysisId: string;
   issueIndex: number;
+  onResumeChanged: (resume: Resume) => void;
 }) {
   const [issue, setIssue] = useState<ContentQualityIssue | null>(null);
   const [facts, setFacts] = useState('');
@@ -22,6 +25,8 @@ export default function ResumeOptimizationPanel({
   const [draftSuggestion, setDraftSuggestion] = useState('');
   const [decision, setDecision] = useState<ReviewDecision>(null);
   const [loading, setLoading] = useState(false);
+  const [applying, setApplying] = useState(false);
+  const [appliedVersionId, setAppliedVersionId] = useState<string | null>(null);
 
   useEffect(() => {
     void resumeApi
@@ -60,19 +65,46 @@ export default function ResumeOptimizationPanel({
     }
   };
 
-  const acceptAndCopy = async () => {
+  const applySuggestion = async () => {
     const text = draftSuggestion.trim();
     if (!text) {
       notification.error('建议文本不能为空');
       return;
     }
 
+    setApplying(true);
     try {
-      await navigator.clipboard.writeText(text);
+      const response = await resumeApi.applyContentOptimization(resumeId, {
+        analysisId,
+        issueIndex,
+        suggestedText: text,
+      });
+      if (response.code !== 200) throw new Error(response.message);
       setDecision('accepted');
-      notification.success('已采纳并复制，请在左侧字段中确认修改');
-    } catch {
-      notification.error('复制失败，请手动复制建议文本');
+      setAppliedVersionId(response.data.versionId);
+      onResumeChanged(response.data.resume);
+      notification.success('建议已应用，并已创建可恢复版本');
+    } catch (cause) {
+      notification.error(getApiErrorMessage(cause, '应用建议失败'));
+    } finally {
+      setApplying(false);
+    }
+  };
+
+  const restoreVersion = async () => {
+    if (!appliedVersionId) return;
+    setApplying(true);
+    try {
+      const response = await resumeApi.restoreVersion(resumeId, appliedVersionId);
+      if (response.code !== 200) throw new Error(response.message);
+      onResumeChanged(response.data);
+      setAppliedVersionId(null);
+      setDecision('reviewing');
+      notification.success('已恢复应用建议前的简历版本');
+    } catch (cause) {
+      notification.error(getApiErrorMessage(cause, '恢复版本失败'));
+    } finally {
+      setApplying(false);
     }
   };
 
@@ -172,14 +204,16 @@ export default function ResumeOptimizationPanel({
             ) : (
               <div className="flex flex-wrap gap-2">
                 <button
-                  onClick={() => void acceptAndCopy()}
-                  className="flex items-center gap-1 rounded bg-violet-600 px-3 py-2 text-sm text-white"
+                  disabled={applying || decision === 'accepted'}
+                  onClick={() => void applySuggestion()}
+                  className="flex items-center gap-1 rounded bg-violet-600 px-3 py-2 text-sm text-white disabled:opacity-50"
                 >
-                  <Check size={15} />采纳并复制
+                  {applying ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}应用建议
                 </button>
                 <button
+                  disabled={decision === 'accepted'}
                   onClick={() => setDecision('rejected')}
-                  className="flex items-center gap-1 rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700"
+                  className="flex items-center gap-1 rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 disabled:opacity-50"
                 >
                   <X size={15} />拒绝建议
                 </button>
@@ -198,9 +232,10 @@ export default function ResumeOptimizationPanel({
             )}
 
             {decision === 'accepted' && (
-              <p className="flex items-center gap-1 text-xs text-emerald-700">
-                <Check size={14} />本地已标记为采纳；完成版本快照前仍需手动粘贴到左侧字段。
-              </p>
+              <div className="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+                <p className="flex items-center gap-1 text-xs text-emerald-700"><Check size={14} />建议已应用，原简历已保存为版本快照。</p>
+                {appliedVersionId && <button disabled={applying} onClick={() => void restoreVersion()} className="flex items-center gap-1 rounded border border-emerald-300 bg-white px-3 py-1.5 text-sm text-emerald-700 disabled:opacity-50"><RotateCcw size={14} />撤销应用</button>}
+              </div>
             )}
           </section>
         )}

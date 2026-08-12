@@ -41,3 +41,9 @@ export type ResumeOptimizationResult = {
   analysisId: string; issueIndex: number; fieldId: string; originalText: string;
   promptVersion: string; evaluatorVersion: string;
 } & ({ mode: 'needs_input'; questions: string[] } | { mode: 'suggestion'; suggestedText: string; reason: string; usedUserFacts: string[]; modelName?: string });
+
+export interface AppliedResumeOptimization {
+  versionId: string;
+  fieldId: string;
+  resume: import('./resume').Resume;
+}

@@ -11,6 +11,8 @@ import {
   analyzeResumeContentQuality,
   getLatestResumeContentQuality,
   optimizeResumeContentIssue,
+  applyResumeContentOptimization,
+  restoreResumeVersion,
 } from '../controllers/resume.controllers';
 import { authMiddleware } from '../middlewares/auth.middleware';
 
@@ -23,6 +25,8 @@ router.get('/:id/export-pdf', authMiddleware, exportResumePdf);
 router.get('/:id/content-quality', authMiddleware, getLatestResumeContentQuality);
 router.post('/:id/content-quality', authMiddleware, analyzeResumeContentQuality);
 router.post('/:id/content-quality/optimize', authMiddleware, optimizeResumeContentIssue);
+router.post('/:id/content-quality/apply', authMiddleware, applyResumeContentOptimization);
+router.post('/:id/versions/:versionId/restore', authMiddleware, restoreResumeVersion);
 router.get('/:id', authMiddleware, getResumeById);
 router.post('/', authMiddleware, createResume);
 router.put('/:id', authMiddleware, updateResume);

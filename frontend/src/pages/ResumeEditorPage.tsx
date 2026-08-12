@@ -15,6 +15,7 @@ import { useDocumentStore } from '@/store/useDocumentStore';
 import { contentToDocument, documentToContent } from '@/utils/resume-migration';
 import { resumeApi } from '@/api/home.api';
 import { useAutoSave } from '@/hooks/useAutoSave';
+import type { Resume } from '@/types/resume';
 
 export default function ResumeEditorPage() {
   const { id: resumeId } = useParams<{ id: string }>();
@@ -140,6 +141,19 @@ export default function ResumeEditorPage() {
     updateTitle(title.trim() || '未命名简历');
   };
 
+  const handleOptimizedResume = (updatedResume: Resume) => {
+    useResumeStore.getState().setResume(updatedResume);
+    const updatedDocument = contentToDocument(
+      updatedResume.content,
+      template?.style_config || null,
+      template?.style_config?.layout || updatedResume.template_id || 'classic'
+    );
+    updatedDocument.id = updatedResume.id;
+    updatedDocument.title = updatedResume.title;
+    loadDocument(updatedDocument);
+    setLastSaved(new Date());
+  };
+
   const formatLastSaved = (date: Date | null | string) => {
     if (!date) return '';
     const lastSavedDate = typeof date === 'string' ? new Date(date) : date;
@@ -233,7 +247,7 @@ export default function ResumeEditorPage() {
         leftPanel={leftPanelContent}
         rightPanel={
           showOptimization && resumeId && optimizationAnalysisId
-            ? <ResumeOptimizationPanel resumeId={resumeId} analysisId={optimizationAnalysisId} issueIndex={optimizationIssueIndex} />
+            ? <ResumeOptimizationPanel resumeId={resumeId} analysisId={optimizationAnalysisId} issueIndex={optimizationIssueIndex} onResumeChanged={handleOptimizedResume} />
             : <AIConversation currentField="" />
         }
       >

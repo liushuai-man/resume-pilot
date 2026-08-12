@@ -24,6 +24,7 @@ model User {
   job_profiles     JobProfile[]
   content_analyses ResumeContentAnalysis[]
   job_match_analyses JobMatchAnalysis[]
+  resume_versions ResumeVersion[]
 
   @@map("users")
 }
@@ -43,9 +44,27 @@ model Resume {
   ai_memories       AiMemory[]
   content_analyses  ResumeContentAnalysis[]
   job_match_analyses JobMatchAnalysis[]
+  versions          ResumeVersion[]
 
   @@index([user_id])
   @@map("resumes")
+}
+
+model ResumeVersion {
+  id              String   @id @default(uuid())
+  user_id         String
+  resume_id       String
+  title           String
+  content         Json
+  source          String
+  change_summary  String?
+  created_at      DateTime @default(now())
+  user            User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  resume          Resume   @relation(fields: [resume_id], references: [id], onDelete: Cascade)
+
+  @@index([resume_id, created_at])
+  @@index([user_id, created_at])
+  @@map("resume_versions")
 }
 
 model Template {
