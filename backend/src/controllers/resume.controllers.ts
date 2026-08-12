@@ -122,7 +122,7 @@ export const optimizeResumeContentIssue = async (req: Request, res: Response) =>
     const issue = issues[input.data.issueIndex];
     if (!issue) return error(res, '内容质量问题不存在', 404);
     const result = await generateResumeOptimization(userId, issue, input.data.userFacts);
-    const suggestionToken = result.mode === 'suggestion' ? createSuggestionToken({ userId, resumeId: resume.id, source: 'content_quality', targetId: `${latest.id}:${input.data.issueIndex}`, fieldId: issue.fieldId, originalText: result.originalText, suggestedText: result.suggestedText }) : undefined;
+    const suggestionToken = result.mode === 'suggestion' ? createSuggestionToken({ userId, resumeId: resume.id, source: 'content_quality', targetId: `${latest.id}:${input.data.issueIndex}`, fieldId: issue.fieldId, originalText: result.originalText, suggestedText: result.suggestedText, reason: result.reason, evidence: issue.evidence }) : undefined;
     return success(res, { analysisId: latest.id, issueIndex: input.data.issueIndex, fieldId: issue.fieldId, ...result, suggestionToken });
   } catch (cause) {
     console.error('生成局部优化建议失败:', cause);
@@ -198,7 +198,7 @@ export const optimizeResumeAtsIssue = async (req: Request, res: Response) => {
     catch (cause: any) { return error(res, cause.message, 400); }
     if (!input.data.userFacts.trim()) return success(res, { mode: 'needs_input', issueId: issue.id, fieldId: field.fieldId, originalText: field.content, questions: ['这个字段应表达哪些真实信息？', '有哪些可确认的名称、方向或事实可以替换当前无意义内容？'] });
     const result = await generateResumeOptimization(userId, atsContentIssue(issue, field), input.data.userFacts);
-    const suggestionToken = result.mode === 'suggestion' ? createSuggestionToken({ userId, resumeId: resume.id, source: 'ats', targetId: issue.id, fieldId: field.fieldId, originalText: result.originalText, suggestedText: result.suggestedText }) : undefined;
+    const suggestionToken = result.mode === 'suggestion' ? createSuggestionToken({ userId, resumeId: resume.id, source: 'ats', targetId: issue.id, fieldId: field.fieldId, originalText: result.originalText, suggestedText: result.suggestedText, reason: result.reason, evidence: issue.message }) : undefined;
     return success(res, { issueId: issue.id, fieldId: field.fieldId, ...result, suggestionToken });
   } catch (cause) { console.error('生成 ATS 优化建议失败:', cause); return error(res, '生成 ATS 优化建议失败，请稍后重试', 500); }
 };
@@ -340,7 +340,7 @@ export const rejectResumeOptimizationSuggestion = async (req: Request, res: Resp
     if (!input.success) return error(res, '建议凭证无效', 400);
     const payload = verifySuggestionToken(input.data.suggestionToken);
     if (payload.userId !== userId || payload.resumeId !== req.params.id) return error(res, '建议凭证与当前用户或简历不匹配', 403);
-    const action = await prisma.resumeOptimizationAction.create({ data: { user_id: userId, resume_id: payload.resumeId, source: payload.source, target_id: payload.targetId, field_id: payload.fieldId, original_text: payload.originalText, final_text: payload.suggestedText, status: 'rejected' } });
+    const action = await prisma.resumeOptimizationAction.create({ data: { user_id: userId, resume_id: payload.resumeId, source: payload.source, action_type: 'suggestion', target_id: payload.targetId, field_id: payload.fieldId, original_text: payload.originalText, final_text: payload.suggestedText, reason: payload.reason, evidence: payload.evidence, status: 'rejected' } });
     return success(res, { actionId: action.id });
   } catch (cause) { console.error('拒绝优化建议失败:', cause); return error(res, '建议凭证无效或已过期', 400); }
 };

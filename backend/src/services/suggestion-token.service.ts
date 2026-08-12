@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 
-const payloadSchema = z.object({ kind: z.literal('resume_optimization_suggestion'), userId: z.string().uuid(), resumeId: z.string().uuid(), source: z.enum(['content_quality', 'job_match', 'ats']), targetId: z.string().min(1), fieldId: z.string().min(1), originalText: z.string(), suggestedText: z.string().min(1) });
+const payloadSchema = z.object({ kind: z.literal('resume_optimization_suggestion'), userId: z.string().uuid(), resumeId: z.string().uuid(), source: z.enum(['content_quality', 'job_match', 'ats']), targetId: z.string().min(1), fieldId: z.string().min(1), originalText: z.string(), suggestedText: z.string().min(1), reason: z.string().max(1000).optional(), evidence: z.string().max(4000).optional() });
 export type SuggestionTokenPayload = z.infer<typeof payloadSchema>;
 
 export function createSuggestionToken(payload: Omit<SuggestionTokenPayload, 'kind'>) {
