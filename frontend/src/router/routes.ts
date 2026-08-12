@@ -20,6 +20,7 @@ const HomePage = React.lazy(() => import('@/pages/HomePage'));
 const JobCenterPage = React.lazy(() => import('@/pages/JobCenterPage'));
 const ResumeEditorPage = React.lazy(() => import('@/pages/ResumeEditorPage'));
 const ResumePrintPage = React.lazy(() => import('@/pages/ResumePrintPage'));
+const ResumeOptimizationHistoryPage = React.lazy(() => import('@/pages/ResumeOptimizationHistoryPage'));
 const InterviewPage = React.lazy(() => import('@/pages/InterviewPage'));
 const InterviewHistoryPage = React.lazy(
   () => import('@/pages/InterviewHistoryPage')
@@ -50,6 +51,7 @@ export const routes: RouteConfig[] = [
     children: [
       { path: '', element: React.createElement(Navigate, { to: '/resumes', replace: true }) },
       { path: 'resumes', element: React.createElement(HomePage) },
+      { path: 'resumes/:id/optimizations', element: protectedPage(React.createElement(ResumeOptimizationHistoryPage)) },
       { path: 'jobs', element: protectedPage(React.createElement(JobCenterPage)) },
       { path: 'interviews/history', element: protectedPage(React.createElement(InterviewHistoryPage)) },
     ],
@@ -117,6 +119,7 @@ export const ROUTE_NAMES = {
   LOGIN: '/auth/login',
   HOME: '/resumes',
   RESUME_EDITOR: '/resumes/:id/edit',
+  RESUME_OPTIMIZATIONS: '/resumes/:id/optimizations',
   RESUME_INTERVIEW: '/interviews',
   JOBS: '/jobs',
   INTERVIEWS: '/interviews',

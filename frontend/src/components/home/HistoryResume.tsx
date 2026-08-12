@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Card, Text, Button, Group, Modal } from '@mantine/core';
-import { Eye, Edit3, Download, Trash2 } from 'lucide-react';
+import { Eye, Edit3, Download, Trash2, History } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { Resume, StyleConfig } from '@/types/resume';
 import { notification } from '@/components/common/Notification';
@@ -114,6 +114,15 @@ export default function HistoryResume({
         {/* 操作栏 */}
         <div className="p-3 bg-white">
           <Group gap={2} className="justify-around items-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-8 h-8 p-0 border-2 rounded-full border-gray-300 text-gray-500 bg-white hover:bg-violet-500 hover:text-white hover:border-violet-500"
+              onClick={() => navigate(`/resumes/${id}/optimizations`)}
+              title="优化历史"
+            >
+              <History size={14} />
+            </Button>
             <Button
               variant="ghost"
               size="sm"
