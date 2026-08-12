@@ -50,8 +50,5 @@ backend/prisma/*.db-journal
 frontend/src/mock/
 frontend/dist/
 
-
 backend/src/uploads/templates
-
-docs/
 
