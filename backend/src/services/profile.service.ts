@@ -5,6 +5,10 @@ interface AnalysisRow { id: string; resume_id: string; score: number; overall_co
 interface ActionRow { id: string; score_before: number | null; score_after: number | null; resolved: boolean | null }
 interface Dimension { key: string; label: string; score: number; questionCount: number }
 
+const contextOf = (value: unknown) => value && typeof value === 'object'
+  ? (value as { interviewContext?: { jobProfile?: { id?: string; jobTitle?: string } | null } }).interviewContext
+  : undefined;
+
 const dimensionsOf = (value: unknown): Dimension[] => {
   if (!value || typeof value !== 'object') return [];
   const dimensions = (value as { dimensionScores?: unknown }).dimensionScores;
@@ -26,6 +30,7 @@ export async function getUserProfileOverview(userId: string) {
   const actions = rawActions as ActionRow[];
 
   const groups = new Map<string, { label: string; scores: number[]; evidenceCount: number }>();
+  const positionGroups = new Map<string, { label: string; interviews: InterviewRow[] }>();
   interviews.forEach((interview) => dimensionsOf(interview.report).forEach((dimension) => {
     if (!dimension.questionCount) return;
     const group = groups.get(dimension.key) || { label: dimension.label, scores: [], evidenceCount: 0 };
@@ -33,6 +38,13 @@ export async function getUserProfileOverview(userId: string) {
     group.evidenceCount += dimension.questionCount;
     groups.set(dimension.key, group);
   }));
+  interviews.forEach((interview) => {
+    const profile = contextOf(interview.report)?.jobProfile;
+    const key = profile?.id || 'general';
+    const group = positionGroups.get(key) || { label: profile?.jobTitle || '通用岗位', interviews: [] };
+    group.interviews.push(interview);
+    positionGroups.set(key, group);
+  });
   const trend = interviews.map((item) => ({ id: item.id, position: item.position, score: item.score, date: item.completed_at || item.created_at }));
   const scoredActions = actions.filter((item) => item.score_before != null && item.score_after != null);
   const recentActivity = [
@@ -46,6 +58,7 @@ export async function getUserProfileOverview(userId: string) {
     interview: { count: interviews.length, averageScore: interviews.length ? Math.round(interviews.reduce((sum, item) => sum + item.score, 0) / interviews.length) : null, latestScore: trend.at(-1)?.score ?? null, trend },
     resumeQuality: { latestContentScore: content[0]?.score ?? null, contentConfidence: content[0]?.overall_confidence ?? null, latestMatchScore: matches[0]?.score ?? null, matchConfidence: matches[0]?.overall_confidence ?? null, acceptedOptimizations: actions.length, resolvedOptimizations: actions.filter((item) => item.resolved).length, averageScoreDelta: scoredActions.length ? Math.round(scoredActions.reduce((sum, item) => sum + item.score_after! - item.score_before!, 0) / scoredActions.length) : null },
     capabilityProfile: interviews.length < 2 ? [] : [...groups.entries()].map(([key, item]) => ({ key, label: item.label, score: Math.round(item.scores.reduce((sum, score) => sum + score, 0) / item.scores.length), interviewSamples: item.scores.length, evidenceCount: item.evidenceCount, confidence: item.scores.length >= 5 ? 'high' : item.scores.length >= 3 ? 'medium' : 'low' })),
+    positionProfiles: [...positionGroups.entries()].map(([key, group]) => ({ key, label: group.label, interviewCount: group.interviews.length, averageScore: Math.round(group.interviews.reduce((sum, item) => sum + item.score, 0) / group.interviews.length), latestScore: group.interviews.at(-1)?.score ?? null, capabilityProfile: group.interviews.length < 2 ? [] : [...new Map(group.interviews.flatMap((interview) => dimensionsOf(interview.report).filter((item) => item.questionCount).map((dimension) => [dimension.key, { label: dimension.label, values: [] as number[], evidenceCount: 0 }]))).entries()].map(([dimensionKey, dimensionGroup]) => { group.interviews.forEach((interview) => dimensionsOf(interview.report).filter((item) => item.key === dimensionKey && item.questionCount).forEach((item) => { dimensionGroup.values.push(item.score); dimensionGroup.evidenceCount += item.questionCount; })); return { key: dimensionKey, label: dimensionGroup.label, score: Math.round(dimensionGroup.values.reduce((sum, score) => sum + score, 0) / dimensionGroup.values.length), interviewSamples: dimensionGroup.values.length, evidenceCount: dimensionGroup.evidenceCount }; }) })),
     capabilityMinimumSamples: 2,
     recentActivity,
     generatedAt: new Date(),
