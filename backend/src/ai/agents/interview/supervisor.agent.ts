@@ -2,7 +2,6 @@ import { RunnableSequence } from '@langchain/core/runnables';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { createUserLLM } from '../../providers/llm.provider';
 import { ANALYZE_RESUME_PROMPT } from '../../prompts/interview/analyze.prompt';
-import { GENERATE_REPORT_PROMPT } from '../../prompts/interview/report.prompt';
 import { InterviewDecisionAgent } from './decision.agent';
 import { EvaluationAgent } from './evaluation.agent';
 import { MemoryAgent } from './memory.agent';
@@ -15,6 +14,7 @@ import {
   InterviewPlanItem,
 } from '../../types/interview.types';
 import { getResumeText } from './utils';
+import { buildInterviewReport } from './report-builder';
 
 function cleanJson(str: string): string {
   let cleaned = str.trim();
@@ -119,78 +119,12 @@ export class InterviewSupervisorAgent {
   }
 
   async generateReport(
-    resumeText: string,
     questions: Question[],
     answers: Answer[],
     evaluations: Evaluation[],
-    targetPosition: string,
     profile: CandidateProfile,
-    userId?: string
+    rubricSnapshot: LangGraphInterviewState['rubricSnapshot']
   ): Promise<any> {
-    const llm = await createUserLLM(userId, {
-      temperature: 0.5,
-      maxTokens: 3000,
-    });
-
-    const chain = RunnableSequence.from([
-      GENERATE_REPORT_PROMPT,
-      llm,
-      new StringOutputParser(),
-    ]);
-
-    const qaHistory = questions
-      .map((q, i) => {
-        const answer = answers.find((a) => a.questionId === q.id);
-        const evaluation = evaluations.find((e) => e.questionId === q.id);
-        if (q.isIntroduction) return '';
-        const strengths = evaluation?.strengths?.join(', ') || '无';
-        const weaknesses = evaluation?.weaknesses?.join(', ') || '无';
-        return `问题 ${i + 1}: ${q.content}\n回答: ${answer?.content || '未回答'}\n评分: ${evaluation?.score || 0}\n反馈: ${evaluation?.feedback || ''}\n优点: ${strengths}\n不足: ${weaknesses}`;
-      })
-      .filter(Boolean)
-      .join('\n\n');
-
-    const introQuestion = questions.find((q) => q.isIntroduction);
-    const introAnswer = introQuestion
-      ? answers.find((a) => a.questionId === introQuestion.id)
-      : null;
-    let introductionSection =
-      introQuestion && introAnswer
-        ? `自我介绍内容：\n${introAnswer.content}`
-        : '候选人选择跳过自我介绍。';
-
-    const profileSection = `\n候选人能力画像：\n${JSON.stringify(profile, null, 2)}`;
-
-    try {
-      const result = await chain.invoke({
-        targetPosition,
-        resumeContent: resumeText,
-        qaHistory,
-        introductionSection,
-        profileSection,
-      });
-
-      const report = JSON.parse(cleanJson(result));
-
-      report.overallScore = report.overallScore || 60;
-      report.strengths =
-        report.strengths && report.strengths.length > 0
-          ? report.strengths
-          : ['回答问题思路清晰'];
-      report.weaknesses =
-        report.weaknesses && report.weaknesses.length > 0
-          ? report.weaknesses
-          : ['部分技术细节需要深入理解'];
-      report.suggestions =
-        report.suggestions && report.suggestions.length > 0
-          ? report.suggestions
-          : ['建议加强相关技术领域的学习'];
-
-      report.candidateProfile = profile;
-      return report;
-    } catch (error) {
-      console.error('报告生成失败:', error);
-      throw new Error('INTERVIEW_REPORT_GENERATION_FAILED', { cause: error });
-    }
+    return buildInterviewReport(questions, answers, evaluations, rubricSnapshot, profile);
   }
 }

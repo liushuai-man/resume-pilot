@@ -296,7 +296,7 @@ Technical / Project / FollowUp 生成具体问题
 基于完整上下文生成逐题评价、证据、知识缺口和置信度
   ↓ checkpoint: evaluations_ready
 [R3 Report Composer]
-依据 Rubric 聚合分项分数、总分、优势、薄弱项和训练建议
+后端依据 Rubric 确定性聚合分项分数、总分、优势、薄弱项和训练建议，不调用模型
   ↓ checkpoint: report_composed
 [R4 Report Validator]
 校验结构、分数边界、证据引用、版本信息和覆盖率
@@ -392,6 +392,7 @@ failed_retryable → running（单步重试）
 - 输入快照变化后，服务端拒绝基于旧 `inputHash` 的重试。
 - 所有失败路径均不展示即时评分、默认 60 分或未经验证的部分报告。
 - 正常完成一场面试时，逐题评价只产生一次批量模型调用；题目级模型调用只允许出现在批量重试仍失败后的补偿路径，并记录额外成本。
+- 报告汇总由后端确定性计算，不再调用 Report Agent；相同评价与 Rubric 必须生成相同总分和维度分。常规报告链路因此只有一次 Batch Evaluation 模型调用。
 
 当前实施记录：
 

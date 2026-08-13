@@ -15,6 +15,7 @@
     "generate:thumbnails": "tsx src/scripts/generate-template-thumbnails.ts",
     "test:ai": "tsx scripts/test-ai-config.ts",
     "test:interview-evaluation": "tsx --test src/ai/agents/interview/evaluation.agent.test.ts",
+    "test:interview-report": "tsx --test src/ai/agents/interview/report-builder.test.ts",
     "test:ai:all": "tsx scripts/test-ai-config.ts --all",
     "test:job-profile": "tsx --test src/services/job-profile.service.test.ts",
     "test:ats": "tsx --test src/services/ats-analysis.service.test.ts",

@@ -118,13 +118,11 @@ workflow.addNode('generate_report', async (state) => {
     state.session.userId
   );
   const report = await supervisor.generateReport(
-    state.session.resumeText,
     state.session.questions,
     state.session.answers,
     evaluations,
-    state.session.targetPosition,
     profile,
-    state.session.userId
+    state.session.rubricSnapshot
   );
   return { report, session: { ...state.session, evaluations, profile, report } };
 });
