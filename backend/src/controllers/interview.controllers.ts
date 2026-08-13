@@ -10,7 +10,22 @@ import {
   generateInterviewNextQuestion,
   retryInterviewReport,
   retryInterviewNode,
+  getActiveInterviewSession,
 } from '../services/interview.service';
+
+export const getActiveInterviewSessionHandler = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) return error(res, '需要登录', 401);
+    const result = await getActiveInterviewSession(userId, req.params.id);
+    return success(res, result, '面试会话已恢复');
+  } catch (err) {
+    const message = err instanceof Error ? err.message : '';
+    if (message.includes('not found') || message.includes('forbidden')) return error(res, '面试会话不存在或无权访问', 404);
+    if (message.includes('no longer active')) return error(res, '面试会话已经结束', 410);
+    return error(res, '恢复面试会话失败');
+  }
+};
 
 export const retryInterviewNodeHandler = async (req: Request, res: Response) => {
   try {

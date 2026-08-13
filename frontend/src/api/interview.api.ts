@@ -54,9 +54,26 @@ export interface SubmitAnswerResponse {
   duplicate: boolean;
 }
 
+export interface ActiveInterviewSession {
+  sessionId: string;
+  resumeId: string;
+  targetPosition: string;
+  maxQuestions: number;
+  questions: Question[];
+  answers: Answer[];
+  currentQuestion: Question | null;
+  isFinished: boolean;
+  nextQuestionPending: boolean;
+  context: StartInterviewResponse['context'];
+}
+
 export interface FinishInterviewResponse extends InterviewResult {}
 
 export const interviewApi = {
+  getActiveSession: async (id: string): Promise<ActiveInterviewSession> => {
+    const response: any = await request.get(`/interview/sessions/${id}`);
+    return response.data || response;
+  },
   // 开始面试
   startInterview: async (
     resumeId: string,

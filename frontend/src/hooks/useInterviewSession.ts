@@ -1,9 +1,10 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { notifications } from '@mantine/notifications';
 import { interviewApi, type Answer, type InterviewResult, type Question } from '@/api/interview.api';
 import { getApiErrorMessage } from '@/utils/api-error';
 
 interface StartOptions { resumeId: string; targetPosition?: string; questionCount: number; jobProfileId?: string; }
+const ACTIVE_SESSION_KEY = 'resume-pilot:active-interview-session';
 
 export function useInterviewSession() {
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -19,6 +20,20 @@ export function useInterviewSession() {
   const [isThinking, setIsThinking] = useState(false);
   const [pendingSubmission, setPendingSubmission] = useState<{ id: string; questionId: string; answer: string } | null>(null);
   const [nextQuestionFailed, setNextQuestionFailed] = useState(false);
+  const [restoring, setRestoring] = useState(true);
+  const [sessionResumeId, setSessionResumeId] = useState<string | null>(null);
+  const [maxQuestions, setMaxQuestions] = useState(5);
+
+  useEffect(() => {
+    const storedSessionId = localStorage.getItem(ACTIVE_SESSION_KEY);
+    if (!storedSessionId) { setRestoring(false); return; }
+    interviewApi.getActiveSession(storedSessionId).then((session) => {
+      setSessionId(session.sessionId); setQuestions(session.questions); setAnswers(session.answers);
+      setCurrentQuestion(session.currentQuestion); setIsFinished(session.isFinished);
+      setNextQuestionFailed(session.nextQuestionPending);
+      setSessionResumeId(session.resumeId); setMaxQuestions(session.maxQuestions);
+    }).catch(() => localStorage.removeItem(ACTIVE_SESSION_KEY)).finally(() => setRestoring(false));
+  }, []);
 
   const finish = useCallback(async (activeSessionId = sessionId) => {
     if (!activeSessionId) return;
@@ -26,6 +41,7 @@ export function useInterviewSession() {
     try {
       const result = await interviewApi.finishInterview(activeSessionId);
       setInterviewResult(result); setIsFinished(true);
+      localStorage.removeItem(ACTIVE_SESSION_KEY);
       notifications.show(result.status === 'failed'
         ? { title: '报告生成失败', message: '完整问答已保存，可在面试记录中重试', color: 'red' }
         : { title: '完成', message: '面试已完成，查看报告', color: 'green' });
@@ -39,6 +55,8 @@ export function useInterviewSession() {
     try {
       const result = await interviewApi.startInterview(options.resumeId, options.targetPosition, options.questionCount, options.jobProfileId);
       setSessionId(result.sessionId); setCurrentQuestion(result.firstQuestion); setQuestions([result.firstQuestion]);
+      setSessionResumeId(options.resumeId); setMaxQuestions(options.questionCount);
+      localStorage.setItem(ACTIVE_SESSION_KEY, result.sessionId);
     } catch (error) {
       setSessionId(null); setCurrentQuestion(null); setQuestions([]);
       notifications.show({ title: '开始面试失败', message: getApiErrorMessage(error, '请检查模型配置和网络连接后重试'), color: 'red' });
@@ -108,10 +126,12 @@ export function useInterviewSession() {
 
   const restart = useCallback(() => {
     setSessionId(null); setCurrentQuestion(null); setQuestions([]); setAnswers([]); setCurrentAnswer('');
-    setIsFinished(false); setInterviewResult(null); setPendingSubmission(null); setNextQuestionFailed(false);
+    setIsFinished(false); setInterviewResult(null); setPendingSubmission(null); setNextQuestionFailed(false); setSessionResumeId(null);
+    localStorage.removeItem(ACTIVE_SESSION_KEY);
   }, []);
 
   return { sessionId, currentQuestion, questions, answers, currentAnswer, setCurrentAnswer, interviewResult,
-    isFinished, starting, submitting, finishing, isThinking, answerSaveFailed: Boolean(pendingSubmission), nextQuestionFailed,
+    isFinished, starting, submitting, finishing, isThinking, restoring, sessionResumeId, maxQuestions,
+    answerSaveFailed: Boolean(pendingSubmission), nextQuestionFailed,
     start, submitAnswer, retryNextQuestion, finish, retryReport, restart };
 }

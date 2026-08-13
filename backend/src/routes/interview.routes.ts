@@ -10,6 +10,7 @@ import {
   getNextQuestionHandler,
   retryInterviewReportHandler,
   retryInterviewNodeHandler,
+  getActiveInterviewSessionHandler,
 } from '../controllers/interview.controllers';
 import { authMiddleware } from '../middlewares/auth.middleware';
 
@@ -34,6 +35,7 @@ router.post(
   interviewRateLimit,
   startInterviewHandler
 );
+router.get('/sessions/:id', authMiddleware, getActiveInterviewSessionHandler);
 router.post(
   '/answer',
   authMiddleware,

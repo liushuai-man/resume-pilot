@@ -230,6 +230,31 @@ export async function finishInterview(userId: string, sessionId: string) {
   }
 }
 
+export async function getActiveInterviewSession(userId: string, sessionId: string) {
+  const state = await loadInterviewState(userId, sessionId);
+  const currentQuestion = state.questions[state.currentQuestionIndex] || null;
+  return {
+    sessionId,
+    resumeId: state.resumeId,
+    targetPosition: state.targetPosition,
+    maxQuestions: state.maxQuestions,
+    questions: state.questions,
+    answers: state.answers,
+    currentQuestion,
+    isFinished: state.isFinished,
+    nextQuestionPending: !state.isFinished && state.currentQuestionIndex >= state.questions.length,
+    context: {
+      resumeTitle: state.resumeSnapshot.title,
+      jobProfile: state.jobProfileSnapshot && {
+        id: state.jobProfileSnapshot.id,
+        version: state.jobProfileSnapshot.version,
+        jobTitle: state.jobProfileSnapshot.jobTitle,
+      },
+      rubric: state.rubricSnapshot,
+    },
+  };
+}
+
 export async function retryInterviewReport(userId: string, resultId: string) {
   const result = await prisma.interviewResult.findFirst({
     where: { id: resultId, user_id: userId, is_deleted: false },

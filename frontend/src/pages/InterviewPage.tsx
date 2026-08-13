@@ -44,8 +44,12 @@ export default function InterviewPage() {
     const close = (event: MouseEvent) => { if (!(event.target as HTMLElement).closest('.resume-dropdown-container')) setShowResumeDropdown(false); };
     document.addEventListener('mousedown', close); return () => document.removeEventListener('mousedown', close);
   }, [showResumeDropdown]);
+  useEffect(() => {
+    if (interview.sessionResumeId) resources.setSelectedResumeId(interview.sessionResumeId);
+    if (interview.sessionId) setQuestionCount(String(interview.maxQuestions));
+  }, [interview.maxQuestions, interview.sessionId, interview.sessionResumeId, resources.setSelectedResumeId]);
 
-  if (resources.loading) return <div className="flex h-[calc(100vh-4rem)] items-center justify-center"><Loader size="xl" /></div>;
+  if (resources.loading || interview.restoring) return <div className="flex h-[calc(100vh-4rem)] items-center justify-center"><Loader size="xl" /></div>;
 
   const selectedResume = resources.resumes.find((item) => item.id === resources.selectedResumeId);
   const selectedProfile = resources.jobProfiles.find((item) => item.id === resources.selectedJobProfileId);
