@@ -9,7 +9,9 @@
 }
 
 body {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Noto Sans SC', 'Microsoft YaHei UI', 'Segoe UI', sans-serif;
+  color: #17211d;
+  background: #f4f7f6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

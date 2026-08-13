@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { getCurrentUser } from '@/api/auth.api';
 import { Avatar, Text } from '@mantine/core';
-import { FileText, History, LogOut, Target, UserRoundSearch } from 'lucide-react';
+import { FileCheck2, FileText, History, LogOut, Target, UserRoundSearch } from 'lucide-react';
 import { useUserStore } from '@/store/useUserStore';
 import { logout } from '@/api/auth.api';
 import { notification } from '@/components/common/Notification';
@@ -72,16 +72,16 @@ export default function HomeLayout() {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50">
+    <div className="flex min-h-screen flex-col bg-[#F4F7F6] text-[#17211D]">
       {/* 顶部导航栏 */}
-      <header className="sticky top-0 z-30 flex h-16 items-center border-b border-gray-200 bg-white px-5 lg:px-8">
+      <header className="sticky top-0 z-30 flex h-16 items-center border-b border-[#D8E1DD] bg-white/95 px-4 backdrop-blur sm:px-6 lg:px-8">
         <button onClick={() => navigate('/resumes')} className="flex shrink-0 items-center gap-3 text-left">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 shadow-sm shadow-blue-200">
-            <Text fw="bold" c="white" size="sm">RP</Text>
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#176B52] text-white">
+            <FileCheck2 size={20} strokeWidth={1.9} />
           </div>
           <div className="hidden xl:block">
-            <Text size="md" fw="bold">ResumePilot</Text>
-            <Text size="xs" c="dimmed">AI 求职助手</Text>
+            <Text size="sm" fw={700} c="#17211D">AI 简历助手</Text>
+            <Text size="xs" c="#7A8782">求职证据工作台</Text>
           </div>
         </button>
 
@@ -92,11 +92,11 @@ export default function HomeLayout() {
               <button
                 key={item.path}
                 onClick={() => navigate(item.path)}
-                className={`relative flex h-full items-center gap-2 px-3 text-sm transition-colors lg:px-5 ${item.active ? 'font-medium text-blue-600' : 'text-gray-500 hover:text-gray-900'}`}
+                className={`relative flex h-full items-center gap-2 px-3 text-sm transition-colors lg:px-5 ${item.active ? 'font-semibold text-[#176B52]' : 'text-[#66736D] hover:text-[#17211D]'}`}
               >
                 <Icon size={17} />
                 <span className="hidden md:inline">{item.label}</span>
-                {item.active && <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-blue-600" />}
+                {item.active && <span className="absolute inset-x-3 bottom-0 h-0.5 bg-[#176B52]" />}
               </button>
             );
           })}
@@ -112,7 +112,7 @@ export default function HomeLayout() {
                 size="md"
                 src={user.github_avatar || undefined}
                 alt={user.github_login || 'User'}
-                className="bg-blue-500 border-gray-200 border-2 rounded-full text-white"
+                className="border-2 border-[#D8E1DD] bg-[#176B52] text-white"
               >
                 {user.github_login?.charAt(0) || 'U'}
               </Avatar>
@@ -134,13 +134,13 @@ export default function HomeLayout() {
       </header>
 
       {/* 主内容区 */}
-      <main className="flex-1 py-8">
+      <main className="flex-1 py-8 lg:py-10">
         <Outlet />
       </main>
 
       {/* 底部 Footer */}
-      <footer className="flex items-center justify-between border-t border-gray-200 bg-white px-8 py-5 text-gray-400">
-        <Text size="xs">© 2026 ResumePilot</Text>
+      <footer className="flex items-center justify-between border-t border-[#D8E1DD] bg-white px-8 py-5 text-[#7A8782]">
+        <Text size="xs">© 2026 AI 简历助手</Text>
         <Text size="xs">让每一次投递都有依据</Text>
       </footer>
     </div>

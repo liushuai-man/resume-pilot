@@ -9,7 +9,7 @@
 | `product/` | 产品定位、V2.0 范围与验收基线 | [产品基线](./product/product-baseline.md) |
 | `modules/` | 单个业务模块的行为、边界与实现方案 | [模块索引](./modules/README.md) |
 | `architecture/` | 跨模块技术架构、Agent 和数据流 | [架构索引](./architecture/README.md) |
-| `design/` | 信息架构、导航、页面和交互规范 | [信息架构](./design/information-architecture.md) |
+| `design/` | 信息架构、导航、页面和交互规范 | [信息架构](./design/information-architecture.md) · [UI 设计系统（待审核）](./design/ui-design-system.md) |
 | `roadmap/` | 阶段顺序、当前状态、实施记录和候选池 | [V2.0 路线图](./roadmap/v2-roadmap.md) |
 | `evals/` | 固定样本、指标、校准和验收记录 | [评测索引](./evals/README.md) |
 | `decisions/` | 已确认的重要产品或技术取舍（ADR） | [决策索引](./decisions/README.md) |

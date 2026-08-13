@@ -1,12 +1,6 @@
-import {
-  Text,
-  Container,
-  Input,
-  Select,
-  ActionIcon,
-} from '@mantine/core';
-import { Search, X, ArrowUpDown } from 'lucide-react';
-import { useState, useEffect, useMemo } from 'react';
+import { ActionIcon, Input, Select } from '@mantine/core';
+import { ArrowDownAZ, ArrowUpAZ, FileText, Plus, Search, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import EmptyResume from '@/components/home/EmptyResume';
 import HistoryResume from '@/components/home/HistoryResume';
 import ResumeTemplate from '@/components/home/ResumeTemplate';
@@ -17,243 +11,84 @@ import { useNavigate } from 'react-router-dom';
 import { notification } from '@/components/common/Notification';
 import type { Resume } from '@/types/resume';
 import { getApiErrorMessage } from '@/utils/api-error';
-import PageHeader from '@/components/common/PageHeader';
 
 const MAX_RESUMES = 7;
 
 export default function HomePage() {
-  const { isLoggedIn } = useUserStore();
+  const { isLoggedIn, user } = useUserStore();
   const navigate = useNavigate();
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [searchKeyword, setSearchKeyword] = useState('');
-  const [sortBy, setSortBy] = useState<'created' | 'updated' | 'name'>(
-    'updated'
-  );
+  const [sortBy, setSortBy] = useState<'created' | 'updated' | 'name'>('updated');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [isCreating, setIsCreating] = useState(false);
 
-  // 获取用户简历列表
   useEffect(() => {
     if (!isLoggedIn) return;
-    const fetchResumes = async () => {
+    void (async () => {
       try {
-        const response = await resumeApi.getUserResumes({
-          excludeUploaded: true,
-        });
-        if (response.code === 200 && response.data) {
-          // Keep imported interview files out of the editable resume library,
-          // even when talking to an older backend that ignores the query flag.
-          setResumes(
-            response.data.filter(
-              (item) => item.content?.isUploadedFile !== true
-            )
-          );
-        }
+        const response = await resumeApi.getUserResumes({ excludeUploaded: true });
+        if (response.code === 200 && response.data) setResumes(response.data.filter((item) => item.content?.isUploadedFile !== true));
       } catch (error) {
-        console.error('获取简历列表失败:', error);
-        notification.error(
-          getApiErrorMessage(error, '简历列表加载失败，请刷新后重试')
-        );
+        notification.error(getApiErrorMessage(error, '简历列表加载失败，请刷新后重试'));
       }
-    };
-
-    fetchResumes();
+    })();
   }, [isLoggedIn]);
 
-  // 筛选和排序简历
   const filteredResumes = useMemo(() => {
-    let result = [...resumes];
-
-    if (searchKeyword.trim()) {
-      result = result.filter((resume) =>
-        resume.title.toLowerCase().includes(searchKeyword.toLowerCase())
-      );
-    }
-
+    const result = resumes.filter((resume) => resume.title.toLowerCase().includes(searchKeyword.trim().toLowerCase()));
     result.sort((a, b) => {
-      let comparison = 0;
-
-      if (sortBy === 'name') {
-        comparison = a.title.localeCompare(b.title, 'zh-CN');
-      } else {
-        const field = sortBy === 'created' ? 'created_at' : 'updated_at';
-        comparison =
-          new Date(a[field]).getTime() - new Date(b[field]).getTime();
-      }
-
+      const comparison = sortBy === 'name' ? a.title.localeCompare(b.title, 'zh-CN') : new Date(a[sortBy === 'created' ? 'created_at' : 'updated_at']).getTime() - new Date(b[sortBy === 'created' ? 'created_at' : 'updated_at']).getTime();
       return sortOrder === 'desc' ? -comparison : comparison;
     });
-
     return result;
   }, [resumes, searchKeyword, sortBy, sortOrder]);
 
-  // 限制最多 7 份简历
-  const displayResumes = useMemo(
-    () => filteredResumes.slice(0, MAX_RESUMES),
-    [filteredResumes]
-  );
-
-  // 从 resume 的 template_id 推断样式和布局
-  const getTemplateInfo = (resume: Resume) => {
-    const layout = resume.template_id || 'classic';
-    return {
-      templateStyle: null,
-      templateLayout: layout,
-    };
-  };
-
-  // 使用默认布局创建空白简历
-  const handleCreateEmpty = async () => {
-    if (!isLoggedIn) {
-      notification.error('请先登录');
-      return;
-    }
+  const createResume = async (templateId: string, title = '我的简历') => {
+    if (!isLoggedIn) return navigate('/auth/login');
     setIsCreating(true);
     try {
-      const response = await resumeApi.createResume({
-        template_id: 'classic-blue',
-        title: '我的简历',
-        content: emptyResumeContent,
-      });
-
-      if (response.data) {
-        notification.success('简历创建成功');
-        navigate(`/resumes/${response.data.id}/edit`);
-      }
-    } catch (error) {
-      console.error('创建简历失败:', error);
-      notification.error('创建简历失败，请重试');
-    } finally {
-      setIsCreating(false);
-    }
-  };
-
-  // 使用指定布局创建简历
-  const handleSelectTemplate = async (layout: string) => {
-    if (!isLoggedIn) {
-      notification.error('请先登录');
-      return;
-    }
-
-    setIsCreating(true);
-    try {
-      const response = await resumeApi.createResume({
-        template_id: layout,
-        title: `我的简历`,
-        content: emptyResumeContent,
-      });
-
-      if (response.data) {
-        notification.success('简历创建成功');
-        navigate(`/resumes/${response.data.id}/edit`);
-      }
-    } catch (error) {
-      console.error('创建简历失败:', error);
-      notification.error('创建简历失败，请稍后重试');
-    } finally {
-      setIsCreating(false);
-    }
-  };
-
-  // 删除简历后更新列表
-  const handleDeleteResume = (id: string) => {
-    setResumes((prev) => prev.filter((resume) => resume.id !== id));
+      const response = await resumeApi.createResume({ template_id: templateId, title, content: emptyResumeContent });
+      if (response.data) { notification.success('简历创建成功'); navigate(`/resumes/${response.data.id}/edit`); }
+    } catch { notification.error('创建简历失败，请稍后重试'); }
+    finally { setIsCreating(false); }
   };
 
   return (
-    <Container className="mx-auto max-w-7xl px-6">
-      {/* 我的简历区域 */}
-      <div className="mb-10">
-        <PageHeader eyebrow="RESUMES" title="我的简历" description="集中管理简历内容、模板与导出；岗位分析和面试结果保留在各自任务中。" />
-          <div className="mb-5 flex flex-wrap items-center justify-end gap-3 rounded-xl border border-gray-200 bg-white p-3">
-            <Input
-              placeholder="搜索简历名称..."
-              value={searchKeyword}
-              onChange={(e) => setSearchKeyword(e.target.value)}
-              leftSection={<Search size={16} className="text-gray-400" />}
-              rightSection={
-                searchKeyword && (
-                  <ActionIcon
-                    variant="subtle"
-                    size="xs"
-                    onClick={() => setSearchKeyword('')}
-                  >
-                    <X size={14} />
-                  </ActionIcon>
-                )
-              }
-              className="w-64"
-              size="sm"
-            />
-            <Select
-              value={sortBy}
-              onChange={(value) =>
-                setSortBy(value as 'created' | 'updated' | 'name')
-              }
-              data={[
-                { value: 'updated', label: '最新修改' },
-                { value: 'created', label: '最近创建' },
-                { value: 'name', label: '按名称' },
-              ]}
-              size="sm"
-              className="w-32"
-            />
-            <ActionIcon
-              variant="light"
-              size="sm"
-              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-              title={sortOrder === 'asc' ? '升序' : '降序'}
-            >
-              <ArrowUpDown
-                size={16}
-                className={sortOrder === 'asc' ? 'rotate-180' : ''}
-              />
-            </ActionIcon>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {/* 新建简历入口 */}
-          <EmptyResume onClick={handleCreateEmpty} loading={isCreating} />
-
-          {/* 用户历史简历（最多 7 份） */}
-          {displayResumes.length > 0 ? (
-            displayResumes.map((resume) => {
-              const { templateStyle, templateLayout } = getTemplateInfo(resume);
-              return (
-                <HistoryResume
-                  key={resume.id}
-                  resume={resume}
-                  onDelete={handleDeleteResume}
-                  templateStyle={templateStyle}
-                  templateLayout={templateLayout}
-                />
-              );
-            })
-          ) : searchKeyword && resumes.length > 0 ? (
-            <div className="col-span-full flex flex-col items-center justify-center py-8">
-              <Search size={32} className="text-gray-300 mb-2" />
-              <Text className="text-gray-400">
-                未找到匹配"{searchKeyword}"的简历
-              </Text>
-            </div>
-          ) : null}
-        </div>
-      </div>
-
-      {/* 精选模板区域 */}
-      <div className="rounded-xl border border-gray-200 bg-white p-6">
-        <div className="flex items-center justify-between mb-6">
+    <div className="mx-auto w-full max-w-[1200px] px-4 pb-16 sm:px-6 lg:px-8">
+      <header className="border-b border-[#D8E1DD] pb-7 pt-2">
+        <div className="flex flex-wrap items-end justify-between gap-5">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">精选模板</h1>
-            <p className="text-gray-500 mt-1">
-              选择合适的模板，快速创建专业简历
-            </p>
+            <p className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#176B52]"><FileText size={14} />Resume workspace</p>
+            <h1 className="text-[32px] font-bold tracking-[-0.025em] text-[#17211D]">我的简历</h1>
+            <p className="mt-2 max-w-2xl text-[15px] leading-6 text-[#66736D]">{user?.github_login ? `${user.github_login}，` : ''}在这里维护用于不同岗位的简历，优化记录会留在对应简历中。</p>
           </div>
-          <span className="text-sm text-gray-400">更多模版开发中</span>
+          <button type="button" onClick={() => void createResume('classic-blue')} disabled={isCreating} className="flex h-11 items-center gap-2 rounded-lg bg-[#176B52] px-5 text-sm font-semibold text-white transition hover:bg-[#10563F] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#176B52] disabled:opacity-60"><Plus size={17} />{isCreating ? '创建中…' : '创建简历'}</button>
+        </div>
+      </header>
+
+      <section className="pt-7">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
+          <div><h2 className="text-lg font-semibold text-[#17211D]">简历文件</h2><p className="mt-1 text-sm text-[#7A8782]">共 {resumes.length} 份，最多展示最近的 {MAX_RESUMES} 份</p></div>
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+            <Input aria-label="搜索简历" placeholder="搜索简历名称" value={searchKeyword} onChange={(event) => setSearchKeyword(event.currentTarget.value)} leftSection={<Search size={16} color="#66736D" />} rightSection={searchKeyword ? <ActionIcon variant="subtle" color="gray" aria-label="清除搜索" onClick={() => setSearchKeyword('')}><X size={15} /></ActionIcon> : null} className="min-w-0 flex-1 sm:w-60 sm:flex-none" styles={{ input: { borderColor: '#D8E1DD', borderRadius: 8, height: 40 } }} />
+            <Select aria-label="简历排序方式" value={sortBy} onChange={(value) => value && setSortBy(value as typeof sortBy)} data={[{ value: 'updated', label: '最近更新' }, { value: 'created', label: '最近创建' }, { value: 'name', label: '按名称' }]} className="w-32" styles={{ input: { borderColor: '#D8E1DD', borderRadius: 8, height: 40 } }} />
+            <ActionIcon variant="default" size={40} aria-label={sortOrder === 'asc' ? '切换为降序' : '切换为升序'} title={sortOrder === 'asc' ? '当前升序' : '当前降序'} onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')} styles={{ root: { borderColor: '#D8E1DD', borderRadius: 8 } }}>{sortOrder === 'asc' ? <ArrowDownAZ size={17} /> : <ArrowUpAZ size={17} />}</ActionIcon>
+          </div>
         </div>
 
-        <ResumeTemplate onSelect={handleSelectTemplate} loading={isCreating} />
-      </div>
-    </Container>
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <EmptyResume onClick={() => void createResume('classic-blue')} loading={isCreating} />
+          {filteredResumes.slice(0, MAX_RESUMES).map((resume) => <HistoryResume key={resume.id} resume={resume} onDelete={(id) => setResumes((items) => items.filter((item) => item.id !== id))} templateStyle={null} templateLayout={resume.template_id || 'classic'} />)}
+        </div>
+
+        {searchKeyword && filteredResumes.length === 0 && <div className="mt-5 rounded-[10px] border border-dashed border-[#C5D1CC] bg-white px-6 py-12 text-center"><Search size={24} className="mx-auto text-[#9AA7A1]" /><p className="mt-3 font-medium text-[#17211D]">没有找到“{searchKeyword}”</p><button type="button" onClick={() => setSearchKeyword('')} className="mt-2 text-sm font-medium text-[#176B52] hover:underline">清除搜索条件</button></div>}
+      </section>
+
+      <section className="mt-14 border-t border-[#D8E1DD] pt-8">
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8A5A26]">Template library</p><h2 className="mt-2 text-xl font-semibold text-[#17211D]">从成熟版式开始</h2><p className="mt-1 text-sm text-[#66736D]">模板只改变排版，不会替你编写内容。</p></div><span className="text-xs text-[#7A8782]">更多模板持续补充</span></div>
+        <div className="rounded-[10px] border border-[#D8E1DD] bg-white p-4 sm:p-5"><ResumeTemplate onSelect={(layout) => void createResume(layout)} loading={isCreating} /></div>
+      </section>
+    </div>
   );
 }
