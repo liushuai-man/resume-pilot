@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertCircle, BarChart3, Check, FileText, Loader2, Plus, RefreshCw, Save, Sparkles, Trash2, X } from 'lucide-react';
+import { AlertCircle, BarChart3, Check, FileText, Loader2, Plus, RefreshCw, Save, Sparkles, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { jobApi } from '@/api/job.api';
 import { resumeApi } from '@/api/home.api';
@@ -10,92 +10,14 @@ import type {
   AtsAnalysisResult,
   JobDescription,
   JobProfile,
-  JobRequirement,
   JobMatchAnalysis,
 } from '@/types/job';
 import type { Resume } from '@/types/resume';
 import PageHeader from '@/components/common/PageHeader';
 import type { ContentQualityAnalysis } from '@/types/content-quality';
-
-const emptyRequirement = (): JobRequirement => ({
-  name: '',
-  evidence: '',
-  confidence: 1,
-});
-
-function RequirementEditor({
-  title,
-  value,
-  disabled,
-  onChange,
-}: {
-  title: string;
-  value: JobRequirement[];
-  disabled: boolean;
-  onChange: (next: JobRequirement[]) => void;
-}) {
-  return (
-    <section className="space-y-2">
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-gray-800">{title}</h3>
-        {!disabled && (
-          <button
-            type="button"
-            className="text-sm text-blue-600 hover:text-blue-700"
-            onClick={() => onChange([...value, emptyRequirement()])}
-          >
-            + 添加
-          </button>
-        )}
-      </div>
-      {value.length === 0 && (
-        <p className="rounded-md bg-gray-50 p-3 text-sm text-gray-400">未识别到相关内容</p>
-      )}
-      {value.map((item, index) => (
-        <div key={index} className={`rounded-lg border p-3 ${item.confidence < 0.7 ? 'border-amber-300 bg-amber-50/50' : 'border-gray-200'}`}>
-          <div className="flex gap-2">
-            <input
-              value={item.name}
-              disabled={disabled}
-              onChange={(event) => {
-                const next = [...value];
-                next[index] = { ...item, name: event.target.value };
-                onChange(next);
-              }}
-              className="min-w-0 flex-1 rounded border border-gray-200 px-3 py-2 text-sm disabled:bg-gray-50"
-              placeholder="要求摘要"
-            />
-            {!disabled && (
-              <button
-                type="button"
-                aria-label="删除"
-                onClick={() => onChange(value.filter((_, i) => i !== index))}
-                className="text-gray-400 hover:text-red-500"
-              >
-                <X size={17} />
-              </button>
-            )}
-          </div>
-          <textarea
-            value={item.evidence}
-            disabled={disabled}
-            onChange={(event) => {
-              const next = [...value];
-              next[index] = { ...item, evidence: event.target.value };
-              onChange(next);
-            }}
-            className="mt-2 min-h-16 w-full resize-y rounded border border-gray-200 px-3 py-2 text-sm text-gray-600 disabled:bg-gray-50"
-            placeholder="对应的 JD 原文证据"
-          />
-          <p className={`mt-1 text-xs ${item.confidence < 0.7 ? 'font-medium text-amber-700' : 'text-gray-400'}`}>
-            原始 AI 置信度 {Math.round(item.confidence * 100)}%
-            {item.confidence < 0.7 ? ' · 需要重点确认' : ''}
-          </p>
-        </div>
-      ))}
-    </section>
-  );
-}
+import RequirementEditor from '@/components/job-center/RequirementEditor';
+import JobSidebar from '@/components/job-center/JobSidebar';
+import CreateJobPanel, { type CreateProgress } from '@/components/job-center/CreateJobPanel';
 const toEditable = (profile: JobProfile): EditableJobProfile => ({
   jobTitle: profile.jobTitle,
   seniority: profile.seniority || '',
@@ -118,9 +40,7 @@ export default function JobCenterPage() {
   const [company, setCompany] = useState('');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [createProgress, setCreateProgress] = useState<
-    'idle' | 'saving' | 'analyzing' | 'error'
-  >('idle');
+  const [createProgress, setCreateProgress] = useState<CreateProgress>('idle');
   const [createError, setCreateError] = useState('');
   const [savedJobId, setSavedJobId] = useState<string | null>(null);
   const [workspaceTab, setWorkspaceTab] = useState<'profile' | 'match'>('profile');
@@ -423,60 +343,24 @@ export default function JobCenterPage() {
     <div className="mx-auto max-w-[1440px] px-6">
       <PageHeader eyebrow="TARGET JOBS" title="目标岗位" description="以确认后的岗位画像统一驱动简历评价、岗位匹配与模拟面试。" action={<button disabled={busy} onClick={openCreate} className="inline-flex items-center gap-2 rounded-lg bg-[#176B52] px-4 py-2.5 font-medium text-white transition hover:bg-[#115640] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176B52]/35 disabled:cursor-not-allowed disabled:opacity-50"><Plus size={17} />添加 JD</button>} />
       <div className="flex min-h-[680px] gap-5">
-      <aside className="w-72 shrink-0 rounded-xl border border-gray-200 bg-white p-4">
-        <div className="mb-4">
-          <div><h1 className="text-lg font-bold">目标岗位</h1><p className="text-xs text-gray-500">{jobs.length} 个 JD</p></div>
-        </div>
-        <div className="space-y-2">
-          {jobs.map((job) => (
-            <button
-              key={job.id}
-              onClick={() => selectJob(job)}
-              className={`w-full rounded-lg border p-3 text-left ${selectedId === job.id ? 'border-blue-500 bg-blue-50' : 'border-gray-100 hover:bg-gray-50'}`}
-            >
-              <p className="truncate font-medium text-gray-800">{job.latestProfile?.jobTitle || job.title || '未命名岗位'}</p>
-              <p className="mt-1 truncate text-xs text-gray-500">{job.company || '未填写公司'} · {job.latestProfile ? `V${job.latestProfile.version}` : '待分析'}</p>
-              {job.latestProfile?.status === 'confirmed' && <span className="mt-2 inline-flex items-center gap-1 text-xs text-green-600"><Check size={12} />已确认</span>}
-            </button>
-          ))}
-          {jobs.length === 0 && <p className="py-10 text-center text-sm text-gray-400">还没有目标岗位</p>}
-        </div>
-      </aside>
+      <JobSidebar jobs={jobs} selectedId={selectedId} onSelect={selectJob} />
 
       <section className="min-w-0 flex-1 rounded-xl border border-gray-200 bg-white p-6">
         {showCreate ? (
-          <div className="mx-auto max-w-4xl">
-            <h2 className="text-xl font-bold">添加目标岗位</h2>
-            <p className="mt-1 text-sm text-gray-500">粘贴完整 JD，系统会提取要求并保留原文证据。</p>
-            {createProgress !== 'idle' && (
-              <div className={`mt-5 rounded-xl border p-4 ${createProgress === 'error' ? 'border-red-200 bg-red-50' : 'border-blue-200 bg-blue-50'}`}>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className={`flex h-8 w-8 items-center justify-center rounded-full ${savedJobId ? 'bg-green-100 text-green-600' : createProgress === 'error' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
-                      {savedJobId ? <Check size={17} /> : createProgress === 'error' ? <X size={17} /> : <Loader2 size={17} className="animate-spin" />}
-                    </div>
-                    <div><p className="text-sm font-medium text-gray-800">1. 保存 JD</p><p className="text-xs text-gray-500">{savedJobId ? '已保存' : createProgress === 'error' ? '保存失败' : '正在保存原文...'}</p></div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className={`flex h-8 w-8 items-center justify-center rounded-full ${createProgress === 'error' ? 'bg-red-100 text-red-600' : createProgress === 'analyzing' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
-                      {createProgress === 'analyzing' ? <Loader2 size={17} className="animate-spin" /> : createProgress === 'error' ? <X size={17} /> : <span className="text-sm">2</span>}
-                    </div>
-                    <div><p className="text-sm font-medium text-gray-800">2. 生成岗位画像</p><p className="text-xs text-gray-500">{createProgress === 'analyzing' ? 'AI 正在分析职责和能力要求...' : createProgress === 'error' ? '分析未完成，可以重试' : '等待保存完成'}</p></div>
-                  </div>
-                </div>
-                {createError && <p className="mt-3 border-t border-red-200 pt-3 text-sm text-red-700">{createError}</p>}
-              </div>
-            )}
-            <div className="mt-5 grid grid-cols-2 gap-4">
-              <input disabled={busy || Boolean(savedJobId)} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="岗位名称（可选）" className="rounded-lg border border-gray-200 px-3 py-2 disabled:bg-gray-50" />
-              <input disabled={busy || Boolean(savedJobId)} value={company} onChange={(e) => setCompany(e.target.value)} placeholder="公司名称（可选）" className="rounded-lg border border-gray-200 px-3 py-2 disabled:bg-gray-50" />
-            </div>
-            <textarea disabled={busy || Boolean(savedJobId)} value={rawText} onChange={(e) => setRawText(e.target.value)} placeholder="在这里粘贴 JD 原文..." className="mt-4 min-h-[420px] w-full resize-y rounded-lg border border-gray-200 p-4 leading-7 disabled:bg-gray-50" />
-            <div className="mt-4 flex justify-end gap-3">
-              <button disabled={busy} onClick={closeCreate} className="rounded-lg border px-4 py-2 disabled:opacity-50">{savedJobId ? '查看已保存 JD' : '取消'}</button>
-              <button disabled={busy} onClick={createAndAnalyze} className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white disabled:opacity-50">{busy && <Loader2 size={16} className="animate-spin" />}{savedJobId ? '重新分析' : '保存并分析'}</button>
-            </div>
-          </div>
+          <CreateJobPanel
+            title={title}
+            company={company}
+            rawText={rawText}
+            busy={busy}
+            savedJobId={savedJobId}
+            progress={createProgress}
+            error={createError}
+            onTitleChange={setTitle}
+            onCompanyChange={setCompany}
+            onRawTextChange={setRawText}
+            onCancel={closeCreate}
+            onSubmit={createAndAnalyze}
+          />
         ) : selected ? (
           <div className="h-full">
             <nav className="mb-5 flex gap-6 border-b border-gray-200">
