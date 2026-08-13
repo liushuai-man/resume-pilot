@@ -396,6 +396,7 @@ failed_retryable → running（单步重试）
 - 报告任务已持久化 `currentNode / failedNode / pipelineState`，前端可展示问答校验、批量评价、确定性汇总和发布进度；失败时按钮使用具体节点名称，不再只显示笼统“重新生成报告”
 - 批量评价成功后会保存 `evaluationCheckpoint` 与覆盖冻结简历、JobProfile、Rubric、问题和回答的 SHA-256 `evaluationInputHash`；最终发布失败后重试可直接复用评价。输入哈希变化时旧 checkpoint 自动失效，必须重新执行批量评价
 - 已提供 `nodeKey + expectedInputHash` 节点级重试接口：服务端校验当前失败节点、输入版本与执行状态，并通过条件更新抢占唯一执行权；旧节点、过期输入和并发重复点击均返回冲突，不启动额外 Agent 调用
+- 回答提交已使用稳定 `submissionId` 实现幂等：网络失败时前端恢复原草稿并复用同一提交标识；服务端重复收到相同提交时返回原 `questionId` 和会话进度，不重复追加回答或跳过问题
 
 当前实施记录：
 

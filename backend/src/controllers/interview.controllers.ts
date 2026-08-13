@@ -106,21 +106,22 @@ export const startInterviewHandler = async (req: Request, res: Response) => {
 export const submitAnswerHandler = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
-    const { sessionId, answer } = req.body;
+    const { sessionId, answer, submissionId } = req.body;
 
     if (!userId) {
       return error(res, '需要登录', 401);
     }
 
-    if (!sessionId || !answer?.trim()) {
-      return error(res, '请提供会话信息和回答内容', 400);
+    if (!sessionId || !answer?.trim() || !submissionId) {
+      return error(res, '请提供会话信息、回答内容和提交标识', 400);
     }
 
-    const result = await submitAnswer(userId, sessionId, answer);
+    const result = await submitAnswer(userId, sessionId, answer, submissionId);
 
     return success(res, result, '答案已提交');
   } catch (err) {
     console.error('提交答案失败:', err);
+    if (err instanceof Error && err.message === 'INTERVIEW_QUESTION_UNAVAILABLE') return error(res, '当前问题不可用，请刷新会话', 409);
     return error(res, '提交答案失败');
   }
 };

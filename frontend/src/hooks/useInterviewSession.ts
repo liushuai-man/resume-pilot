@@ -17,6 +17,7 @@ export function useInterviewSession() {
   const [submitting, setSubmitting] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
+  const [pendingSubmission, setPendingSubmission] = useState<{ id: string; questionId: string; answer: string } | null>(null);
 
   const finish = useCallback(async (activeSessionId = sessionId) => {
     if (!activeSessionId) return;
@@ -45,21 +46,27 @@ export function useInterviewSession() {
 
   const submitAnswer = useCallback(async () => {
     if (!currentQuestion || !sessionId || !currentAnswer.trim()) return;
-    const answerText = currentAnswer;
+    const answerText = pendingSubmission?.answer || currentAnswer;
+    const submission = pendingSubmission?.questionId === currentQuestion.id
+      ? pendingSubmission
+      : { id: crypto.randomUUID(), questionId: currentQuestion.id, answer: answerText };
+    setPendingSubmission(submission);
     setSubmitting(true); setIsThinking(true);
-    setAnswers((items) => [...items, { questionId: currentQuestion.id, content: answerText }]);
-    setCurrentAnswer('');
     try {
-      const result = await interviewApi.submitAnswer(sessionId, answerText);
+      const result = await interviewApi.submitAnswer(sessionId, submission.answer, submission.id);
+      setAnswers((items) => items.some((item) => item.submissionId === submission.id)
+        ? items : [...items, { questionId: result.questionId, content: submission.answer, submissionId: submission.id }]);
+      setCurrentAnswer(''); setPendingSubmission(null);
       if (result.isFinished) await finish(sessionId);
       else {
         const nextQuestion = await interviewApi.getNextQuestion(sessionId);
         if (nextQuestion) { setCurrentQuestion(nextQuestion); setQuestions((items) => [...items, nextQuestion]); }
       }
     } catch (error) {
-      notifications.show({ title: '提交答案失败', message: getApiErrorMessage(error, '请稍后重试'), color: 'red' });
+      setCurrentAnswer(submission.answer);
+      notifications.show({ title: '回答保存失败', message: getApiErrorMessage(error, '草稿已保留，请重新提交'), color: 'red' });
     } finally { setSubmitting(false); setIsThinking(false); }
-  }, [currentAnswer, currentQuestion, finish, sessionId]);
+  }, [currentAnswer, currentQuestion, finish, pendingSubmission, sessionId]);
 
   const retryReport = useCallback(async () => {
     if (!interviewResult?.id) return;
@@ -78,9 +85,9 @@ export function useInterviewSession() {
 
   const restart = useCallback(() => {
     setSessionId(null); setCurrentQuestion(null); setQuestions([]); setAnswers([]); setCurrentAnswer('');
-    setIsFinished(false); setInterviewResult(null);
+    setIsFinished(false); setInterviewResult(null); setPendingSubmission(null);
   }, []);
 
   return { sessionId, currentQuestion, questions, answers, currentAnswer, setCurrentAnswer, interviewResult,
-    isFinished, starting, submitting, finishing, isThinking, start, submitAnswer, finish, retryReport, restart };
+    isFinished, starting, submitting, finishing, isThinking, answerSaveFailed: Boolean(pendingSubmission), start, submitAnswer, finish, retryReport, restart };
 }

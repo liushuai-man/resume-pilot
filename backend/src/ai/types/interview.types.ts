@@ -17,6 +17,7 @@ export interface Question {
 export interface Answer {
   questionId: string;
   content: string;
+  submissionId?: string;
 }
 
 // ==================== 评估类型 ====================

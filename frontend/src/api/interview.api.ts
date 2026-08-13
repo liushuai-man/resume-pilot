@@ -12,6 +12,7 @@ export interface Question {
 export interface Answer {
   questionId: string;
   content: string;
+  submissionId?: string;
 }
 
 export interface InterviewResult {
@@ -49,6 +50,8 @@ export interface StartInterviewResponse {
 
 export interface SubmitAnswerResponse {
   isFinished: boolean;
+  questionId: string;
+  duplicate: boolean;
 }
 
 export interface FinishInterviewResponse extends InterviewResult {}
@@ -73,11 +76,13 @@ export const interviewApi = {
   // 提交答案
   submitAnswer: async (
     sessionId: string,
-    answer: string
+    answer: string,
+    submissionId: string
   ): Promise<SubmitAnswerResponse> => {
     const response: any = await request.post('/interview/answer', {
       sessionId,
       answer,
+      submissionId,
     });
     return response.data || response;
   },

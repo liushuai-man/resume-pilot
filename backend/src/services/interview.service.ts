@@ -117,13 +117,20 @@ export async function startInterview(
 export async function submitAnswer(
   userId: string,
   sessionId: string,
-  answer: string
+  answer: string,
+  submissionId: string
 ) {
   const state = await loadInterviewState(userId, sessionId);
-  const result = await runAnswerGraph(state, answer);
+  const existing = state.answers.find((item) => item.submissionId === submissionId);
+  if (existing) return { isFinished: state.isFinished, questionId: existing.questionId, duplicate: true };
+  const currentQuestion = state.questions[state.currentQuestionIndex];
+  if (!currentQuestion) throw new Error('INTERVIEW_QUESTION_UNAVAILABLE');
+  const result = await runAnswerGraph(state, answer, submissionId);
   await saveInterviewState(sessionId, result.session);
   return {
     isFinished: result.session.isFinished,
+    questionId: currentQuestion.id,
+    duplicate: false,
   };
 }
 

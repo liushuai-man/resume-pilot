@@ -15,6 +15,7 @@ interface InterviewWorkflowState {
   session: LangGraphInterviewState;
   operation: InterviewOperation;
   answer: string;
+  submissionId: string;
   evaluation: Evaluation | null;
   updatedProfile: CandidateProfile | null;
   feedback: string;
@@ -84,6 +85,7 @@ const workflow = new StateGraph<InterviewWorkflowState>({
     session: null,
     operation: null,
     answer: null,
+    submissionId: null,
     evaluation: null,
     updatedProfile: null,
     feedback: null,
@@ -95,7 +97,7 @@ const workflow = new StateGraph<InterviewWorkflowState>({
 workflow.addNode('record_answer', async (state) => {
   const question = state.session.questions[state.session.currentQuestionIndex];
   if (!question) throw new Error('Current interview question does not exist');
-  const answer: Answer = { questionId: question.id, content: state.answer };
+  const answer: Answer = { questionId: question.id, content: state.answer, submissionId: state.submissionId };
   const currentQuestionIndex = state.session.currentQuestionIndex + 1;
   return {
     session: {
@@ -200,12 +202,14 @@ const interviewGraph = graphBuilder.compile();
 function initialGraphState(
   session: LangGraphInterviewState,
   operation: InterviewOperation,
-  answer = ''
+  answer = '',
+  submissionId = ''
 ): InterviewWorkflowState {
   return {
     session,
     operation,
     answer,
+    submissionId,
     evaluation: null,
     updatedProfile: null,
     feedback: '',
@@ -214,8 +218,8 @@ function initialGraphState(
   };
 }
 
-export async function runAnswerGraph(session: LangGraphInterviewState, answer: string) {
-  return await interviewGraph.invoke(initialGraphState(session, 'submit_answer', answer));
+export async function runAnswerGraph(session: LangGraphInterviewState, answer: string, submissionId: string) {
+  return await interviewGraph.invoke(initialGraphState(session, 'submit_answer', answer, submissionId));
 }
 
 export async function runNextQuestionGraph(session: LangGraphInterviewState) {
