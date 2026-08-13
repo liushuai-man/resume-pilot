@@ -32,7 +32,8 @@ export async function startInterview(
   resumeId: string,
   targetPosition?: string,
   questionCount?: number,
-  jobProfileId?: string
+  jobProfileId?: string,
+  practiceTopic?: string
 ): Promise<{ sessionId: string; firstQuestion: Question; context: any }> {
   const resume = await prisma.resume.findFirst({
     where: { id: resumeId, user_id: userId, is_deleted: false },
@@ -62,6 +63,7 @@ export async function startInterview(
         ...((jobProfile.responsibilities as any[]) || []).map((item) => item.name),
       ].filter(Boolean)
     : [];
+  if (practiceTopic?.trim()) planTopics.unshift(practiceTopic.trim());
   // 计划题数包含固定的自我介绍题；communication 的 askedCount=1 与之对应。
   const questionSlots = questionCount || 5;
   const interviewPlan: InterviewPlanItem[] = rubricSnapshot.dimensions.map((dimension, index) => ({
@@ -111,7 +113,7 @@ export async function startInterview(
     { resumeSnapshot: { title: resume.title, content: resume.content, updatedAt: resume.updated_at.toISOString() }, jobProfileSnapshot, rubricSnapshot, interviewPlan }
   );
   await saveInterviewState(chatSession.id, session);
-  return { sessionId: chatSession.id, firstQuestion, context: { position, resumeTitle: resume.title, jobProfile: jobProfileSnapshot && { id: jobProfileSnapshot.id, version: jobProfileSnapshot.version, jobTitle: jobProfileSnapshot.jobTitle }, rubric: rubricSnapshot, interviewPlan } };
+  return { sessionId: chatSession.id, firstQuestion, context: { position, resumeTitle: resume.title, jobProfile: jobProfileSnapshot && { id: jobProfileSnapshot.id, version: jobProfileSnapshot.version, jobTitle: jobProfileSnapshot.jobTitle }, rubric: rubricSnapshot, interviewPlan, practiceTopic: practiceTopic?.trim() || null } };
 }
 
 export async function submitAnswer(

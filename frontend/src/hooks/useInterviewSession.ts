@@ -3,7 +3,7 @@ import { notifications } from '@mantine/notifications';
 import { interviewApi, type Answer, type InterviewResult, type Question } from '@/api/interview.api';
 import { getApiErrorMessage } from '@/utils/api-error';
 
-interface StartOptions { resumeId: string; targetPosition?: string; questionCount: number; jobProfileId?: string; }
+interface StartOptions { resumeId: string; targetPosition?: string; questionCount: number; jobProfileId?: string; practiceTopic?: string; }
 const ACTIVE_SESSION_KEY = 'resume-pilot:active-interview-session';
 
 export function useInterviewSession() {
@@ -53,7 +53,7 @@ export function useInterviewSession() {
   const start = useCallback(async (options: StartOptions) => {
     setStarting(true); setIsThinking(true);
     try {
-      const result = await interviewApi.startInterview(options.resumeId, options.targetPosition, options.questionCount, options.jobProfileId);
+      const result = await interviewApi.startInterview(options.resumeId, options.targetPosition, options.questionCount, options.jobProfileId, options.practiceTopic);
       setSessionId(result.sessionId); setCurrentQuestion(result.firstQuestion); setQuestions([result.firstQuestion]);
       setSessionResumeId(options.resumeId); setMaxQuestions(options.questionCount);
       localStorage.setItem(ACTIVE_SESSION_KEY, result.sessionId);

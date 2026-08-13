@@ -76,7 +76,7 @@ export const getNextQuestionHandler = async (req: Request, res: Response) => {
 export const startInterviewHandler = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
-    const { resumeId, targetPosition, questionCount, jobProfileId } = req.body;
+    const { resumeId, targetPosition, questionCount, jobProfileId, practiceTopic } = req.body;
 
     if (!userId) {
       return error(res, '需要登录', 401);
@@ -100,7 +100,8 @@ export const startInterviewHandler = async (req: Request, res: Response) => {
       resumeId,
       targetPosition,
       normalizedQuestionCount,
-      jobProfileId
+      jobProfileId,
+      typeof practiceTopic === 'string' ? practiceTopic.slice(0, 200) : undefined
     );
     return success(res, result, '面试已开始');
   } catch (err) {

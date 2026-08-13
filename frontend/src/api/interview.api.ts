@@ -110,13 +110,15 @@ export const interviewApi = {
     resumeId: string,
     targetPosition?: string,
     questionCount?: number,
-    jobProfileId?: string
+    jobProfileId?: string,
+    practiceTopic?: string
   ): Promise<StartInterviewResponse> => {
     const response: any = await request.post('/interview/start', {
       resumeId,
       targetPosition,
       questionCount,
       jobProfileId,
+      practiceTopic,
     });
     return response.data || response;
   },
