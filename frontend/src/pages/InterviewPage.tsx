@@ -84,7 +84,6 @@ export default function InterviewPage() {
         {interview.isFinished ? interview.interviewResult?.status === 'failed'
           ? <div className="flex h-full flex-col items-center justify-center gap-4 px-6 text-center"><Text fw={700} size="lg">报告生成失败</Text><Text size="sm" c="dimmed">完整问题和回答已经保存，不需要重新面试。</Text><Button onClick={interview.retryReport} loading={interview.finishing}>重新生成报告</Button></div>
           : <InterviewReport result={interview.interviewResult} questions={interview.questions} answers={interview.answers}
-              feedbacks={Object.fromEntries((interview.interviewResult?.report?.questionEvaluations || []).map((item: any) => [item.questionId, item.feedback]))}
               generating={interview.finishing && !interview.interviewResult} onRestart={interview.restart} onBackHome={() => navigate('/resumes')} />
           : <InterviewChat questions={interview.questions} answers={interview.answers} currentQuestion={interview.currentQuestion}
               currentAnswer={interview.currentAnswer} submitting={interview.submitting} isThinking={interview.isThinking}

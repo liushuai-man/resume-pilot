@@ -15,13 +15,44 @@ export interface Answer {
   submissionId?: string;
 }
 
+export interface QuestionEvaluation {
+  questionId: string;
+  score: number;
+  feedback?: string;
+  strengths?: string[];
+  weaknesses?: string[];
+  knowledgeGap?: string[];
+  followUpSuggestion?: string;
+}
+
+export interface InterviewDimensionScore {
+  key: string;
+  label: string;
+  score: number;
+  weight: number;
+  questionCount: number;
+}
+
+export interface InterviewReportData {
+  overallScore: number;
+  introductionEvaluation?: string;
+  strengths: string[];
+  weaknesses: string[];
+  suggestions: string[];
+  dimensionScores: InterviewDimensionScore[];
+  questionEvaluations: QuestionEvaluation[];
+  candidateProfile?: { skills?: Record<string, unknown> };
+  reportVersion?: string;
+  rubricVersion?: string;
+}
+
 export interface InterviewResult {
   id: string;
   user_id: string;
   resume_id: string;
   position: string;
   score: number;
-  report: any;
+  report: InterviewReportData | null;
   status: 'generating' | 'completed' | 'failed';
   error_message?: string | null;
   current_node?: string | null;
