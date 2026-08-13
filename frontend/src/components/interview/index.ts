@@ -10,3 +10,4 @@ export { default as InterviewNotesPanel } from './InterviewNotesPanel';
 export { default as InterviewReportOverview } from './InterviewReportOverview';
 export { default as InterviewReportSummary } from './InterviewReportSummary';
 export { default as InterviewQuestionReview } from './InterviewQuestionReview';
+export { default as InterviewHistoryCard } from './InterviewHistoryCard';
