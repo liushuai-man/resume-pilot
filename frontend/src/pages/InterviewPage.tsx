@@ -11,6 +11,8 @@ import {
   ImageIcon,
   ChevronLeft,
   ChevronRight,
+  BriefcaseBusiness,
+  ListChecks,
 } from 'lucide-react';
 import { useResumeStore } from '@/store/useResumeStore';
 import { useDocumentStore } from '@/store/useDocumentStore';
@@ -45,6 +47,7 @@ const InterviewPage = () => {
   const [jobProfiles, setJobProfiles] = useState<Array<JobProfile & { company?: string | null }>>([]);
   const [selectedJobProfileId, setSelectedJobProfileId] = useState<string | null>(null);
   const [questionCount, setQuestionCount] = useState<string>('5');
+  const [activeWorkspacePanel, setActiveWorkspacePanel] = useState<'resume' | 'job' | 'transcript'>('resume');
 
   // 面试状态
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -660,12 +663,57 @@ const InterviewPage = () => {
 
       {/* 主内容 */}
       <div className="flex flex-1 overflow-hidden">
-        {/* 左侧：简历预览 */}
+        <nav aria-label="面试辅助面板" className="flex w-[72px] flex-shrink-0 flex-col items-center gap-2 border-r border-[#D8E1DD] bg-[#EAF0ED] py-4">
+          {[
+            { key: 'resume' as const, label: '简历', icon: FileText },
+            { key: 'job' as const, label: '岗位', icon: BriefcaseBusiness },
+            { key: 'transcript' as const, label: '记录', icon: ListChecks },
+          ].map(({ key, label, icon: Icon }) => (
+            <button key={key} type="button" aria-pressed={activeWorkspacePanel === key}
+              onClick={() => setActiveWorkspacePanel(key)}
+              className={`flex w-14 flex-col items-center gap-1 rounded-lg px-2 py-2 text-[11px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176B52]/40 ${activeWorkspacePanel === key ? 'bg-white text-[#176B52] shadow-sm' : 'text-[#52635C] hover:bg-white/60 hover:text-[#17211D]'}`}>
+              <Icon size={17} /><span>{label}</span>
+            </button>
+          ))}
+        </nav>
+
+        {/* 左侧辅助面板：仅控制布局，不修改面试会话 */}
         <div
           ref={interviewPreviewRef}
-          className="w-1/2 flex-shrink-0 bg-gray-50 border-r border-gray-200 overflow-hidden"
+          className="w-[42%] min-w-[320px] max-w-[620px] flex-shrink-0 bg-gray-50 border-r border-gray-200 overflow-hidden"
         >
-          {resume?.content?.isUploadedFile && resume.content.fileUrl ? (
+          {activeWorkspacePanel === 'job' ? (
+            <div className="h-full overflow-y-auto bg-[#F8FAF9] p-6">
+              {selectedJobProfileId ? (() => {
+                const profile = jobProfiles.find((item) => item.id === selectedJobProfileId);
+                if (!profile) return null;
+                return <div className="mx-auto max-w-lg">
+                  <Text size="xs" fw={700} className="tracking-[0.12em] text-[#176B52]">FROZEN JOB PROFILE</Text>
+                  <Text fw={700} size="xl" mt={8}>{profile.jobTitle}</Text>
+                  <Text size="sm" c="dimmed" mt={4}>{[profile.company, profile.seniority, profile.industry].filter(Boolean).join(' · ')} · v{profile.version}</Text>
+                  {[['核心职责', profile.responsibilities], ['必备能力', profile.requiredSkills], ['加分项', profile.preferredSkills]].map(([title, items]) => (
+                    <section key={String(title)} className="mt-7 border-t border-[#D8E1DD] pt-5">
+                      <Text fw={700} size="sm">{String(title)}</Text>
+                      <div className="mt-3 space-y-3">{(items as any[]).map((item, index) => <div key={index} className="rounded-lg bg-white p-3 shadow-sm"><Text size="sm" fw={600}>{item.name}</Text><Text size="xs" c="dimmed" mt={4}>{item.evidence}</Text></div>)}</div>
+                    </section>
+                  ))}
+                </div>;
+              })() : <div className="flex h-full flex-col items-center justify-center text-center"><BriefcaseBusiness size={30} className="text-[#7C9289]"/><Text fw={700} mt={12}>通用岗位</Text><Text size="sm" c="dimmed" mt={6}>本场使用系统通用 Rubric，不引用具体 JD。</Text></div>}
+            </div>
+          ) : activeWorkspacePanel === 'transcript' ? (
+            <div className="h-full overflow-y-auto bg-[#F8FAF9] p-5">
+              <Text size="xs" fw={700} className="tracking-[0.12em] text-[#176B52]">INTERVIEW TRANSCRIPT</Text>
+              <Text fw={700} size="lg" mt={6}>本场记录</Text>
+              <div className="mt-5 space-y-4">{questions.map((question, index) => {
+                const answer = answers.find((item) => item.questionId === question.id);
+                return <button key={question.id} type="button" className="w-full rounded-lg border border-[#D8E1DD] bg-white p-4 text-left transition hover:border-[#8FB3A5]">
+                  <Text size="xs" c="dimmed">问题 {index + 1} · {getSectionName(question.sectionKey)}</Text>
+                  <Text size="sm" fw={600} mt={6} lineClamp={2}>{question.content}</Text>
+                  <Text size="xs" mt={8} c={answer ? 'teal' : 'dimmed'}>{answer ? '已回答' : index === questions.length - 1 ? '当前问题' : '未回答'}</Text>
+                </button>;
+              })}</div>
+            </div>
+          ) : resume?.content?.isUploadedFile && resume.content.fileUrl ? (
             <div className="relative flex h-full flex-col bg-slate-100 p-4">
               <div className="relative min-h-0 flex-1 overflow-hidden">
                 {importedPreviewLoading && !importedPreviewError && (
