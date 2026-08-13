@@ -9,6 +9,7 @@ import type {
   ResumeLayout,
   ResumeSection,
 } from '@/types/resume-document';
+import { paginateSections, type PageFragment, type SectionMeasure } from './pagination';
 
 const TEMPLATE_MAP = {
   modern: ModernTemplate,
@@ -34,122 +35,6 @@ interface DocumentPreviewProps {
   scale?: number;
   pageGap?: number;
   printMode?: boolean;
-}
-
-interface PageFragment {
-  sectionId: string;
-  itemIds?: string[];
-}
-
-interface SectionMeasure {
-  totalHeight: number;
-  itemHeights: Map<string, number>;
-  itemGap: number;
-  baseHeight: number;
-}
-
-function getSectionItemIds(section: ResumeSection): string[] {
-  if (!Array.isArray(section.data)) return [];
-  return section.data
-    .map((item: any) => item?.id)
-    .filter((id): id is string => typeof id === 'string');
-}
-
-function fragmentHeight(measure: SectionMeasure, itemIds: string[]): number {
-  if (itemIds.length === 0 || measure.itemHeights.size === 0) {
-    return measure.totalHeight;
-  }
-  const itemsHeight = itemIds.reduce(
-    (total, id) => total + (measure.itemHeights.get(id) || 0),
-    0
-  );
-  return (
-    measure.baseHeight +
-    itemsHeight +
-    Math.max(0, itemIds.length - 1) * measure.itemGap
-  );
-}
-
-function paginateSections(
-  sections: ResumeSection[],
-  measures: Map<string, SectionMeasure>,
-  availableHeight: number
-): PageFragment[][] {
-  if (sections.length === 0) return [];
-
-  const pages: PageFragment[][] = [[]];
-  let usedHeight = 0;
-
-  const startPage = () => {
-    pages.push([]);
-    usedHeight = 0;
-  };
-
-  for (const section of sections) {
-    const measure = measures.get(section.id);
-    if (!measure) {
-      pages[pages.length - 1].push({ sectionId: section.id });
-      continue;
-    }
-
-    const itemIds = getSectionItemIds(section).filter((id) =>
-      measure.itemHeights.has(id)
-    );
-    const currentPage = () => pages[pages.length - 1];
-    const fullHeight = fragmentHeight(measure, itemIds);
-
-    if (itemIds.length === 0 || fullHeight <= availableHeight - usedHeight) {
-      if (
-        currentPage().length > 0 &&
-        usedHeight + fullHeight > availableHeight
-      ) {
-        startPage();
-      }
-      currentPage().push({
-        sectionId: section.id,
-        itemIds: itemIds.length > 0 ? itemIds : undefined,
-      });
-      usedHeight += fullHeight;
-      continue;
-    }
-
-    let itemIndex = 0;
-    while (itemIndex < itemIds.length) {
-      const remainingHeight = availableHeight - usedHeight;
-      const firstItemHeight = measure.itemHeights.get(itemIds[itemIndex]) || 0;
-
-      if (
-        currentPage().length > 0 &&
-        measure.baseHeight + firstItemHeight > remainingHeight
-      ) {
-        startPage();
-      }
-
-      const chunk: string[] = [];
-      let chunkHeight = measure.baseHeight;
-      const pageRemaining = availableHeight - usedHeight;
-
-      while (itemIndex < itemIds.length) {
-        const id = itemIds[itemIndex];
-        const itemHeight = measure.itemHeights.get(id) || 0;
-        const nextHeight =
-          chunkHeight + (chunk.length > 0 ? measure.itemGap : 0) + itemHeight;
-
-        if (chunk.length > 0 && nextHeight > pageRemaining) break;
-        chunk.push(id);
-        chunkHeight = nextHeight;
-        itemIndex += 1;
-
-        if (chunkHeight > pageRemaining) break;
-      }
-
-      currentPage().push({ sectionId: section.id, itemIds: chunk });
-      usedHeight += chunkHeight;
-      if (itemIndex < itemIds.length) startPage();
-    }
-  }
-
-  return pages;
 }
 
 function samePages(left: PageFragment[][], right: PageFragment[][]): boolean {
