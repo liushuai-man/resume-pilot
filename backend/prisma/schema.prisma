@@ -163,6 +163,9 @@ model InterviewResult {
   report     Json
   status     String       @default("completed")
   error_message String?
+  current_node String?
+  failed_node String?
+  pipeline_state Json          @default("{}")
   completed_at DateTime?
   created_at DateTime     @default(now())
   updated_at DateTime     @updatedAt

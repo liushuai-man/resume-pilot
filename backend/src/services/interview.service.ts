@@ -134,18 +134,30 @@ export async function finishInterview(userId: string, sessionId: string) {
   if (pending?.status === 'completed') return pending;
   pending = pending
     ? await prisma.interviewResult.update({
-        where: { id: pending.id },
-        data: { status: 'generating', error_message: null },
+      where: { id: pending.id },
+        data: { status: 'generating', error_message: null, failed_node: null,
+          current_node: 'transcript_validation', pipeline_state: {} },
       })
     : await prisma.interviewResult.create({
         data: {
           user_id: userId, session_id: sessionId, resume_id: state.resumeId,
           position: state.targetPosition, score: 0, report: {}, status: 'generating',
+          current_node: 'transcript_validation', pipeline_state: {},
         },
       });
 
+  let currentNode = 'transcript_validation';
+  const pipelineState: Record<string, string> = {};
   try {
+  if (!state.questions.length || state.answers.some((answer) => !state.questions.some((question) => question.id === answer.questionId))) {
+    throw new Error('INTERVIEW_TRANSCRIPT_INVALID');
+  }
+  pipelineState.transcript_validation = 'succeeded';
+  currentNode = 'batch_evaluation';
+  await prisma.interviewResult.update({ where: { id: pending.id }, data: { current_node: currentNode, pipeline_state: pipelineState } });
   const graphResult = state.report ? { report: state.report } : await runReportGraph(state);
+  pipelineState.batch_evaluation = 'succeeded';
+  pipelineState.report_composition = 'succeeded';
   const evaluatedState = 'session' in graphResult ? graphResult.session : state;
   const report = { ...graphResult.report, interviewContext: {
     resume: { title: state.resumeSnapshot.title, updatedAt: state.resumeSnapshot.updatedAt },
@@ -166,7 +178,8 @@ export async function finishInterview(userId: string, sessionId: string) {
 
   const result = await prisma.interviewResult.update({
     where: { id: pending.id },
-    data: { score, report, status: 'completed', error_message: null, completed_at: new Date() },
+    data: { score, report, status: 'completed', error_message: null, failed_node: null,
+      current_node: 'report_published', pipeline_state: { ...pipelineState, report_publication: 'succeeded' }, completed_at: new Date() },
   });
   await clearInterviewState(sessionId);
   return result;
@@ -174,7 +187,8 @@ export async function finishInterview(userId: string, sessionId: string) {
     const message = error instanceof Error ? error.message : '报告生成失败';
     return prisma.interviewResult.update({
       where: { id: pending.id },
-      data: { status: 'failed', error_message: message.slice(0, 500) },
+      data: { status: 'failed', error_message: message.slice(0, 500), failed_node: currentNode,
+        current_node: currentNode, pipeline_state: { ...pipelineState, [currentNode]: 'failed' } },
     });
   }
 }

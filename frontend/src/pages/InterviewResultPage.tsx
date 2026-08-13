@@ -6,6 +6,7 @@ import { interviewApi, InterviewResult } from '@/api/interview.api';
 import { formatDateTime } from '@/utils/format';
 import { notifications } from '@mantine/notifications';
 import MarkdownContent from '@/components/common/MarkdownContent';
+import InterviewPipelineStatus, { interviewNodeLabel } from '@/components/interview/InterviewPipelineStatus';
 
 const clamp = (value: number) => Math.max(0, Math.min(100, value));
 
@@ -50,7 +51,8 @@ const InterviewResultPage = () => {
   if (result.status === 'generating') return (
     <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 text-center">
       <Loader size="lg" /><Title order={3}>报告生成中</Title>
-      <Text c="dimmed">完整问答已保存，稍后刷新即可查看报告。</Text>
+      <Text c="dimmed">当前步骤：{interviewNodeLabel(result.current_node)}。完整问答已保存。</Text>
+      <InterviewPipelineStatus result={result} />
       <Button variant="outline" onClick={() => window.location.reload()}>刷新状态</Button>
     </div>
   );
@@ -58,7 +60,8 @@ const InterviewResultPage = () => {
   if (result.status === 'failed') return (
     <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 px-6 text-center">
       <CircleAlert size={40} className="text-red-500" /><Title order={3}>报告生成失败</Title>
-      <Text c="dimmed">完整问题和回答已经保存，不需要重新面试。</Text>
+      <Text c="dimmed">“{interviewNodeLabel(result.failed_node)}”未完成，完整问题和回答已经保存。</Text>
+      <InterviewPipelineStatus result={result} />
       <Button leftSection={<RefreshCw size={16} />} loading={retrying} onClick={async () => {
         setRetrying(true);
         try {
@@ -68,7 +71,7 @@ const InterviewResultPage = () => {
         } catch {
           notifications.show({ title: '重试失败', message: '问答记录仍已安全保存', color: 'red' });
         } finally { setRetrying(false); }
-      }}>重新生成报告</Button>
+      }}>重新执行：{interviewNodeLabel(result.failed_node)}</Button>
     </div>
   );
 

@@ -23,6 +23,7 @@ import { interviewApi, InterviewResult } from '@/api/interview.api';
 import { formatDateTime } from '@/utils/format';
 import { notifications } from '@mantine/notifications';
 import PageHeader from '@/components/common/PageHeader';
+import { interviewNodeLabel } from '@/components/interview/InterviewPipelineStatus';
 
 const InterviewHistoryPage = () => {
   const navigate = useNavigate();
@@ -181,6 +182,7 @@ const InterviewHistoryPage = () => {
                         </Badge>
                       </Group>
                       <Group gap="md">
+                        {result.status !== 'completed' && <Text size="xs" c={result.status === 'failed' ? 'red' : 'dimmed'}>{result.status === 'failed' ? '失败步骤' : '当前步骤'}：{interviewNodeLabel(result.failed_node || result.current_node)}</Text>}
                         {result.resume && (
                           <Group gap={4}>
                             <FileText size={12} className="text-gray-400" />

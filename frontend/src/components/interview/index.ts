@@ -4,4 +4,5 @@ export { default as JobProfilePanel } from './JobProfilePanel';
 export { default as InterviewTranscriptPanel } from './InterviewTranscriptPanel';
 export { default as InterviewToolbar } from './InterviewToolbar';
 export { default as InterviewResumePreview } from './InterviewResumePreview';
+export { default as InterviewPipelineStatus } from './InterviewPipelineStatus';
 export { default as InterviewChat } from './InterviewChat';

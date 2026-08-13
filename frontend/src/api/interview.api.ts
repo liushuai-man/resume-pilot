@@ -23,6 +23,9 @@ export interface InterviewResult {
   report: any;
   status: 'generating' | 'completed' | 'failed';
   error_message?: string | null;
+  current_node?: string | null;
+  failed_node?: string | null;
+  pipeline_state?: Record<string, 'pending' | 'running' | 'succeeded' | 'failed'>;
   completed_at?: string | null;
   created_at: string;
   updated_at: string;
