@@ -22,3 +22,9 @@ test('批量评价拒绝越界或非整数分数', () => {
   assert.throws(() => validateBatchEvaluations([evaluation('q1', 11)], ['q1']), /SCORE_INVALID/);
   assert.throws(() => validateBatchEvaluations([evaluation('q1', 7.5)], ['q1']), /SCORE_INVALID/);
 });
+
+test('批量评价拒绝非数组与空缺结构，不生成默认分数', () => {
+  assert.throws(() => validateBatchEvaluations(null, ['q1']), /INVALID/);
+  assert.throws(() => validateBatchEvaluations({}, ['q1']), /INVALID/);
+  assert.throws(() => validateBatchEvaluations([], ['q1']), /INCOMPLETE/);
+});
