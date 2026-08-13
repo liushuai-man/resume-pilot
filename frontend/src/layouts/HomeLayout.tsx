@@ -12,6 +12,9 @@ export default function HomeLayout() {
   const { user, clearUser, isLoggedIn, setUser } = useUserStore();
   const navigate = useNavigate();
   const location = useLocation();
+  const isWorkspaceRoute = /^\/resumes\/[^/]+\/edit$/.test(location.pathname)
+    || location.pathname === '/interviews'
+    || location.pathname.startsWith('/interviews/resume/');
   useEffect(() => {
     // 检查登录状态
     const checkAuth = async () => {
@@ -67,8 +70,8 @@ export default function HomeLayout() {
   const navItems = [
     { label: '我的简历', path: '/resumes', icon: FileText, active: location.pathname.startsWith('/resumes') },
     { label: '目标岗位', path: '/jobs', icon: Target, active: location.pathname.startsWith('/jobs') },
-    { label: '模拟面试', path: '/interviews', icon: UserRoundSearch, active: location.pathname === '/interviews' },
-    { label: '面试记录', path: '/interviews/history', icon: History, active: location.pathname.startsWith('/interviews/history') },
+    { label: '模拟面试', path: '/interviews', icon: UserRoundSearch, active: location.pathname === '/interviews' || location.pathname.startsWith('/interviews/resume/') },
+    { label: '面试记录', path: '/interviews/history', icon: History, active: location.pathname.startsWith('/interviews/history') || location.pathname.startsWith('/interviews/results/') },
   ];
 
   return (
@@ -134,15 +137,15 @@ export default function HomeLayout() {
       </header>
 
       {/* 主内容区 */}
-      <main className="flex-1 py-8 lg:py-10">
+      <main className={isWorkspaceRoute ? 'min-h-0 flex-1' : 'flex-1 py-8 lg:py-10'}>
         <Outlet />
       </main>
 
       {/* 底部 Footer */}
-      <footer className="flex items-center justify-between border-t border-[#D8E1DD] bg-white px-8 py-5 text-[#7A8782]">
+      {!isWorkspaceRoute && <footer className="flex items-center justify-between border-t border-[#D8E1DD] bg-white px-8 py-5 text-[#7A8782]">
         <Text size="xs">© 2026 AI 简历助手</Text>
         <Text size="xs">让每一次投递都有依据</Text>
-      </footer>
+      </footer>}
     </div>
   );
 }

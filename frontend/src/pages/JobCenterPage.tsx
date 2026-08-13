@@ -421,7 +421,7 @@ export default function JobCenterPage() {
 
   return (
     <div className="mx-auto max-w-[1440px] px-6">
-      <PageHeader eyebrow="TARGET JOBS" title="目标岗位" description="以确认后的岗位画像统一驱动简历评价、岗位匹配与模拟面试。" action={<button disabled={busy} onClick={openCreate} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 font-medium text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"><Plus size={17} />添加 JD</button>} />
+      <PageHeader eyebrow="TARGET JOBS" title="目标岗位" description="以确认后的岗位画像统一驱动简历评价、岗位匹配与模拟面试。" action={<button disabled={busy} onClick={openCreate} className="inline-flex items-center gap-2 rounded-lg bg-[#176B52] px-4 py-2.5 font-medium text-white transition hover:bg-[#115640] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176B52]/35 disabled:cursor-not-allowed disabled:opacity-50"><Plus size={17} />添加 JD</button>} />
       <div className="flex min-h-[680px] gap-5">
       <aside className="w-72 shrink-0 rounded-xl border border-gray-200 bg-white p-4">
         <div className="mb-4">

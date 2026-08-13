@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Loader, Text, Title } from '@mantine/core';
-import { ArrowLeft, CheckCircle2, CircleAlert, Lightbulb, Trophy } from 'lucide-react';
+import { CheckCircle2, CircleAlert, Lightbulb, Trophy } from 'lucide-react';
 import { interviewApi, InterviewResult } from '@/api/interview.api';
 import { formatDateTime } from '@/utils/format';
 import { notifications } from '@mantine/notifications';
@@ -43,8 +43,8 @@ const InterviewResultPage = () => {
     };
   }, [result]);
 
-  if (loading) return <div className="flex h-screen items-center justify-center"><Loader size="xl" /></div>;
-  if (!result) return <div className="flex h-screen flex-col items-center justify-center gap-4"><Text c="dimmed">未找到面试结果</Text><Button variant="outline" onClick={() => navigate(-1)}>返回</Button></div>;
+  if (loading) return <div className="flex min-h-[50vh] items-center justify-center"><Loader size="xl" /></div>;
+  if (!result) return <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4"><Text c="dimmed">未找到面试结果</Text><Button variant="outline" onClick={() => navigate('/interviews/history')}>查看面试记录</Button></div>;
 
   const report = result.report || {};
   const points = [
@@ -59,19 +59,12 @@ const InterviewResultPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-800">
-      <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur">
-        <div className="mx-auto flex max-w-4xl items-center gap-3">
-          <Button variant="subtle" size="xs" leftSection={<ArrowLeft size={14} />} onClick={() => navigate(-1)}>返回</Button>
-          <Title order={4}>面试报告</Title>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-4xl px-5 py-10">
+    <div className="text-[#17211D]">
+      <main className="mx-auto max-w-4xl px-5">
         <section className="border-b border-slate-200 pb-8">
           <div className="grid gap-8 md:grid-cols-[1fr_220px] md:items-center">
             <div>
-              <div className="mb-3 flex items-center gap-2 text-indigo-600"><Trophy size={18} /><span className="text-sm font-semibold">INTERVIEW REVIEW</span></div>
+              <div className="mb-3 flex items-center gap-2 text-[#8A5A26]"><Trophy size={18} /><span className="text-sm font-semibold tracking-[0.12em]">INTERVIEW REVIEW</span></div>
               <Title order={1} className="!text-3xl">{result.position || '综合面试评估'}</Title>
               <Text c="dimmed" mt="sm">{formatDateTime(result.created_at)} · 基于本次回答的即时分析</Text>
               {report.introductionEvaluation && (
@@ -88,7 +81,7 @@ const InterviewResultPage = () => {
                   height: 152,
                   aspectRatio: '1 / 1',
                   borderRadius: '50%',
-                  background: `conic-gradient(#818cf8 ${metrics.overall}%, #e2e8f0 0)`,
+                  background: `conic-gradient(#176B52 ${metrics.overall}%, #d8e1dd 0)`,
                 }}
               >
                 <div
@@ -108,10 +101,10 @@ const InterviewResultPage = () => {
             <Text fw={700}>能力图谱</Text>
             <Text size="sm" c="dimmed" mt={4}>综合回答内容、案例深度和表达结构。</Text>
             <svg viewBox="0 0 100 100" className="mt-4" style={{ width: 192, height: 192, maxWidth: '100%' }} preserveAspectRatio="xMidYMid meet" aria-label="能力雷达图">
-              <path d="M50 8 L92 80 L8 80 Z" fill="#eef2ff" stroke="#c7d2fe" strokeWidth="1" />
-              <path d="M50 24 L77 70 L23 70 Z" fill="none" stroke="#c7d2fe" strokeWidth="1" />
-              <path d="M50 50 L50 8 M50 50 L92 80 M50 50 L8 80" fill="none" stroke="#c7d2fe" strokeWidth="0.8" strokeDasharray="2 2" />
-              <polygon points={points} fill="#6366f1" fillOpacity="0.26" stroke="#4f46e5" strokeWidth="2" />
+              <path d="M50 8 L92 80 L8 80 Z" fill="#edf5f1" stroke="#b8cec5" strokeWidth="1" />
+              <path d="M50 24 L77 70 L23 70 Z" fill="none" stroke="#b8cec5" strokeWidth="1" />
+              <path d="M50 50 L50 8 M50 50 L92 80 M50 50 L8 80" fill="none" stroke="#b8cec5" strokeWidth="0.8" strokeDasharray="2 2" />
+              <polygon points={points} fill="#176B52" fillOpacity="0.22" stroke="#176B52" strokeWidth="2" />
               <text x="50" y="6" textAnchor="middle" fontSize="7" fill="#475569">深度</text>
               <text x="93" y="83" textAnchor="end" fontSize="7" fill="#475569">表达</text>
               <text x="7" y="83" fontSize="7" fill="#475569">综合</text>

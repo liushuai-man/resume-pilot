@@ -6,7 +6,6 @@ import {
   PanelLeftOpen,
   PanelRightOpen,
 } from 'lucide-react';
-import ModelSelector from '@/components/common/ModelSelector';
 
 const RESUME_WIDTH = 850;
 const MIN_SCALE = 0.4;
@@ -66,27 +65,16 @@ export default function EditorLayout({
   }, [children, scale]);
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-gray-100">
+    <div className="flex h-[calc(100vh-4rem)] flex-col overflow-hidden bg-[#EEF3F1]">
       {/* 顶部工具栏 - 第一层 */}
-      <header className="h-12 bg-white border-b border-gray-200 px-4 flex items-center justify-between ">
+      <header className="flex h-12 items-center justify-between border-b border-[#D8E1DD] bg-white px-4">
         {/* 左侧区域：logo + 标题 + 工具栏 */}
         <div className="flex items-center gap-4 whitespace-nowrap">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
-              <span className="text-white font-bold text-sm">RP</span>
-            </div>
-            <span className="font-semibold text-gray-800 text-sm whitespace-nowrap">
-              ResumePilot
-            </span>
-          </div>
-          <div className="h-5 w-px bg-gray-200 flex-shrink-0" />
           {toolbar}
         </div>
 
         {/* 右侧区域：开关按钮 */}
         <div className="flex items-center gap-2">
-          <ModelSelector variant="compact" />
-
           {/* 左侧面板开关 */}
           <Tooltip label={leftCollapsed ? '展开编辑区' : '收起编辑区'}>
             <Button

@@ -51,32 +51,20 @@ export const routes: RouteConfig[] = [
     children: [
       { path: '', element: React.createElement(Navigate, { to: '/resumes', replace: true }) },
       { path: 'resumes', element: React.createElement(HomePage) },
+      { path: 'resumes/:id/edit', element: protectedPage(React.createElement(ResumeEditorPage)) },
       { path: 'resumes/:id/optimizations', element: protectedPage(React.createElement(ResumeOptimizationHistoryPage)) },
       { path: 'jobs', element: protectedPage(React.createElement(JobCenterPage)) },
+      { path: 'interviews', element: protectedPage(React.createElement(InterviewPage)) },
+      { path: 'interviews/resume/:resumeId', element: protectedPage(React.createElement(InterviewPage)) },
       { path: 'interviews/history', element: protectedPage(React.createElement(InterviewHistoryPage)) },
+      { path: 'interviews/results/:id', element: protectedPage(React.createElement(InterviewResultPage)) },
     ],
   },
 
   // 主要功能布局
   {
-    path: '/resumes/:id/edit',
-    element: protectedPage(React.createElement(ResumeEditorPage)),
-  },
-  {
     path: '/resumes/:id/print',
     element: protectedPage(React.createElement(ResumePrintPage)),
-  },
-  {
-    path: '/interviews',
-    element: protectedPage(React.createElement(InterviewPage)),
-  },
-  {
-    path: '/interviews/resume/:resumeId',
-    element: protectedPage(React.createElement(InterviewPage)),
-  },
-  {
-    path: '/interviews/results/:id',
-    element: protectedPage(React.createElement(InterviewResultPage)),
   },
   {
     path: '/resume/:id',

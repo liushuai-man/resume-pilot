@@ -29,7 +29,8 @@ export function createInitialInterviewState(
   resumeContent: any,
   targetPosition?: string,
   questionCount = 5,
-  userId?: string
+  userId?: string,
+  context?: Pick<LangGraphInterviewState, 'resumeSnapshot' | 'jobProfileSnapshot' | 'rubricSnapshot'>
 ): { session: LangGraphInterviewState; firstQuestion: Question } {
   const firstQuestion: Question = {
     id: `q-${Date.now()}-intro`,
@@ -54,6 +55,18 @@ export function createInitialInterviewState(
       currentQuestionIndex: 0,
       isFinished: false,
       userId,
+      resumeSnapshot: context?.resumeSnapshot || {
+        title: '简历', content: resumeContent, updatedAt: new Date().toISOString(),
+      },
+      jobProfileSnapshot: context?.jobProfileSnapshot || null,
+      rubricSnapshot: context?.rubricSnapshot || {
+        version: 'interview-rubric-v1', mode: 'general',
+        dimensions: [
+          { key: 'technical', label: '技术能力', weight: 0.4 },
+          { key: 'communication', label: '表达能力', weight: 0.3 },
+          { key: 'project', label: '项目深度', weight: 0.3 },
+        ],
+      },
       interviewPlan: [],
       strategy: null,
       profile: { skills: {}, overallLevel: 0 },

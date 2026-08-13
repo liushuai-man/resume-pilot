@@ -93,7 +93,7 @@ const InterviewHistoryPage = () => {
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-2">
-      <PageHeader eyebrow="INTERVIEW HISTORY" title="面试记录" description="查看每一次模拟面试及最终报告。ATS 分析归目标岗位，简历优化版本归我的简历。" action={<button onClick={() => navigate('/interviews')} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white">开始面试</button>} />
+      <PageHeader eyebrow="INTERVIEW HISTORY" title="面试记录" description="查看每一次模拟面试及最终报告。ATS 分析归目标岗位，简历优化记录归我的简历。" action={<button onClick={() => navigate('/interviews')} className="inline-flex items-center gap-2 rounded-lg bg-[#176B52] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#115640] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176B52]/35">开始面试</button>} />
 
       {/* 内容 */}
       <div className="mx-auto mt-6 max-w-4xl">

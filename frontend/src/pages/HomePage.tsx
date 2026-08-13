@@ -87,7 +87,7 @@ export default function HomePage() {
 
       <section className="mt-14 border-t border-[#D8E1DD] pt-8">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8A5A26]">Template library</p><h2 className="mt-2 text-xl font-semibold text-[#17211D]">从成熟版式开始</h2><p className="mt-1 text-sm text-[#66736D]">模板只改变排版，不会替你编写内容。</p></div><span className="text-xs text-[#7A8782]">更多模板持续补充</span></div>
-        <div className="rounded-[10px] border border-[#D8E1DD] bg-white p-4 sm:p-5"><ResumeTemplate onSelect={(layout) => void createResume(layout)} loading={isCreating} /></div>
+        <ResumeTemplate onSelect={(layout) => void createResume(layout)} loading={isCreating} />
       </section>
     </div>
   );

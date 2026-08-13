@@ -26,7 +26,7 @@ export const getNextQuestionHandler = async (req: Request, res: Response) => {
 export const startInterviewHandler = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
-    const { resumeId, targetPosition, questionCount } = req.body;
+    const { resumeId, targetPosition, questionCount, jobProfileId } = req.body;
 
     if (!userId) {
       return error(res, '需要登录', 401);
@@ -49,7 +49,8 @@ export const startInterviewHandler = async (req: Request, res: Response) => {
       userId,
       resumeId,
       targetPosition,
-      normalizedQuestionCount
+      normalizedQuestionCount,
+      jobProfileId
     );
     return success(res, result, '面试已开始');
   } catch (err) {
@@ -59,6 +60,9 @@ export const startInterviewHandler = async (req: Request, res: Response) => {
     }
     if (err instanceof Error && err.message === 'MODEL_CONFIG_REQUIRED') {
       return error(res, '请先添加并设置默认聊天模型', 400);
+    }
+    if (err instanceof Error && err.message === 'JOB_PROFILE_NOT_CONFIRMED') {
+      return error(res, '所选岗位画像不存在或尚未确认', 400);
     }
     return error(res, '开始面试失败');
   }

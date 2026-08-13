@@ -17,14 +17,40 @@ export async function startInterview(
   userId: string,
   resumeId: string,
   targetPosition?: string,
-  questionCount?: number
-): Promise<{ sessionId: string; firstQuestion: Question }> {
+  questionCount?: number,
+  jobProfileId?: string
+): Promise<{ sessionId: string; firstQuestion: Question; context: any }> {
   const resume = await prisma.resume.findFirst({
     where: { id: resumeId, user_id: userId, is_deleted: false },
   });
   if (!resume) {
     throw new Error('RESUME_NOT_FOUND');
   }
+  const jobProfile = jobProfileId
+    ? await prisma.jobProfile.findFirst({
+        where: { id: jobProfileId, user_id: userId, status: 'confirmed' },
+      })
+    : null;
+  if (jobProfileId && !jobProfile) throw new Error('JOB_PROFILE_NOT_CONFIRMED');
+  const position = jobProfile?.job_title || targetPosition || '通用岗位';
+  const rubricSnapshot = {
+    version: 'interview-rubric-v1',
+    mode: jobProfile ? 'job_profile' as const : 'general' as const,
+    dimensions: [
+      { key: 'technical', label: '技术能力', weight: jobProfile ? 0.45 : 0.4 },
+      { key: 'communication', label: '表达能力', weight: 0.3 },
+      { key: 'project', label: '项目深度', weight: jobProfile ? 0.25 : 0.3 },
+    ],
+  };
+  const jobProfileSnapshot = jobProfile ? {
+    id: jobProfile.id, version: jobProfile.version, jobTitle: jobProfile.job_title,
+    seniority: jobProfile.seniority, industry: jobProfile.industry,
+    responsibilities: jobProfile.responsibilities as any[],
+    requiredSkills: jobProfile.required_skills as any[],
+    preferredSkills: jobProfile.preferred_skills as any[],
+    keywords: jobProfile.keywords as string[], promptVersion: jobProfile.prompt_version,
+    parserVersion: jobProfile.parser_version,
+  } : null;
   const modelConfig = await getDefaultModelConfig(userId);
   if (!modelConfig) {
     throw new Error('MODEL_CONFIG_REQUIRED');
@@ -40,12 +66,13 @@ export async function startInterview(
   const { session, firstQuestion } = createInitialInterviewState(
     resumeId,
     resume.content,
-    targetPosition,
+    position,
     questionCount,
-    userId
+    userId,
+    { resumeSnapshot: { title: resume.title, content: resume.content, updatedAt: resume.updated_at.toISOString() }, jobProfileSnapshot, rubricSnapshot }
   );
   await saveInterviewState(chatSession.id, session);
-  return { sessionId: chatSession.id, firstQuestion };
+  return { sessionId: chatSession.id, firstQuestion, context: { position, resumeTitle: resume.title, jobProfile: jobProfileSnapshot && { id: jobProfileSnapshot.id, version: jobProfileSnapshot.version, jobTitle: jobProfileSnapshot.jobTitle }, rubric: rubricSnapshot } };
 }
 
 export async function submitAnswer(
@@ -78,7 +105,11 @@ export async function finishInterview(userId: string, sessionId: string) {
   const graphResult = state.report
     ? { report: state.report }
     : await runReportGraph(state);
-  const report = graphResult.report;
+  const report = { ...graphResult.report, interviewContext: {
+    resume: { title: state.resumeSnapshot.title, updatedAt: state.resumeSnapshot.updatedAt },
+    jobProfile: state.jobProfileSnapshot,
+    rubric: state.rubricSnapshot,
+  } };
   const scoredEvaluations = state.evaluations.filter((item) => item.score > 0);
   const fallbackScore = scoredEvaluations.length
     ? Math.round(

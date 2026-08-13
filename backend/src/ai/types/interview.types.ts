@@ -98,6 +98,29 @@ export interface LangGraphInterviewState {
   isFinished: boolean;
   report?: any;
   userId?: string;
+  resumeSnapshot: {
+    title: string;
+    content: any;
+    updatedAt: string;
+  };
+  jobProfileSnapshot: {
+    id: string;
+    version: number;
+    jobTitle: string;
+    seniority?: string | null;
+    industry?: string | null;
+    responsibilities: any[];
+    requiredSkills: any[];
+    preferredSkills: any[];
+    keywords: string[];
+    promptVersion: string;
+    parserVersion: string;
+  } | null;
+  rubricSnapshot: {
+    version: string;
+    mode: 'general' | 'job_profile';
+    dimensions: Array<{ key: string; label: string; weight: number }>;
+  };
 
   // 面试计划（由 Strategy Agent 生成）
   interviewPlan: InterviewPlanItem[];

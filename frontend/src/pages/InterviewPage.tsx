@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Select, Loader, Text, Progress } from '@mantine/core';
 import {
-  ArrowLeft,
   History,
   Play,
   Square,
@@ -18,6 +17,8 @@ import { useDocumentStore } from '@/store/useDocumentStore';
 import { useUserStore } from '@/store/useUserStore';
 import { resumeApi } from '@/api/home.api';
 import { interviewApi, Question, Answer } from '@/api/interview.api';
+import { jobApi } from '@/api/job.api';
+import type { JobDescription, JobProfile } from '@/types/job';
 import { uploadApi } from '@/api/upload.api';
 import { contentToDocument } from '@/utils/resume-migration';
 import ResizableResumePreview from '@/components/editor/ResizableResumePreview';
@@ -41,6 +42,8 @@ const InterviewPage = () => {
   const [selectedResumeId, setSelectedResumeId] = useState<string | null>(null);
   const [showResumeDropdown, setShowResumeDropdown] = useState(false);
   const [targetPosition, setTargetPosition] = useState('');
+  const [jobProfiles, setJobProfiles] = useState<Array<JobProfile & { company?: string | null }>>([]);
+  const [selectedJobProfileId, setSelectedJobProfileId] = useState<string | null>(null);
   const [questionCount, setQuestionCount] = useState<string>('5');
 
   // 面试状态
@@ -140,6 +143,21 @@ const InterviewPage = () => {
     fetchResumes();
   }, [fetchResumes]);
 
+  useEffect(() => {
+    if (!user?.id) return;
+    jobApi.list().then(async (response) => {
+      const jobs = response.data || [];
+      const profileGroups = await Promise.all(
+        jobs.map(async (job: JobDescription) => {
+          const profiles = (await jobApi.listProfiles(job.id)).data || [];
+          return profiles.filter((profile) => profile.status === 'confirmed')
+            .map((profile) => ({ ...profile, company: job.company }));
+        })
+      );
+      setJobProfiles(profileGroups.flat());
+    }).catch(() => setJobProfiles([]));
+  }, [user?.id]);
+
   const handleStartInterview = async () => {
     const selectedResume = resumes.find((item) => item.id === selectedResumeId);
     if (!selectedResume) {
@@ -159,7 +177,8 @@ const InterviewPage = () => {
       const result = await interviewApi.startInterview(
         selectedResume.id,
         targetPosition || undefined,
-        parseInt(questionCount)
+        parseInt(questionCount),
+        selectedJobProfileId || undefined
       );
       console.log('面试开始成功:', result);
       setSessionId(result.sessionId);
@@ -393,29 +412,20 @@ const InterviewPage = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
         <Loader size="xl" />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex h-[calc(100vh-4rem)] flex-col bg-[#F4F7F6]">
       {/* 顶部导航栏 */}
       <div className="bg-white border-b border-gray-200 px-4 py-2">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 flex-shrink-0">
-            <Button
-              variant="outline"
-              size="xs"
-              onClick={() => navigate(-1)}
-              className="h-7 px-3 border-blue-400 text-blue-500 bg-white hover:bg-blue-50 hover:border-blue-600 hover:text-blue-700"
-            >
-              <ArrowLeft size={12} className="mr-1" />
-              返回
-            </Button>
-            <Text size="lg" fw={600} className="whitespace-nowrap text-gray-900">
-              ResumePilot · 模拟面试
+            <Text size="lg" fw={600} className="whitespace-nowrap text-[#17211D]">
+              模拟面试工作台
             </Text>
           </div>
 
@@ -524,12 +534,22 @@ const InterviewPage = () => {
               )}
             </div>
 
-            <input
-              type="text"
-              placeholder="目标岗位（可选）"
-              value={targetPosition}
-              onChange={(e) => setTargetPosition(e.target.value)}
-              className="h-7 px-3 text-xs border border-gray-300 rounded-md w-40 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            <Select
+              data={[
+                { label: '通用岗位（系统 Rubric）', value: 'general' },
+                ...jobProfiles.map((profile) => ({
+                  label: `${profile.jobTitle}${profile.company ? ` · ${profile.company}` : ''}（v${profile.version}）`,
+                  value: profile.id,
+                })),
+              ]}
+              value={selectedJobProfileId || 'general'}
+              onChange={(value) => {
+                const profile = jobProfiles.find((item) => item.id === value);
+                setSelectedJobProfileId(profile?.id || null);
+                setTargetPosition(profile?.jobTitle || '');
+              }}
+              size="xs"
+              className="w-64"
               disabled={!!sessionId}
             />
             <Select

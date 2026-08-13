@@ -31,6 +31,12 @@ export interface InterviewResult {
 export interface StartInterviewResponse {
   sessionId: string;
   firstQuestion: Question;
+  context: {
+    position: string;
+    resumeTitle: string;
+    jobProfile: { id: string; version: number; jobTitle: string } | null;
+    rubric: { version: string; mode: 'general' | 'job_profile' };
+  };
 }
 
 export interface SubmitAnswerResponse {
@@ -45,12 +51,14 @@ export const interviewApi = {
   startInterview: async (
     resumeId: string,
     targetPosition?: string,
-    questionCount?: number
+    questionCount?: number,
+    jobProfileId?: string
   ): Promise<StartInterviewResponse> => {
     const response: any = await request.post('/interview/start', {
       resumeId,
       targetPosition,
       questionCount,
+      jobProfileId,
     });
     return response.data || response;
   },
