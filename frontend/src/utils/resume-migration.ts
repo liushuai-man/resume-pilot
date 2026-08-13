@@ -212,7 +212,14 @@ function convertCertification(
 }
 
 function convertObjective(content: ResumeContent): ObjectiveSection | null {
-  const text = content.careerObjective;
+  const raw = content.careerObjective as unknown;
+  const text = typeof raw === 'string'
+    ? raw
+    : Array.isArray(raw)
+      ? raw.map((item) => typeof item === 'string' ? item : (item as any)?.content || (item as any)?.description || '').filter(Boolean).join('\n')
+      : raw && typeof raw === 'object'
+        ? String((raw as any).content || (raw as any).description || '')
+        : '';
   if (!text || text.trim() === '') return null;
 
   return {
