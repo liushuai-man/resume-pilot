@@ -1,5 +1,7 @@
 # ResumePilot V2.0 集中验收清单
 
+集中测试前先对照 [V2.0 功能清点](./v2-feature-inventory.md) 确认功能入口和当前发布门禁。
+
 ## 1. 环境与数据准备
 
 - 启动 PostgreSQL、Redis、后端 `:4000` 与前端 `:5173`。
