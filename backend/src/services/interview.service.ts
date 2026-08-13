@@ -14,18 +14,8 @@ import {
   saveInterviewState,
 } from '../repositories/interview-session.repository';
 import { getDefaultModelConfig } from './model-config.service';
-import { createHash } from 'node:crypto';
 import type { LangGraphInterviewState } from '../ai/types/interview.types';
-
-function evaluationInputHash(state: LangGraphInterviewState): string {
-  return createHash('sha256').update(JSON.stringify({
-    resume: state.resumeSnapshot,
-    jobProfile: state.jobProfileSnapshot,
-    rubric: state.rubricSnapshot,
-    questions: state.questions,
-    answers: state.answers,
-  })).digest('hex');
-}
+import { assertRetryRequest, evaluationInputHash } from './interview-retry-policy';
 
 export async function startInterview(
   userId: string,
@@ -274,24 +264,24 @@ export async function retryInterviewReport(userId: string, resultId: string) {
   return finishInterview(userId, result.session_id);
 }
 
-const retryableReportNodes = new Set(['transcript_validation', 'batch_evaluation', 'report_composition', 'report_publication']);
-
 export async function retryInterviewNode(
   userId: string, resultId: string, nodeKey: string, expectedInputHash: string
 ) {
-  if (!retryableReportNodes.has(nodeKey)) throw new Error('INTERVIEW_NODE_NOT_RETRYABLE');
   const result = await prisma.interviewResult.findFirst({
     where: { id: resultId, user_id: userId, is_deleted: false },
   });
   if (!result) throw new Error('INTERVIEW_RESULT_NOT_FOUND');
   if (!result.session_id) throw new Error('INTERVIEW_SESSION_UNAVAILABLE');
-  if (result.status === 'generating') throw new Error('INTERVIEW_NODE_ALREADY_RUNNING');
-  if (result.status !== 'failed' || result.failed_node !== nodeKey) throw new Error('INTERVIEW_NODE_STATE_CONFLICT');
   const state = await loadInterviewState(userId, result.session_id);
   const currentHash = evaluationInputHash(state);
-  if (!expectedInputHash || expectedInputHash !== currentHash || result.evaluation_input_hash !== currentHash) {
-    throw new Error('INTERVIEW_CHECKPOINT_STALE');
-  }
+  assertRetryRequest({
+    nodeKey,
+    expectedInputHash,
+    currentInputHash: currentHash,
+    storedInputHash: result.evaluation_input_hash,
+    status: result.status,
+    failedNode: result.failed_node,
+  });
   const claimed = await prisma.interviewResult.updateMany({
     where: { id: result.id, user_id: userId, status: 'failed', failed_node: nodeKey, evaluation_input_hash: expectedInputHash },
     data: { status: 'generating', current_node: nodeKey, error_message: null },
