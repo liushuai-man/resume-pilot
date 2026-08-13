@@ -1,2 +1,7 @@
 export { default as InterviewReport } from './InterviewReport';
+export { default as InterviewWorkspaceRail } from './InterviewWorkspaceRail';
+export { default as JobProfilePanel } from './JobProfilePanel';
+export { default as InterviewTranscriptPanel } from './InterviewTranscriptPanel';
+export { default as InterviewToolbar } from './InterviewToolbar';
+export { default as InterviewResumePreview } from './InterviewResumePreview';
 export { default as InterviewChat } from './InterviewChat';
