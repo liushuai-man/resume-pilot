@@ -30,7 +30,7 @@ export function createInitialInterviewState(
   targetPosition?: string,
   questionCount = 5,
   userId?: string,
-  context?: Pick<LangGraphInterviewState, 'resumeSnapshot' | 'jobProfileSnapshot' | 'rubricSnapshot'>
+  context?: Pick<LangGraphInterviewState, 'resumeSnapshot' | 'jobProfileSnapshot' | 'rubricSnapshot' | 'interviewPlan'>
 ): { session: LangGraphInterviewState; firstQuestion: Question } {
   const firstQuestion: Question = {
     id: `q-${Date.now()}-intro`,
@@ -39,6 +39,7 @@ export function createInitialInterviewState(
     sectionKey: 'introduction',
     type: 'introduction',
     isIntroduction: true,
+    dimensionKeys: ['communication'],
   };
 
   return {
@@ -67,11 +68,12 @@ export function createInitialInterviewState(
           { key: 'project', label: '项目深度', weight: 0.3 },
         ],
       },
-      interviewPlan: [],
+      interviewPlan: context?.interviewPlan || [],
       strategy: null,
       profile: { skills: {}, overallLevel: 0 },
       askedQuestionTypes: { technical: 0, project: 0, followup: 0 },
       memoryResult: null,
+      coveredDimensions: { communication: 1 },
       resumeAnalysis: { sections: [], keySkills: [] },
     },
   };
@@ -139,10 +141,21 @@ workflow.addNode('append_question', async (state) => {
     throw new Error('Generated interview question is missing');
   }
   const type = state.nextQuestion.type || 'technical';
+  const dimensionKeys = state.nextQuestion.dimensionKeys || ['technical'];
+  const selectedPlanIndex = state.session.interviewPlan.findIndex(
+    (item) => dimensionKeys.includes(item.dimensionKey) && item.askedCount < item.count
+  );
   return {
     session: {
       ...state.session,
       questions: [...state.session.questions, state.nextQuestion],
+      interviewPlan: state.session.interviewPlan.map((item, index) =>
+        index === selectedPlanIndex ? { ...item, askedCount: item.askedCount + 1 } : item
+      ),
+      coveredDimensions: dimensionKeys.reduce(
+        (coverage, key) => ({ ...coverage, [key]: (coverage[key] || 0) + 1 }),
+        state.session.coveredDimensions
+      ),
       askedQuestionTypes: {
         technical: state.session.askedQuestionTypes.technical + (type === 'technical' ? 1 : 0),
         project: state.session.askedQuestionTypes.project + (type === 'project' ? 1 : 0),

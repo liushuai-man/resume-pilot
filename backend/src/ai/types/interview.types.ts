@@ -11,6 +11,7 @@ export interface Question {
   difficulty?: 'easy' | 'medium' | 'hard';
   followUpFrom?: string;
   projectName?: string;
+  dimensionKeys: string[];
 }
 
 export interface Answer {
@@ -48,6 +49,8 @@ export interface CandidateProfile {
 // ==================== 面试计划 ====================
 
 export interface InterviewPlanItem {
+  dimensionKey: string;
+  dimensionLabel: string;
   topic: string;
   priority: number;
   count: number;
@@ -140,6 +143,7 @@ export interface LangGraphInterviewState {
 
   // 记忆检索结果
   memoryResult: MemoryResult | null;
+  coveredDimensions: Record<string, number>;
 
   // 简历分析结果
   resumeAnalysis?: {

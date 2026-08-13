@@ -44,6 +44,8 @@ export class InterviewDecisionAgent {
 
       const parsed = JSON.parse(cleanJson(result));
       return (parsed.interviewPlan || []).map((item: any) => ({
+        dimensionKey: item.dimensionKey || 'technical',
+        dimensionLabel: item.dimensionLabel || '技术能力',
         topic: item.topic,
         priority: item.priority,
         count: item.count,
@@ -97,6 +99,9 @@ export class InterviewDecisionAgent {
       });
 
       const parsed = JSON.parse(cleanJson(result));
+      const nextPlanItem = [...state.interviewPlan]
+        .filter((item) => item.askedCount < item.count)
+        .sort((a, b) => b.priority - a.priority)[0];
 
       let section = 'skills';
       let sectionKey = 'skills';
@@ -119,6 +124,7 @@ export class InterviewDecisionAgent {
         topic: parsed.topic || '综合技术',
         difficulty: parsed.difficulty || 'medium',
         projectName: parsed.projectName || '',
+        dimensionKeys: [nextPlanItem?.dimensionKey || (parsed.type === 'project' ? 'project' : 'technical')],
       };
     } catch (error) {
       console.error('InterviewDecisionAgent 生成下一题失败:', error);
@@ -130,6 +136,7 @@ export class InterviewDecisionAgent {
         type: 'technical',
         topic: '综合技术',
         difficulty: 'medium',
+        dimensionKeys: ['technical'],
       };
     }
   }
@@ -142,23 +149,28 @@ export class InterviewDecisionAgent {
       .split(/[、,，/\n]/)
       .map((skill) => skill.trim())
       .filter(Boolean);
+    const nextPlanItem = [...state.interviewPlan]
+      .filter((item) => item.askedCount < item.count)
+      .sort((a, b) => b.priority - a.priority)[0];
 
     const project = projects[(questionNumber - 2) % Math.max(projects.length, 1)];
-    if (project && questionNumber % 2 === 0) {
+    if (project && (nextPlanItem?.dimensionKey === 'project' || questionNumber % 2 === 0)) {
       const name = project.name || '这个项目';
       return {
         id: `q-${Date.now()}-project`,
         content: `请选取${name}，说明你承担的职责、最有挑战的一项工作，以及如何验证最终效果。`,
         section: 'projects', sectionKey: 'projects', type: 'project', topic: name,
         difficulty: 'medium', projectName: name,
+        dimensionKeys: [nextPlanItem?.dimensionKey || 'project'],
       };
     }
 
-    const skill = skills[(questionNumber - 2) % Math.max(skills.length, 1)] || state.targetPosition || '核心技能';
+    const skill = nextPlanItem?.topic || skills[(questionNumber - 2) % Math.max(skills.length, 1)] || state.targetPosition || '核心技能';
     return {
       id: `q-${Date.now()}-technical`,
       content: `围绕${skill}，请说明你在实际开发中会如何设计、排查问题并作出技术取舍？`,
       section: 'skills', sectionKey: 'skills', type: 'technical', topic: skill, difficulty: 'medium',
+      dimensionKeys: [nextPlanItem?.dimensionKey || 'technical'],
     };
   }
 }

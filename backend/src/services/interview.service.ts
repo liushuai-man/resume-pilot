@@ -7,6 +7,7 @@ import {
 } from '../ai/graphs/interview.graph';
 import { Question } from '../ai/types/interview.types';
 import type { Evaluation } from '../ai/types/interview.types';
+import type { InterviewPlanItem } from '../ai/types/interview.types';
 import {
   clearInterviewState,
   loadInterviewState,
@@ -43,6 +44,31 @@ export async function startInterview(
       { key: 'project', label: '项目深度', weight: jobProfile ? 0.25 : 0.3 },
     ],
   };
+  const planTopics = jobProfile
+    ? [
+        ...((jobProfile.required_skills as any[]) || []).map((item) => item.name),
+        ...((jobProfile.responsibilities as any[]) || []).map((item) => item.name),
+      ].filter(Boolean)
+    : [];
+  // 计划题数包含固定的自我介绍题；communication 的 askedCount=1 与之对应。
+  const questionSlots = questionCount || 5;
+  const interviewPlan: InterviewPlanItem[] = rubricSnapshot.dimensions.map((dimension, index) => ({
+    dimensionKey: dimension.key,
+    dimensionLabel: dimension.label,
+    topic: planTopics[index] || (dimension.key === 'project' ? '项目经历与技术取舍' : dimension.label),
+    priority: Math.round(dimension.weight * 10),
+    count: index < questionSlots ? Math.max(1, Math.round(questionSlots * dimension.weight)) : 0,
+    askedCount: dimension.key === 'communication' ? 1 : 0,
+  }));
+  let assigned = interviewPlan.reduce((sum, item) => sum + item.count, 0);
+  while (assigned > questionSlots) {
+    const item = [...interviewPlan].reverse().find((candidate) => candidate.count > 0);
+    if (!item) break;
+    item.count -= 1; assigned -= 1;
+  }
+  while (assigned < questionSlots) {
+    interviewPlan[assigned % interviewPlan.length].count += 1; assigned += 1;
+  }
   const jobProfileSnapshot = jobProfile ? {
     id: jobProfile.id, version: jobProfile.version, jobTitle: jobProfile.job_title,
     seniority: jobProfile.seniority, industry: jobProfile.industry,
@@ -70,10 +96,10 @@ export async function startInterview(
     position,
     questionCount,
     userId,
-    { resumeSnapshot: { title: resume.title, content: resume.content, updatedAt: resume.updated_at.toISOString() }, jobProfileSnapshot, rubricSnapshot }
+    { resumeSnapshot: { title: resume.title, content: resume.content, updatedAt: resume.updated_at.toISOString() }, jobProfileSnapshot, rubricSnapshot, interviewPlan }
   );
   await saveInterviewState(chatSession.id, session);
-  return { sessionId: chatSession.id, firstQuestion, context: { position, resumeTitle: resume.title, jobProfile: jobProfileSnapshot && { id: jobProfileSnapshot.id, version: jobProfileSnapshot.version, jobTitle: jobProfileSnapshot.jobTitle }, rubric: rubricSnapshot } };
+  return { sessionId: chatSession.id, firstQuestion, context: { position, resumeTitle: resume.title, jobProfile: jobProfileSnapshot && { id: jobProfileSnapshot.id, version: jobProfileSnapshot.version, jobTitle: jobProfileSnapshot.jobTitle }, rubric: rubricSnapshot, interviewPlan } };
 }
 
 export async function submitAnswer(

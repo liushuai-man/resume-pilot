@@ -27,6 +27,11 @@ export async function loadInterviewState(
       updatedAt: new Date(0).toISOString(),
     };
     state.jobProfileSnapshot ??= null;
+    state.coveredDimensions ||= {};
+    state.questions = state.questions.map((question) => ({
+      ...question,
+      dimensionKeys: question.dimensionKeys || (question.isIntroduction ? ['communication'] : ['technical']),
+    }));
     state.rubricSnapshot ||= {
       version: 'interview-rubric-v1',
       mode: 'general',

@@ -6,6 +6,7 @@ export interface Question {
   section: string;
   sectionKey: string;
   isIntroduction?: boolean;
+  dimensionKeys: string[];
 }
 
 export interface Answer {
