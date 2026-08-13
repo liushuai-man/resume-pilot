@@ -9,10 +9,12 @@ import { getApiErrorMessage } from '@/utils/api-error';
 
 interface ModelSelectorProps {
   variant?: 'compact' | 'full';
+  readOnly?: boolean;
 }
 
 export default function ModelSelector({
   variant = 'compact',
+  readOnly = false,
 }: ModelSelectorProps) {
   const { isLoggedIn } = useUserStore();
   const [configs, setConfigs] = useState<ModelConfig[]>([]);
@@ -61,6 +63,8 @@ export default function ModelSelector({
   if (!isLoggedIn) {
     return null;
   }
+
+  if (readOnly) return variant === 'full' ? <div className="inline-flex h-9 items-center gap-2 rounded-lg border border-[#D8E1DD] bg-[#F7F9F8] px-3 text-sm text-[#52615B]"><Cpu size={16}/><span>{defaultConfig ? defaultConfig.displayName : '未配置模型'}</span>{defaultConfig && <span className="text-xs text-[#8A9691]">{defaultConfig.modelName}</span>}</div> : <ActionIcon variant="subtle" size="md" title={defaultConfig ? `当前模型：${defaultConfig.displayName}` : '未配置模型'} disabled><Cpu size={18}/></ActionIcon>;
 
   return (
     <>

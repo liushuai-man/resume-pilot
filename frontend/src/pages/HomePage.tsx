@@ -1,5 +1,5 @@
 import { ActionIcon, Input, Select } from '@mantine/core';
-import { ArrowDownAZ, ArrowUpAZ, FileText, Plus, Search, X } from 'lucide-react';
+import { ArrowDownAZ, ArrowUpAZ, Plus, Search, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import EmptyResume from '@/components/home/EmptyResume';
 import HistoryResume from '@/components/home/HistoryResume';
@@ -15,7 +15,7 @@ import { getApiErrorMessage } from '@/utils/api-error';
 const MAX_RESUMES = 7;
 
 export default function HomePage() {
-  const { isLoggedIn, user } = useUserStore();
+  const { isLoggedIn } = useUserStore();
   const navigate = useNavigate();
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -55,25 +55,15 @@ export default function HomePage() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-[1200px] px-4 pb-16 sm:px-6 lg:px-8">
-      <header className="border-b border-[#D8E1DD] pb-7 pt-2">
-        <div className="flex flex-wrap items-end justify-between gap-5">
-          <div>
-            <p className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#176B52]"><FileText size={14} />Resume workspace</p>
-            <h1 className="text-[32px] font-bold tracking-[-0.025em] text-[#17211D]">我的简历</h1>
-            <p className="mt-2 max-w-2xl text-[15px] leading-6 text-[#66736D]">{user?.github_login ? `${user.github_login}，` : ''}在这里维护用于不同岗位的简历，优化记录会留在对应简历中。</p>
-          </div>
-          <button type="button" onClick={() => void createResume('classic-blue')} disabled={isCreating} className="flex h-11 items-center gap-2 rounded-lg bg-[#176B52] px-5 text-sm font-semibold text-white transition hover:bg-[#10563F] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#176B52] disabled:opacity-60"><Plus size={17} />{isCreating ? '创建中…' : '创建简历'}</button>
-        </div>
-      </header>
-
-      <section className="pt-7">
+    <div className="mx-auto w-full max-w-[1440px] px-6 pb-16">
+      <section className="pt-2">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
           <div><h2 className="text-lg font-semibold text-[#17211D]">简历文件</h2><p className="mt-1 text-sm text-[#7A8782]">共 {resumes.length} 份，最多展示最近的 {MAX_RESUMES} 份</p></div>
           <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
             <Input aria-label="搜索简历" placeholder="搜索简历名称" value={searchKeyword} onChange={(event) => setSearchKeyword(event.currentTarget.value)} leftSection={<Search size={16} color="#66736D" />} rightSection={searchKeyword ? <ActionIcon variant="subtle" color="gray" aria-label="清除搜索" onClick={() => setSearchKeyword('')}><X size={15} /></ActionIcon> : null} className="min-w-0 flex-1 sm:w-60 sm:flex-none" styles={{ input: { borderColor: '#D8E1DD', borderRadius: 8, height: 40 } }} />
             <Select aria-label="简历排序方式" value={sortBy} onChange={(value) => value && setSortBy(value as typeof sortBy)} data={[{ value: 'updated', label: '最近更新' }, { value: 'created', label: '最近创建' }, { value: 'name', label: '按名称' }]} className="w-32" styles={{ input: { borderColor: '#D8E1DD', borderRadius: 8, height: 40 } }} />
             <ActionIcon variant="default" size={40} aria-label={sortOrder === 'asc' ? '切换为降序' : '切换为升序'} title={sortOrder === 'asc' ? '当前升序' : '当前降序'} onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')} styles={{ root: { borderColor: '#D8E1DD', borderRadius: 8 } }}>{sortOrder === 'asc' ? <ArrowDownAZ size={17} /> : <ArrowUpAZ size={17} />}</ActionIcon>
+            <button type="button" onClick={() => void createResume('classic-blue')} disabled={isCreating} className="flex h-10 items-center gap-2 whitespace-nowrap rounded-lg bg-[#176B52] px-4 text-sm font-semibold text-white transition hover:bg-[#10563F] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#176B52] disabled:opacity-60"><Plus size={16} />{isCreating ? '创建中…' : '创建简历'}</button>
           </div>
         </div>
 

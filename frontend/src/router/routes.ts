@@ -13,6 +13,7 @@ export interface RouteConfig {
 // 布局组件（延迟加载）
 const AuthLayout = React.lazy(() => import('@/layouts/AuthLayout'));
 const HomeLayout = React.lazy(() => import('@/layouts/HomeLayout'));
+const ProfileLayout = React.lazy(() => import('@/layouts/ProfileLayout'));
 
 // 页面组件（延迟加载）
 const LoginPage = React.lazy(() => import('@/pages/LoginPage'));
@@ -29,6 +30,8 @@ const InterviewResultPage = React.lazy(
   () => import('@/pages/InterviewResultPage')
 );
 const ProfilePage = React.lazy(() => import('@/pages/ProfilePage'));
+const ProfileInsightsPage = React.lazy(() => import('@/pages/ProfileInsightsPage'));
+const ProfileModelsPage = React.lazy(() => import('@/pages/ProfileModelsPage'));
 const NotFoundPage = React.lazy(
   () => import('@/components/common/NotFoundPage')
 );
@@ -59,7 +62,12 @@ export const routes: RouteConfig[] = [
       { path: 'interviews/resume/:resumeId', element: protectedPage(React.createElement(InterviewPage)) },
       { path: 'interviews/history', element: protectedPage(React.createElement(InterviewHistoryPage)) },
       { path: 'interviews/results/:id', element: protectedPage(React.createElement(InterviewResultPage)) },
-      { path: 'profile', element: protectedPage(React.createElement(ProfilePage)) },
+      { path: 'profile', layout: protectedPage(React.createElement(ProfileLayout)), children: [
+        { path: '', element: React.createElement(ProfilePage) },
+        { path: 'insights', element: React.createElement(ProfileInsightsPage) },
+        { path: 'interviews', element: React.createElement(InterviewHistoryPage) },
+        { path: 'models', element: React.createElement(ProfileModelsPage) },
+      ] },
     ],
   },
 

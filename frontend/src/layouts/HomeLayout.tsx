@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { getCurrentUser } from '@/api/auth.api';
 import { Avatar, Text } from '@mantine/core';
-import { FileCheck2, FileText, History, LogOut, Target, UserRoundSearch } from 'lucide-react';
+import { FileCheck2, FileText, LogOut, Target, UserRound, UserRoundSearch } from 'lucide-react';
 import { useUserStore } from '@/store/useUserStore';
 import { logout } from '@/api/auth.api';
 import { notification } from '@/components/common/Notification';
@@ -15,6 +15,7 @@ export default function HomeLayout() {
   const isWorkspaceRoute = /^\/resumes\/[^/]+\/edit$/.test(location.pathname)
     || location.pathname === '/interviews'
     || location.pathname.startsWith('/interviews/resume/');
+  const isContainedRoute = location.pathname === '/jobs' || location.pathname.startsWith('/profile');
   useEffect(() => {
     // 检查登录状态
     const checkAuth = async () => {
@@ -71,11 +72,11 @@ export default function HomeLayout() {
     { label: '我的简历', path: '/resumes', icon: FileText, active: location.pathname.startsWith('/resumes') },
     { label: '目标岗位', path: '/jobs', icon: Target, active: location.pathname.startsWith('/jobs') },
     { label: '模拟面试', path: '/interviews', icon: UserRoundSearch, active: location.pathname === '/interviews' || location.pathname.startsWith('/interviews/resume/') },
-    { label: '面试记录', path: '/interviews/history', icon: History, active: location.pathname.startsWith('/interviews/history') || location.pathname.startsWith('/interviews/results/') },
+    { label: '个人中心', path: '/profile', icon: UserRound, active: location.pathname.startsWith('/profile') || location.pathname.startsWith('/interviews/results/') },
   ];
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#F4F7F6] text-[#17211D]">
+    <div className={`flex flex-col bg-[#F4F7F6] text-[#17211D] ${isContainedRoute || isWorkspaceRoute ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
       {/* 顶部导航栏 */}
       <header className="sticky top-0 z-30 flex h-16 items-center border-b border-[#D8E1DD] bg-white/95 px-4 backdrop-blur sm:px-6 lg:px-8">
         <button onClick={() => navigate('/resumes')} className="flex shrink-0 items-center gap-3 text-left">
@@ -106,7 +107,7 @@ export default function HomeLayout() {
         </nav>
 
         <div className="flex shrink-0 items-center gap-3">
-          <div className="hidden lg:block"><ModelSelector variant="full" /></div>
+          <div className="hidden lg:block"><ModelSelector variant="full" readOnly /></div>
 
           {/* 用户信息：登录后显示 */}
           {isLoggedIn && user && (
@@ -137,12 +138,12 @@ export default function HomeLayout() {
       </header>
 
       {/* 主内容区 */}
-      <main className={isWorkspaceRoute ? 'min-h-0 flex-1' : 'flex-1 py-8 lg:py-10'}>
+      <main className={isWorkspaceRoute ? 'min-h-0 flex-1' : isContainedRoute ? 'min-h-0 flex-1 overflow-hidden py-5 lg:py-6' : 'flex-1 py-5 lg:py-6'}>
         <Outlet />
       </main>
 
       {/* 底部 Footer */}
-      {!isWorkspaceRoute && <footer className="flex items-center justify-between border-t border-[#D8E1DD] bg-white px-8 py-5 text-[#7A8782]">
+      {!isWorkspaceRoute && !isContainedRoute && <footer className="flex items-center justify-between border-t border-[#D8E1DD] bg-white px-8 py-5 text-[#7A8782]">
         <Text size="xs">© 2026 AI 简历助手</Text>
         <Text size="xs">让每一次投递都有依据</Text>
       </footer>}

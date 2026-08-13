@@ -1,6 +1,6 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, type ReactNode } from 'react';
 import { Text, Paper, Loader } from '@mantine/core';
-import { Send, User, Bot, X } from 'lucide-react';
+import { Send, User, Bot, X, Play } from 'lucide-react';
 import type { Question, Answer } from '@/api/interview.api';
 import MarkdownContent from '@/components/common/MarkdownContent';
 
@@ -17,6 +17,10 @@ interface InterviewChatProps {
   sessionStarted?: boolean;
   nextQuestionFailed?: boolean;
   onRetryNextQuestion?: () => void;
+  controls?: ReactNode;
+  onStart?: () => void;
+  starting?: boolean;
+  canStart?: boolean;
 }
 
 export default function InterviewChat({
@@ -32,6 +36,10 @@ export default function InterviewChat({
   sessionStarted,
   nextQuestionFailed,
   onRetryNextQuestion,
+  controls,
+  onStart,
+  starting,
+  canStart,
 }: InterviewChatProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [showHint, setShowHint] = useState(!sessionStarted);
@@ -47,18 +55,18 @@ export default function InterviewChat({
   }, [sessionStarted]);
 
   return (
-    <div className="flex flex-col h-full  ">
-      <div className="flex-1 overflow-y-auto px-6 py-4">
-        <div className="max-w-3xl mx-auto">
+    <div className="flex h-full min-h-0 flex-col bg-[#F7F9F8]">
+      <div className="flex-1 overflow-y-auto px-4 pb-44 pt-8 sm:px-8">
+        <div className="mx-auto max-w-[820px]">
           {showHint && (
             <Paper
               p="sm"
               radius="md"
-              className="flex items-center justify-between bg-blue-50 border border-blue-200 mb-4"
+              className="mb-6 flex items-center justify-between border border-[#CFE0D8] bg-[#EDF5F1]"
             >
               <div className="flex items-center gap-2">
-                <Bot size={14} className="text-blue-600" />
-                <Text size="xs" className="text-blue-700">
+                <Bot size={14} className="text-[#176B52]" />
+                <Text size="xs" className="text-[#285F4E]">
                   {sessionStarted
                     ? 'AI 面试官已就位，正在生成问题...'
                     : 'AI 面试官已就绪，请选择简历并点击"开始面试"'}
@@ -78,14 +86,14 @@ export default function InterviewChat({
             return (
               <div key={question.id} className="mb-4">
                 <div className="flex gap-3 mb-3">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                    <Bot size={16} className="text-blue-600" />
+                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#DDEDE6]">
+                    <Bot size={16} className="text-[#176B52]" />
                   </div>
                   <div className="flex-1">
                     <Text size="xs" c="dimmed" mb={4}>
                       AI 面试官 · {getSectionName(question.sectionKey)}
                     </Text>
-                    <Paper p="md" radius="md" bg="gray.0" withBorder>
+                    <Paper p="md" radius="lg" bg="white" withBorder className="border-[#DDE5E1] shadow-[0_1px_2px_rgba(23,33,29,0.04)]">
                       <MarkdownContent content={question.content} />
                     </Paper>
                   </div>
@@ -99,7 +107,7 @@ export default function InterviewChat({
                       <Paper
                         p="md"
                         radius="md"
-                        bg="blue.1"
+                        bg="#E4F0EB"
                         withBorder
                         className="max-w-[80%]"
                       >
@@ -108,7 +116,7 @@ export default function InterviewChat({
                         </p>
                       </Paper>
                     </div>
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
+                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#176B52]">
                       <User size={16} className="text-white" />
                     </div>
                   </div>
@@ -151,16 +159,16 @@ export default function InterviewChat({
         </div>
       </div>
 
-      <div className="flex-shrink-0 border-t border-gray-200 bg-white px-6 py-4">
-        <div className="max-w-3xl mx-auto">
-          <div className="relative flex flex-col min-h-[140px] border border-gray-300 rounded-xl bg-gray-50 p-4 focus-within:border-blue-500 focus-within:bg-white transition-colors">
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-[#F7F9F8] via-[#F7F9F8] to-transparent px-4 pb-5 pt-10 sm:px-8">
+        <div className="pointer-events-auto mx-auto max-w-[820px]">
+          <div className="relative flex min-h-[148px] flex-col rounded-2xl border border-[#CCD7D2] bg-white p-4 shadow-[0_14px_40px_rgba(31,49,42,0.14)] transition focus-within:border-[#176B52] focus-within:shadow-[0_16px_44px_rgba(23,107,82,0.14)]">
             <textarea
               placeholder={
                 sessionStarted ? '请输入你的回答...' : '请先选择简历并开始面试'
               }
               value={currentAnswer}
               onChange={(e) => onAnswerChange(e.target.value)}
-              rows={4}
+              rows={3}
               disabled={!sessionStarted || !currentQuestion || isThinking || nextQuestionFailed}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
@@ -168,20 +176,17 @@ export default function InterviewChat({
                   onSubmitAnswer();
                 }
               }}
-              className="flex-1 w-full resize-none border-none outline-none bg-transparent text-sm text-gray-800 placeholder-gray-400 disabled:cursor-not-allowed leading-relaxed"
+              className="min-h-[68px] w-full flex-1 resize-none border-none bg-transparent text-sm leading-relaxed text-[#24312C] outline-none placeholder:text-[#98A49F] disabled:cursor-not-allowed"
             />
-            <div className="flex justify-end mt-2">
+            {controls}
+            <div className="absolute bottom-3 right-3 flex justify-end">
               <button
-                onClick={onSubmitAnswer}
-                disabled={
-                  !sessionStarted ||
-                  !currentQuestion ||
-                  isThinking ||
-                  !currentAnswer.trim()
-                }
-                className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                onClick={sessionStarted ? onSubmitAnswer : onStart}
+                disabled={sessionStarted ? (!currentQuestion || isThinking || !currentAnswer.trim()) : (!canStart || starting)}
+                title={sessionStarted ? '发送回答' : '开始面试'}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-[#176B52] text-white transition hover:bg-[#10563F] disabled:cursor-not-allowed disabled:bg-[#CBD3CF]"
               >
-                {submitting ? <Loader size="xs" /> : <Send size={14} />}
+                {submitting || starting ? <Loader size="xs" /> : sessionStarted ? <Send size={14} /> : <Play size={14} />}
               </button>
             </div>
           </div>

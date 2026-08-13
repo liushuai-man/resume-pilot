@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BarChart3, Check, FileText, Loader2, Plus, RefreshCw, Save, Sparkles, Trash2 } from 'lucide-react';
+import { BarChart3, Check, FileText, Loader2, RefreshCw, Save, Sparkles, Trash2 } from 'lucide-react';
 import { jobApi } from '@/api/job.api';
 import { resumeApi } from '@/api/home.api';
 import { notification } from '@/components/common/Notification';
@@ -12,7 +12,6 @@ import type {
   JobMatchAnalysis,
 } from '@/types/job';
 import type { Resume } from '@/types/resume';
-import PageHeader from '@/components/common/PageHeader';
 import type { ContentQualityAnalysis } from '@/types/content-quality';
 import RequirementEditor from '@/components/job-center/RequirementEditor';
 import JobSidebar from '@/components/job-center/JobSidebar';
@@ -342,12 +341,11 @@ export default function JobCenterPage() {
       : '待确认';
 
   return (
-    <div className="mx-auto max-w-[1440px] px-6">
-      <PageHeader eyebrow="TARGET JOBS" title="目标岗位" description="以确认后的岗位画像统一驱动简历评价、岗位匹配与模拟面试。" action={<button disabled={busy} onClick={openCreate} className="inline-flex items-center gap-2 rounded-lg bg-[#176B52] px-4 py-2.5 font-medium text-white transition hover:bg-[#115640] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176B52]/35 disabled:cursor-not-allowed disabled:opacity-50"><Plus size={17} />添加 JD</button>} />
-      <div className="flex min-h-[680px] gap-5">
-      <JobSidebar jobs={jobs} selectedId={selectedId} onSelect={selectJob} />
+    <div className="mx-auto h-full max-w-[1440px] px-6">
+      <div className="flex h-full min-h-0 gap-5">
+      <JobSidebar jobs={jobs} selectedId={selectedId} onSelect={selectJob} onCreate={openCreate} disabled={busy} />
 
-      <section className="min-w-0 flex-1 rounded-xl border border-gray-200 bg-white p-6">
+      <section className="min-w-0 flex-1 overflow-y-auto rounded-xl border border-gray-200 bg-white p-6">
         {showCreate ? (
           <CreateJobPanel
             title={title}

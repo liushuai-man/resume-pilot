@@ -9,34 +9,7 @@ interface RouterProviderProps {
 const renderRoutes = (routes: RouteConfig[]): React.ReactNode => {
   return routes.map((route, index) => {
     const { path, element, layout, children } = route;
-    // 如果有子路由且有布局
-    if (children && layout) {
-      return (
-        <Route key={index} path={path} element={layout}>
-          {children.map((child, childIndex) => (
-            <Route
-              key={childIndex}
-              path={child.path}
-              element={
-                <Suspense fallback={<LoadingPage />}>{child.element}</Suspense>
-              }
-            />
-          ))}
-        </Route>
-      );
-    }
-    // 如果有子路由但没有布局
-    if (children && !layout) {
-      return children.map((child, childIndex) => (
-        <Route
-          key={childIndex}
-          path={path ? `${path}/${child.path}` : child.path}
-          element={
-            <Suspense fallback={<LoadingPage />}>{child.element}</Suspense>
-          }
-        />
-      ));
-    }
+    if (children) return <Route key={index} path={path} element={layout || (element ? <Suspense fallback={<LoadingPage />}>{element}</Suspense> : undefined)}>{renderRoutes(children)}</Route>;
     // 如果没有子路由但有布局
     if (!children && layout) {
       return (

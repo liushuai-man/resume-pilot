@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { InterviewWorkspacePanel } from '@/components/interview/InterviewWorkspaceRail';
 
-const PREFERENCES_KEY = 'resume-pilot:interview-workspace-preferences';
+const PREFERENCES_KEY = 'resume-pilot:interview-workspace-preferences-v2';
 const NOTES_KEY_PREFIX = 'resume-pilot:interview-notes:';
 export const INTERVIEW_NOTES_MAX_LENGTH = 5000;
 
@@ -18,10 +18,10 @@ const readPreferences = (): WorkspacePreferences => {
     const stored = JSON.parse(localStorage.getItem(PREFERENCES_KEY) || '{}');
     return {
       activePanel: isWorkspacePanel(stored.activePanel) ? stored.activePanel : 'resume',
-      collapsed: Boolean(stored.collapsed),
+      collapsed: stored.collapsed === undefined ? true : Boolean(stored.collapsed),
     };
   } catch {
-    return { activePanel: 'resume', collapsed: false };
+    return { activePanel: 'resume', collapsed: true };
   }
 };
 
