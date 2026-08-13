@@ -106,6 +106,26 @@ export class InterviewSupervisorAgent {
     return { evaluation, updatedProfile };
   }
 
+  async evaluateInterview(
+    questions: Question[], answers: Answer[], resumeText: string,
+    targetPosition: string, userId?: string
+  ): Promise<{ evaluations: Evaluation[]; profile: CandidateProfile }> {
+    let profile: CandidateProfile = { skills: {}, overallLevel: 0 };
+    const evaluations: Evaluation[] = [];
+    for (const question of questions) {
+      const answer = answers.find((item) => item.questionId === question.id);
+      if (!answer) continue;
+      if (question.isIntroduction && ['跳过', 'skip'].includes(answer.content.trim().toLowerCase())) {
+        evaluations.push({ questionId: question.id, score: 0, feedback: '候选人选择跳过自我介绍', strengths: [], weaknesses: [] });
+        continue;
+      }
+      const result = await this.evaluateAnswer(question, answer.content, resumeText, targetPosition, profile, userId);
+      evaluations.push(result.evaluation);
+      profile = result.updatedProfile;
+    }
+    return { evaluations, profile };
+  }
+
   async generateReport(
     resumeText: string,
     questions: Question[],

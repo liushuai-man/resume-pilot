@@ -6,6 +6,7 @@ import {
   runReportGraph,
 } from '../ai/graphs/interview.graph';
 import { Question } from '../ai/types/interview.types';
+import type { Evaluation } from '../ai/types/interview.types';
 import {
   clearInterviewState,
   loadInterviewState,
@@ -84,7 +85,6 @@ export async function submitAnswer(
   const result = await runAnswerGraph(state, answer);
   await saveInterviewState(sessionId, result.session);
   return {
-    feedback: result.feedback,
     isFinished: result.session.isFinished,
   };
 }
@@ -105,15 +105,16 @@ export async function finishInterview(userId: string, sessionId: string) {
   const graphResult = state.report
     ? { report: state.report }
     : await runReportGraph(state);
+  const evaluatedState = 'session' in graphResult ? graphResult.session : state;
   const report = { ...graphResult.report, interviewContext: {
     resume: { title: state.resumeSnapshot.title, updatedAt: state.resumeSnapshot.updatedAt },
     jobProfile: state.jobProfileSnapshot,
     rubric: state.rubricSnapshot,
-  } };
-  const scoredEvaluations = state.evaluations.filter((item) => item.score > 0);
+  }, questionEvaluations: evaluatedState.evaluations };
+  const scoredEvaluations: Evaluation[] = evaluatedState.evaluations.filter((item: Evaluation) => item.score > 0);
   const fallbackScore = scoredEvaluations.length
     ? Math.round(
-        (scoredEvaluations.reduce((sum, item) => sum + item.score, 0) /
+        (scoredEvaluations.reduce((sum: number, item: Evaluation) => sum + item.score, 0) /
           scoredEvaluations.length) *
           10
       )

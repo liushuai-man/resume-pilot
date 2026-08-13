@@ -52,7 +52,6 @@ const InterviewPage = () => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [currentAnswer, setCurrentAnswer] = useState('');
-  const [feedbacks, setFeedbacks] = useState<Record<string, string>>({});
   const [isFinished, setIsFinished] = useState(false);
   const [interviewResult, setInterviewResult] = useState<any>(null);
   const [isThinking, setIsThinking] = useState(false);
@@ -184,7 +183,6 @@ const InterviewPage = () => {
       setSessionId(result.sessionId);
       setCurrentQuestion(result.firstQuestion);
       setQuestions([result.firstQuestion]);
-      setFeedbacks({});
       setIsThinking(false);
     } catch (error) {
       console.error('开始面试失败:', error);
@@ -229,12 +227,6 @@ const InterviewPage = () => {
         sessionId,
         currentAnswer
       );
-
-      // 按 questionId 存储每题的独立反馈
-      setFeedbacks((prev) => ({
-        ...prev,
-        [currentQuestion.id]: result.feedback,
-      }));
 
       if (result.isFinished) {
         await handleFinishInterview();
@@ -305,7 +297,6 @@ const InterviewPage = () => {
     setCurrentQuestion(null);
     setQuestions([]);
     setAnswers([]);
-    setFeedbacks({});
     setIsFinished(false);
     setInterviewResult(null);
   };
@@ -749,7 +740,9 @@ const InterviewPage = () => {
                 result={interviewResult}
                 questions={questions}
                 answers={answers}
-                feedbacks={feedbacks}
+                feedbacks={Object.fromEntries(
+                  (interviewResult?.report?.questionEvaluations || []).map((item: any) => [item.questionId, item.feedback])
+                )}
                 generating={finishing && !interviewResult}
                 onRestart={handleRestart}
                 onBackHome={() => navigate('/resumes')}
@@ -758,7 +751,6 @@ const InterviewPage = () => {
               <InterviewChat
                 questions={questions}
                 answers={answers}
-                feedbacks={feedbacks}
                 currentQuestion={currentQuestion}
                 currentAnswer={currentAnswer}
                 submitting={submitting}

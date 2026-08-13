@@ -7,7 +7,6 @@ import MarkdownContent from '@/components/common/MarkdownContent';
 interface InterviewChatProps {
   questions: Question[];
   answers: Answer[];
-  feedbacks: Record<string, string>;
   currentQuestion: Question | null;
   currentAnswer: string;
   submitting: boolean;
@@ -21,7 +20,6 @@ interface InterviewChatProps {
 export default function InterviewChat({
   questions,
   answers,
-  feedbacks,
   currentQuestion,
   currentAnswer,
   submitting,
@@ -36,7 +34,7 @@ export default function InterviewChat({
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [questions, answers, feedbacks, isThinking]);
+  }, [questions, answers, isThinking]);
 
   useEffect(() => {
     if (!sessionStarted) {
@@ -73,7 +71,6 @@ export default function InterviewChat({
 
           {questions.map((question) => {
             const answer = answers.find((a) => a.questionId === question.id);
-            const questionFeedback = feedbacks[question.id];
             return (
               <div key={question.id} className="mb-4">
                 <div className="flex gap-3 mb-3">
@@ -109,24 +106,6 @@ export default function InterviewChat({
                     </div>
                     <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
                       <User size={16} className="text-white" />
-                    </div>
-                  </div>
-                )}
-                {questionFeedback && (
-                  <div className="flex gap-3 mb-3">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                      <Bot size={16} className="text-green-600" />
-                    </div>
-                    <div className="flex-1">
-                      <Text size="xs" c="dimmed" mb={4}>
-                        AI 反馈
-                      </Text>
-                      <Paper p="md" radius="md" bg="green.1" withBorder>
-                        <MarkdownContent
-                          content={questionFeedback}
-                          className="text-emerald-800"
-                        />
-                      </Paper>
                     </div>
                   </div>
                 )}

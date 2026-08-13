@@ -76,10 +76,8 @@ export class InterviewDecisionAgent {
     const qaHistory = state.questions
       .map((q, i) => {
         const answer = state.answers[i];
-        const evaluation = state.evaluations[i];
         if (!answer) return '';
-        const score = evaluation?.score || 0;
-        return `问题${i + 1}: ${q.content}\n回答: ${answer.content}\n评分: ${score}`;
+        return `问题${i + 1}: ${q.content}\n回答: ${answer.content}`;
       })
       .filter(Boolean)
       .join('\n\n');
@@ -138,23 +136,12 @@ export class InterviewDecisionAgent {
 
   private generateFastNextQuestion(state: LangGraphInterviewState): Question {
     const questionNumber = state.questions.length + 1;
-    const lastEvaluation = state.evaluations[state.evaluations.length - 1];
     const lastQuestion = state.questions[state.questions.length - 1];
     const projects = Array.isArray(state.resumeContent?.projects) ? state.resumeContent.projects : [];
     const skills = String(state.resumeContent?.skills || '')
       .split(/[、,，/\n]/)
       .map((skill) => skill.trim())
       .filter(Boolean);
-
-    if (lastEvaluation && lastEvaluation.score <= 5) {
-      return {
-        id: `q-${Date.now()}-followup`,
-        content: `针对刚才的“${lastQuestion?.topic || lastQuestion?.section || '问题'}”，请结合一个具体场景说明你的处理步骤和结果。`,
-        section: lastQuestion?.section || 'general',
-        sectionKey: lastQuestion?.sectionKey || 'general',
-        type: 'followup', topic: lastQuestion?.topic || '追问', difficulty: 'easy',
-      };
-    }
 
     const project = projects[(questionNumber - 2) % Math.max(projects.length, 1)];
     if (project && questionNumber % 2 === 0) {

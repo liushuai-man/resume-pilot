@@ -90,73 +90,40 @@ const workflow = new StateGraph<InterviewWorkflowState>({
   },
 });
 
-workflow.addNode('evaluate_answer', async (state) => {
+workflow.addNode('record_answer', async (state) => {
   const question = state.session.questions[state.session.currentQuestionIndex];
   if (!question) throw new Error('Current interview question does not exist');
-
-  const skipped =
-    question.isIntroduction &&
-    ['跳过', 'skip'].includes(state.answer.trim().toLowerCase());
-  if (skipped) {
-    const evaluation: Evaluation = {
-      questionId: question.id,
-      score: 0,
-      feedback: '候选人选择跳过自我介绍',
-      strengths: [],
-      weaknesses: [],
-    };
-    return {
-      evaluation,
-      updatedProfile: state.session.profile,
-      feedback: evaluation.feedback,
-    };
-  }
-
-  const result = await supervisor.evaluateAnswer(
-    question,
-    state.answer,
-    state.session.resumeText,
-    state.session.targetPosition,
-    state.session.profile,
-    state.session.userId
-  );
-  return {
-    evaluation: result.evaluation,
-    updatedProfile: result.updatedProfile,
-    feedback: result.evaluation.feedback,
-  };
-});
-
-workflow.addNode('advance_state', async (state) => {
-  if (!state.evaluation || !state.updatedProfile) {
-    throw new Error('Interview evaluation is missing');
-  }
-  const question = state.session.questions[state.session.currentQuestionIndex];
   const answer: Answer = { questionId: question.id, content: state.answer };
   const currentQuestionIndex = state.session.currentQuestionIndex + 1;
   return {
     session: {
       ...state.session,
       answers: [...state.session.answers, answer],
-      evaluations: [...state.session.evaluations, state.evaluation],
       currentQuestionIndex,
       isFinished: currentQuestionIndex >= state.session.maxQuestions,
-      profile: state.updatedProfile,
     },
+    feedback: '',
   };
 });
 
 workflow.addNode('generate_report', async (state) => {
+  const { evaluations, profile } = await supervisor.evaluateInterview(
+    state.session.questions,
+    state.session.answers,
+    state.session.resumeText,
+    state.session.targetPosition,
+    state.session.userId
+  );
   const report = await supervisor.generateReport(
     state.session.resumeText,
     state.session.questions,
     state.session.answers,
-    state.session.evaluations,
+    evaluations,
     state.session.targetPosition,
-    state.session.profile,
+    profile,
     state.session.userId
   );
-  return { report, session: { ...state.session, report } };
+  return { report, session: { ...state.session, evaluations, profile, report } };
 });
 
 workflow.addNode('complete_answer', async (state) => ({
@@ -193,14 +160,13 @@ graphBuilder.addConditionalEdges(
   START,
   (state: InterviewWorkflowState) => state.operation,
   {
-    submit_answer: 'evaluate_answer',
+    submit_answer: 'record_answer',
     next_question: 'generate_question',
     generate_report: 'generate_report',
   }
 );
-graphBuilder.addEdge('evaluate_answer', 'advance_state');
 graphBuilder.addConditionalEdges(
-  'advance_state',
+  'record_answer',
   (state: InterviewWorkflowState) =>
     state.session.isFinished ? 'finished' : 'continue',
   { finished: 'complete_answer', continue: END }

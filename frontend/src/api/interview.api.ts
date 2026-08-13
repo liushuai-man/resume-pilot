@@ -40,7 +40,6 @@ export interface StartInterviewResponse {
 }
 
 export interface SubmitAnswerResponse {
-  feedback: string;
   isFinished: boolean;
 }
 
