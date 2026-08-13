@@ -20,6 +20,9 @@ export interface InterviewResult {
   position: string;
   score: number;
   report: any;
+  status: 'generating' | 'completed' | 'failed';
+  error_message?: string | null;
+  completed_at?: string | null;
   created_at: string;
   updated_at: string;
   resume?: {
@@ -104,5 +107,9 @@ export const interviewApi = {
   // 删除面试结果
   deleteInterviewResult: async (id: string): Promise<void> => {
     await request.delete(`/interview/results/${id}`);
+  },
+  retryInterviewReport: async (id: string): Promise<InterviewResult> => {
+    const response: any = await request.post(`/interview/results/${id}/retry`);
+    return response.data || response;
   },
 };

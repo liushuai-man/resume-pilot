@@ -102,9 +102,24 @@ export async function generateInterviewNextQuestion(
 
 export async function finishInterview(userId: string, sessionId: string) {
   const state = await loadInterviewState(userId, sessionId);
-  const graphResult = state.report
-    ? { report: state.report }
-    : await runReportGraph(state);
+  let pending = await prisma.interviewResult.findFirst({
+    where: { user_id: userId, session_id: sessionId, is_deleted: false },
+  });
+  if (pending?.status === 'completed') return pending;
+  pending = pending
+    ? await prisma.interviewResult.update({
+        where: { id: pending.id },
+        data: { status: 'generating', error_message: null },
+      })
+    : await prisma.interviewResult.create({
+        data: {
+          user_id: userId, session_id: sessionId, resume_id: state.resumeId,
+          position: state.targetPosition, score: 0, report: {}, status: 'generating',
+        },
+      });
+
+  try {
+  const graphResult = state.report ? { report: state.report } : await runReportGraph(state);
   const evaluatedState = 'session' in graphResult ? graphResult.session : state;
   const report = { ...graphResult.report, interviewContext: {
     resume: { title: state.resumeSnapshot.title, updatedAt: state.resumeSnapshot.updatedAt },
@@ -123,18 +138,29 @@ export async function finishInterview(userId: string, sessionId: string) {
 
   if (report && report.overallScore == null) report.overallScore = score;
 
-  const result = await prisma.interviewResult.create({
-    data: {
-      user_id: userId,
-      session_id: sessionId,
-      resume_id: state.resumeId,
-      position: state.targetPosition,
-      score,
-      report,
-    },
+  const result = await prisma.interviewResult.update({
+    where: { id: pending.id },
+    data: { score, report, status: 'completed', error_message: null, completed_at: new Date() },
   });
   await clearInterviewState(sessionId);
   return result;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '报告生成失败';
+    return prisma.interviewResult.update({
+      where: { id: pending.id },
+      data: { status: 'failed', error_message: message.slice(0, 500) },
+    });
+  }
+}
+
+export async function retryInterviewReport(userId: string, resultId: string) {
+  const result = await prisma.interviewResult.findFirst({
+    where: { id: resultId, user_id: userId, is_deleted: false },
+  });
+  if (!result) throw new Error('INTERVIEW_RESULT_NOT_FOUND');
+  if (result.status === 'completed') return result;
+  if (!result.session_id) throw new Error('INTERVIEW_SESSION_UNAVAILABLE');
+  return finishInterview(userId, result.session_id);
 }
 
 export async function getInterviewResults(userId: string) {

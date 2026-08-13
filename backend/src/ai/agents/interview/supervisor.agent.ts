@@ -198,14 +198,7 @@ export class InterviewSupervisorAgent {
       return report;
     } catch (error) {
       console.error('报告生成失败:', error);
-      return {
-        overallScore: 60,
-        introductionEvaluation: '无法生成自我介绍评估',
-        strengths: ['完成了面试流程'],
-        weaknesses: ['部分问题回答需要改进'],
-        suggestions: ['建议回顾面试中的问题，加强薄弱环节'],
-        candidateProfile: profile,
-      };
+      throw new Error('INTERVIEW_REPORT_GENERATION_FAILED', { cause: error });
     }
   }
 }

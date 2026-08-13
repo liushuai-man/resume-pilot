@@ -8,6 +8,7 @@ import {
   getInterviewResultHandler,
   deleteInterviewResultHandler,
   getNextQuestionHandler,
+  retryInterviewReportHandler,
 } from '../controllers/interview.controllers';
 import { authMiddleware } from '../middlewares/auth.middleware';
 
@@ -52,6 +53,7 @@ router.post(
 );
 router.get('/results', authMiddleware, getInterviewResultsHandler);
 router.get('/results/:id', authMiddleware, getInterviewResultHandler);
+router.post('/results/:id/retry', authMiddleware, interviewRateLimit, retryInterviewReportHandler);
 router.delete('/results/:id', authMiddleware, deleteInterviewResultHandler);
 
 export default router;

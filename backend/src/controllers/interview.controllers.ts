@@ -8,7 +8,21 @@ import {
   getInterviewResult,
   deleteInterviewResult,
   generateInterviewNextQuestion,
+  retryInterviewReport,
 } from '../services/interview.service';
+
+export const retryInterviewReportHandler = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) return error(res, '需要登录', 401);
+    const result = await retryInterviewReport(userId, req.params.id);
+    return success(res, result, result.status === 'completed' ? '报告已生成' : '报告生成失败');
+  } catch (err) {
+    if (err instanceof Error && err.message === 'INTERVIEW_RESULT_NOT_FOUND') return error(res, '未找到面试结果', 404);
+    if (err instanceof Error && err.message === 'INTERVIEW_SESSION_UNAVAILABLE') return error(res, '完整问答记录不可用，无法重试', 409);
+    return error(res, '重试报告生成失败');
+  }
+};
 
 export const getNextQuestionHandler = async (req: Request, res: Response) => {
   try {

@@ -161,6 +161,9 @@ model InterviewResult {
   position   String
   score      Int
   report     Json
+  status     String       @default("completed")
+  error_message String?
+  completed_at DateTime?
   created_at DateTime     @default(now())
   updated_at DateTime     @updatedAt
   is_deleted Boolean      @default(false)
@@ -170,6 +173,7 @@ model InterviewResult {
 
   @@index([user_id])
   @@index([session_id])
+  @@index([user_id, status, created_at])
   @@index([resume_id])
   @@map("interview_results")
 }

@@ -261,11 +261,9 @@ const InterviewPage = () => {
 
       setInterviewResult(result);
       setIsFinished(true);
-      notifications.show({
-        title: '完成',
-        message: '面试已完成，查看报告',
-        color: 'green',
-      });
+      notifications.show(result.status === 'failed' ? {
+        title: '报告生成失败', message: '完整问答已保存，可在面试记录中重试', color: 'red',
+      } : { title: '完成', message: '面试已完成，查看报告', color: 'green' });
     } catch (error) {
       console.error('完成面试失败:', error);
       notifications.show({
@@ -273,6 +271,21 @@ const InterviewPage = () => {
         message: getApiErrorMessage(error, '请稍后重试'),
         color: 'red',
       });
+    } finally {
+      setFinishing(false);
+    }
+  };
+
+  const handleRetryReport = async () => {
+    if (!interviewResult?.id) return;
+    setFinishing(true);
+    try {
+      const result = await interviewApi.retryInterviewReport(interviewResult.id);
+      setInterviewResult(result);
+      if (result.status === 'failed') throw new Error(result.error_message || '报告生成失败');
+      notifications.show({ title: '报告已生成', message: '批量评价已完成', color: 'green' });
+    } catch (error) {
+      notifications.show({ title: '重试失败', message: getApiErrorMessage(error, '完整问答仍已安全保存，请稍后重试'), color: 'red' });
     } finally {
       setFinishing(false);
     }
@@ -736,7 +749,13 @@ const InterviewPage = () => {
         <div className="flex-1 flex flex-col bg-white">
           <div className="flex-1 overflow-y-auto p-4 ">
             {isFinished ? (
-              <InterviewReport
+              interviewResult?.status === 'failed' ? (
+                <div className="flex h-full flex-col items-center justify-center gap-4 px-6 text-center">
+                  <Text fw={700} size="lg">报告生成失败</Text>
+                  <Text size="sm" c="dimmed">完整问题和回答已经保存，不需要重新面试。</Text>
+                  <Button onClick={handleRetryReport} loading={finishing}>重新生成报告</Button>
+                </div>
+              ) : <InterviewReport
                 result={interviewResult}
                 questions={questions}
                 answers={answers}
