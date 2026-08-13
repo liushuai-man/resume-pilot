@@ -30,6 +30,7 @@
     "test:stage4-e2e": "tsx src/evals/stage4-optimization-history.e2e.ts",
     "calibrate:content-quality": "tsx src/evals/content-quality.calibration.ts",
     "calibrate:job-match": "tsx src/evals/job-match.calibration.ts",
+    "calibrate:job-profile": "tsx src/evals/job-profile.calibration.ts",
     "calibrate:resume-optimization": "tsx src/evals/resume-optimization.calibration.ts",
     "calibrate:ats-optimization": "tsx src/evals/ats-optimization.calibration.ts",
     "diagnose:model": "tsx src/evals/model-connectivity.ts"

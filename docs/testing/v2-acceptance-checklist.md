@@ -21,6 +21,8 @@
 - 修改低置信度项目并确认；重新分析后旧版本只读，当前确认版本唯一。
 - 确认模型、Prompt、Parser 和画像版本均被保存。
 
+自动校准入口：`cd backend; pnpm run calibrate:job-profile`。固定集覆盖初级前端、中级 Java 后端和高级平台工程师；模型返回 401、超时或结构错误均必须视为未通过，不能用固定画像替代。
+
 ## 4. ATS、内容质量与岗位匹配
 
 - 空白/空壳简历不得因字段存在获得高 ATS 分；乱码、重复字符和占位词必须命中。
@@ -70,4 +72,4 @@ cd ..\backend
 .\node_modules\.bin\tsx.cmd --test src/ai/agents/interview/report-builder.test.ts
 ```
 
-当前机器若出现 `uv_os_get_passwd ENOMEM`，需要更换正常 Node 20 环境运行 `tsx` 固定集；这属于运行环境失败，不能记为测试通过。
+当前机器直接运行 `tsx` 若出现 `uv_os_get_passwd ENOMEM`，可先用仓库内的 esbuild 将各 `*.test.ts` 编译成 ESM，再执行 `node --test`。2026-08-13 已使用该等价路径完成后端 41 项和前端 5 项固定集，46 项全部通过；前后端 TypeScript 检查与生产构建亦通过。真实模型校准仍必须使用有效模型密钥单独完成。

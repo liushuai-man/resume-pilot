@@ -4,7 +4,8 @@ import { contentToDocument } from './resume-migration';
 
 test('旧简历 careerObjective 数组不会导致预览或打印迁移崩溃', () => {
   const document = contentToDocument({ basicInfo: {}, careerObjective: [] } as any, null, 'classic');
-  assert.equal(document.sections.some((item) => item.type === 'objective'), false);
+  const objective = document.sections.find((item) => item.type === 'objective') as any;
+  assert.equal(objective.data.content, '');
 });
 
 test('旧简历 careerObjective 对象数组会合并为可打印文本', () => {
