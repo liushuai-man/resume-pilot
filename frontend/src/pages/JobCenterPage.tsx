@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertCircle, BarChart3, Check, FileText, Loader2, Plus, RefreshCw, Save, Sparkles, Trash2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { BarChart3, Check, FileText, Loader2, Plus, RefreshCw, Save, Sparkles, Trash2 } from 'lucide-react';
 import { jobApi } from '@/api/job.api';
 import { resumeApi } from '@/api/home.api';
 import { notification } from '@/components/common/Notification';
@@ -18,6 +17,9 @@ import type { ContentQualityAnalysis } from '@/types/content-quality';
 import RequirementEditor from '@/components/job-center/RequirementEditor';
 import JobSidebar from '@/components/job-center/JobSidebar';
 import CreateJobPanel, { type CreateProgress } from '@/components/job-center/CreateJobPanel';
+import AtsAnalysisPanel from '@/components/job-center/AtsAnalysisPanel';
+import ContentQualityPanel from '@/components/job-center/ContentQualityPanel';
+import JobMatchPanel from '@/components/job-center/JobMatchPanel';
 const toEditable = (profile: JobProfile): EditableJobProfile => ({
   jobTitle: profile.jobTitle,
   seniority: profile.seniority || '',
@@ -403,97 +405,11 @@ export default function JobCenterPage() {
                   </nav>
                 )}
 
-                {analysisView === 'match' ? (
-                  !matchResult ? <div className="flex min-h-[340px] flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 text-center"><BarChart3 size={30} className="text-gray-300" /><p className="mt-3 font-medium text-gray-700">尚未运行岗位匹配</p><p className="mt-1 text-sm text-gray-400">只使用当前已确认岗位画像与所选简历。</p></div> :
-                  <div className="grid grid-cols-[260px_minmax(0,1fr)] gap-5"><aside className="rounded-xl border border-gray-200 bg-white p-5"><div className="text-center"><span className="text-4xl font-bold text-violet-600">{matchResult.score}</span><span className="text-gray-400"> / 100</span><p className="mt-2 font-semibold">岗位匹配分</p><p className="mt-1 text-xs text-gray-400">岗位画像 V{matchResult.jobProfileVersion}</p></div><div className="mt-5 space-y-3">{matchResult.dimensions.map((d) => <div key={d.key}><div className="flex justify-between text-xs text-gray-500"><span>{d.key}</span><span>{d.score}/{d.maxScore}</span></div><div className="mt-1 h-1.5 rounded bg-gray-100"><div className="h-full rounded bg-violet-500" style={{width:`${d.score/d.maxScore*100}%`}} /></div><p className="mt-1 text-xs text-gray-400">{d.reason}</p></div>)}</div><p className="mt-4 border-t pt-3 text-xs text-gray-400">{matchResult.modelName} · {matchResult.promptVersion}<br />整体置信度 {Math.round(matchResult.overallConfidence*100)}%</p></aside><section className="rounded-xl border border-gray-200 bg-white p-5"><div className="flex justify-between"><div><h3 className="font-semibold">岗位要求逐项匹配</h3><p className="mt-1 text-sm text-gray-500">结论与 ATS、内容质量分开。</p></div>{matchResult.stale && <span className="h-fit rounded bg-amber-50 px-2 py-1 text-xs text-amber-700">报告已过期</span>}</div><div className="mt-4 max-h-[520px] space-y-3 overflow-auto">{matchResult.requirements.map((item, requirementIndex) => <article key={item.requirementId} className="rounded-lg border p-4"><div className="flex flex-wrap items-center gap-2"><span className="font-medium text-gray-800">{item.requirementName}</span><span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-500">{item.category==='responsibility'?'岗位职责':item.category==='required_skill'?'必备能力':'加分项'}</span><span className={`rounded px-2 py-0.5 text-xs ${item.status==='matched'?'bg-green-50 text-green-700':item.status==='gap'?'bg-red-50 text-red-700':'bg-amber-50 text-amber-700'}`}>{item.status==='matched'?'已匹配':item.status==='insufficient_evidence'?'证据不足':item.status==='gap'?'能力缺口':'待确认'}</span><span className="text-xs text-gray-400">置信度 {Math.round(item.confidence*100)}%</span></div><p className="mt-2 text-xs text-gray-400">JD 证据：{item.jdEvidence}</p>{item.resumeEvidence && <blockquote className="mt-3 border-l-2 pl-3 text-sm text-gray-600">{item.resumeEvidence}</blockquote>}<p className="mt-3 text-sm text-gray-700">{item.reason}</p>{item.status === 'insufficient_evidence' && item.section && !matchResult.stale ? <Link to={`/resumes/${matchResult.resumeId}/edit?section=${encodeURIComponent(item.section)}&itemId=${encodeURIComponent(item.itemId||'')}&field=${encodeURIComponent(item.field||'')}&matchJobId=${encodeURIComponent(matchResult.jobDescriptionId)}&matchAnalysisId=${encodeURIComponent(matchResult.id)}&matchRequirement=${requirementIndex}`} className="mt-3 inline-flex text-xs font-medium text-violet-600">定位并优化</Link> : item.section && <Link to={`/resumes/${matchResult.resumeId}/edit?section=${encodeURIComponent(item.section)}&itemId=${encodeURIComponent(item.itemId||'')}&field=${encodeURIComponent(item.field||'')}`} className="mt-3 inline-flex text-xs font-medium text-blue-600">查看简历证据</Link>}</article>)}</div></section></div>
-                ) : analysisView === 'quality' ? (
-                  !contentQuality ? (
-                    <div className="flex min-h-[340px] flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 text-center">
-                      <Sparkles size={30} className="text-gray-300" />
-                      <p className="mt-3 font-medium text-gray-700">尚未运行内容质量评价</p>
-                      <p className="mt-1 text-sm text-gray-400">使用你的默认模型检查连贯性、信息有效性、证据具体性、一致性与专业性。</p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-[260px_minmax(0,1fr)] gap-5">
-                      <aside className="rounded-xl border border-gray-200 bg-white p-5">
-                        <div className="text-center"><span className="text-4xl font-bold text-blue-600">{contentQuality.score}</span><span className="text-gray-400"> / 100</span><p className="mt-2 font-semibold text-gray-800">内容质量分</p></div>
-                        <div className="mt-5 space-y-3">
-                          {contentQuality.dimensions.map((dimension) => (
-                            <div key={dimension.key}><div className="flex justify-between text-xs text-gray-500"><span>{dimension.key}</span><span>{dimension.score}/{dimension.maxScore}</span></div><div className="mt-1 h-1.5 rounded-full bg-gray-100"><div className="h-full rounded-full bg-violet-500" style={{ width: `${dimension.score / dimension.maxScore * 100}%` }} /></div><p className="mt-1 text-xs leading-5 text-gray-400">{dimension.reason}</p></div>
-                          ))}
-                        </div>
-                        <p className="mt-4 border-t pt-3 text-xs leading-5 text-gray-400">{contentQuality.modelName} · {contentQuality.promptVersion}<br />整体置信度 {Math.round(contentQuality.overallConfidence * 100)}%</p>
-                      </aside>
-                      <section className="rounded-xl border border-gray-200 bg-white p-5">
-                        <div className="flex items-start justify-between"><div><h3 className="font-semibold text-gray-900">字段级语义问题</h3><p className="mt-1 text-sm text-gray-500">低于 70% 置信度的结论只标记为待确认。</p></div>{contentQuality.stale && <span className="rounded bg-amber-50 px-2 py-1 text-xs text-amber-700">简历已修改，报告已过期</span>}</div>
-                        <div className="mt-4 max-h-[520px] space-y-3 overflow-auto pr-1">
-                          {contentQuality.issues.map((issue, index) => (
-                            <article key={`${issue.fieldId}-${index}`} className="rounded-lg border border-gray-200 p-4">
-                              <div className="flex items-center gap-2"><span className={`rounded px-2 py-0.5 text-xs ${issue.status === 'needs_confirmation' ? 'bg-amber-50 text-amber-700' : issue.severity === 'error' ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-blue-700'}`}>{issue.status === 'needs_confirmation' ? '待确认' : issue.severity === 'error' ? '严重' : issue.severity === 'warning' ? '警告' : '建议'}</span><span className="text-xs text-gray-400">置信度 {Math.round(issue.confidence * 100)}%</span></div>
-                              <blockquote className="mt-3 border-l-2 border-gray-200 pl-3 text-sm text-gray-600">{issue.evidence}</blockquote>
-                              <p className="mt-3 text-sm leading-6 text-gray-700">{issue.reason}</p><p className="mt-1 text-sm leading-6 text-blue-700">建议：{issue.suggestion}</p>
-                              <Link to={`/resumes/${contentQuality.resumeId}/edit?section=${encodeURIComponent(issue.section)}&itemId=${encodeURIComponent(issue.itemId || '')}&field=${encodeURIComponent(issue.field)}&analysisId=${encodeURIComponent(contentQuality.id)}&qualityIssue=${index}`} className="mt-3 inline-flex text-xs font-medium text-blue-600">定位并优化</Link>
-                            </article>
-                          ))}
-                          {contentQuality.issues.length === 0 && <div className="rounded-lg bg-green-50 p-8 text-center text-sm text-green-700">模型未发现明确的内容质量问题。</div>}
-                        </div>
-                      </section>
-                    </div>
-                  )
-                ) : !atsResult ? (
-                  <div className="flex min-h-[340px] flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 text-center">
-                    <FileText size={30} className="text-gray-300" />
-                    <p className="mt-3 font-medium text-gray-700">选择简历后开始体检</p>
-                    <p className="mt-1 text-sm text-gray-400">将检查完整性、内容证据密度、可解析性、日期与内容表达。</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-                      <p className="font-medium">本次结果的评价边界</p>
-                      <ul className="mt-1 list-disc space-y-1 pl-5 text-xs leading-5 text-blue-700">{atsResult.limitations.map((item) => <li key={item}>{item}</li>)}</ul>
-                    </div>
-                  <div className="grid grid-cols-[220px_minmax(0,1fr)] gap-5">
-                    <aside className="rounded-xl border border-gray-200 p-5 text-center">
-                      <div className={`mx-auto flex h-28 w-28 items-center justify-center rounded-full border-[10px] ${atsResult.score >= 80 ? 'border-green-100 text-green-600' : atsResult.score >= 60 ? 'border-amber-100 text-amber-600' : 'border-red-100 text-red-600'}`}>
-                        <span className="text-4xl font-bold">{atsResult.score}</span>
-                      </div>
-                      <p className="mt-3 font-semibold text-gray-800">ATS 结构分</p>
-                      <p className="mt-1 text-xs text-gray-400">{atsResult.scorerVersion}</p>
-                      <div className="mt-5 space-y-2 text-left">
-                        {atsResult.dimensions.map((dimension) => (
-                          <div key={dimension.key}>
-                            <div className="flex justify-between text-xs text-gray-500"><span>{dimension.label}</span><span>{dimension.score}/{dimension.maxScore}</span></div>
-                            <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-gray-100"><div className="h-full rounded-full bg-blue-500" style={{ width: `${dimension.maxScore ? dimension.score / dimension.maxScore * 100 : 0}%` }} /></div>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="mt-5 grid grid-cols-3 gap-2 text-xs">
-                        <div><strong className="block text-base text-red-600">{atsResult.summary.errors}</strong>严重</div>
-                        <div><strong className="block text-base text-amber-600">{atsResult.summary.warnings}</strong>警告</div>
-                        <div><strong className="block text-base text-blue-600">{atsResult.summary.suggestions}</strong>建议</div>
-                      </div>
-                    </aside>
-                    <section className="min-w-0 rounded-xl border border-gray-200 p-5">
-                      <h3 className="font-semibold text-gray-900">可处理的问题</h3>
-                      <p className="mt-1 text-sm text-gray-500">优先补齐严重问题；每项都显示完善后还能获得的分数。</p>
-                      <div className="mt-4 max-h-[430px] space-y-3 overflow-auto pr-1">
-                        {atsResult.issues.map((issue) => (
-                          <div key={issue.id} className="rounded-lg border border-gray-200 p-4">
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="flex min-w-0 gap-3">
-                                <AlertCircle size={18} className={issue.severity === 'error' ? 'mt-0.5 shrink-0 text-red-500' : issue.severity === 'warning' ? 'mt-0.5 shrink-0 text-amber-500' : 'mt-0.5 shrink-0 text-blue-500'} />
-                                <div><p className="font-medium text-gray-800">{issue.title}</p><p className="mt-1 text-sm leading-6 text-gray-500">{issue.message}</p><p className="mt-2 text-xs text-gray-400">{issue.section} / {issue.itemId || '模块'} / {issue.field}</p></div>
-                              </div>
-                              <span className={`shrink-0 rounded px-2 py-1 text-xs font-medium ${issue.availablePoints > 0 ? 'bg-blue-50 text-blue-600' : 'bg-red-50 text-red-600'}`}>{issue.availablePoints > 0 ? `可得 +${issue.availablePoints}` : '必须修正'}</span>
-                            </div>
-                            {(['basic', 'education', 'skills', 'objective'].includes(issue.section) && (Boolean(issue.itemId) || ['basic', 'objective'].includes(issue.section))) ? <Link to={`/resumes/${atsResult.resumeId}/edit?section=${encodeURIComponent(issue.section)}&itemId=${encodeURIComponent(issue.itemId || '')}&field=${encodeURIComponent(issue.field)}&atsIssue=${encodeURIComponent(issue.id)}`} className="mt-3 inline-flex text-xs font-medium text-blue-600 hover:text-blue-700">定位并修正</Link> : <Link to={`/resumes/${atsResult.resumeId}/edit?section=${encodeURIComponent(issue.section)}&itemId=${encodeURIComponent(issue.itemId || '')}&field=${encodeURIComponent(issue.field)}`} className="mt-3 inline-flex text-xs font-medium text-blue-600 hover:text-blue-700">编辑对应字段</Link>}
-                          </div>
-                        ))}
-                        {atsResult.issues.length === 0 && <div className="rounded-lg bg-green-50 p-8 text-center text-sm text-green-700">未发现 ATS 基础问题，下一步可以进行 JD 岗位匹配。</div>}
-                      </div>
-                    </section>
-                  </div></div>
-                )}
+                {analysisView === 'match'
+                  ? <JobMatchPanel result={matchResult} />
+                  : analysisView === 'quality'
+                    ? <ContentQualityPanel result={contentQuality} />
+                    : <AtsAnalysisPanel result={atsResult} />}
               </div>
             ) : (
           <div className="grid grid-cols-[minmax(300px,0.85fr)_minmax(420px,1.15fr)] gap-6">
