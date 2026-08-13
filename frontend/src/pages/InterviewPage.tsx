@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Loader, Text } from '@mantine/core';
-import { InterviewChat, InterviewReport } from '@/components/interview';
+import { InterviewChat, InterviewNotesPanel, InterviewReport } from '@/components/interview';
 import InterviewResumePreview from '@/components/interview/InterviewResumePreview';
 import InterviewToolbar from '@/components/interview/InterviewToolbar';
 import InterviewTranscriptPanel from '@/components/interview/InterviewTranscriptPanel';
-import InterviewWorkspaceRail, { type InterviewWorkspacePanel } from '@/components/interview/InterviewWorkspaceRail';
+import InterviewWorkspaceRail from '@/components/interview/InterviewWorkspaceRail';
 import JobProfilePanel from '@/components/interview/JobProfilePanel';
 import { useInterviewResources } from '@/hooks/useInterviewResources';
 import { useInterviewSession } from '@/hooks/useInterviewSession';
+import { useInterviewWorkspace } from '@/hooks/useInterviewWorkspace';
 import { useUserStore } from '@/store/useUserStore';
 
 const sectionNames: Record<string, string> = {
@@ -23,11 +24,10 @@ export default function InterviewPage() {
   const { user } = useUserStore();
   const resources = useInterviewResources(user?.id, resumeId);
   const interview = useInterviewSession();
+  const workspace = useInterviewWorkspace(interview.sessionId);
 
   const [questionCount, setQuestionCount] = useState('5');
   const [showResumeDropdown, setShowResumeDropdown] = useState(false);
-  const [activePanel, setActivePanel] = useState<InterviewWorkspacePanel>('resume');
-  const [workspaceCollapsed, setWorkspaceCollapsed] = useState(false);
   const [pdfPage, setPdfPage] = useState(1);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState(false);
@@ -69,12 +69,12 @@ export default function InterviewPage() {
       onOpenHistory={() => navigate('/interviews/history')} onStart={startInterview} onFinish={() => interview.finish()} />
 
     <div className="flex flex-1 overflow-hidden">
-      <InterviewWorkspaceRail activePanel={activePanel} collapsed={workspaceCollapsed}
-        onSelect={(panel) => { setActivePanel(panel); setWorkspaceCollapsed(false); }}
-        onToggleCollapsed={() => setWorkspaceCollapsed((value) => !value)} />
-      <aside className={`${workspaceCollapsed ? 'hidden' : 'w-[42%] min-w-[320px] max-w-[620px]'} flex-shrink-0 overflow-hidden border-r border-gray-200 bg-gray-50`}>
-        {activePanel === 'job' ? <JobProfilePanel profile={selectedProfile} />
-          : activePanel === 'transcript' ? <InterviewTranscriptPanel questions={interview.questions} answers={interview.answers} getSectionName={getSectionName} />
+      <InterviewWorkspaceRail activePanel={workspace.activePanel} collapsed={workspace.collapsed}
+        onSelect={workspace.selectPanel} onToggleCollapsed={workspace.toggleCollapsed} />
+      <aside className={`${workspace.collapsed ? 'hidden' : 'w-[42%] min-w-[320px] max-w-[620px]'} flex-shrink-0 overflow-hidden border-r border-gray-200 bg-gray-50`}>
+        {workspace.activePanel === 'job' ? <JobProfilePanel profile={selectedProfile} />
+          : workspace.activePanel === 'transcript' ? <InterviewTranscriptPanel questions={interview.questions} answers={interview.answers} getSectionName={getSectionName} />
+          : workspace.activePanel === 'notes' ? <InterviewNotesPanel notes={workspace.notes} sessionStarted={Boolean(interview.sessionId)} onChange={workspace.setNotes} />
           : <InterviewResumePreview resume={resources.resume} highlightSection={interview.currentQuestion?.sectionKey} pdfPage={pdfPage}
               loading={previewLoading} error={previewError} onPageChange={setPdfPage} onLoad={() => setPreviewLoading(false)}
               onError={() => { setPreviewLoading(false); setPreviewError(true); }} />}

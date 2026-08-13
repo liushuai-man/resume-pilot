@@ -1,6 +1,6 @@
-import { BriefcaseBusiness, FileText, ListChecks, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { BriefcaseBusiness, FileText, ListChecks, NotebookPen, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 
-export type InterviewWorkspacePanel = 'resume' | 'job' | 'transcript';
+export type InterviewWorkspacePanel = 'resume' | 'job' | 'transcript' | 'notes';
 
 interface Props {
   activePanel: InterviewWorkspacePanel;
@@ -13,6 +13,7 @@ const panels = [
   { key: 'resume' as const, label: '简历', icon: FileText },
   { key: 'job' as const, label: '岗位', icon: BriefcaseBusiness },
   { key: 'transcript' as const, label: '记录', icon: ListChecks },
+  { key: 'notes' as const, label: '笔记', icon: NotebookPen },
 ];
 
 export default function InterviewWorkspaceRail({ activePanel, collapsed, onSelect, onToggleCollapsed }: Props) {

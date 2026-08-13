@@ -6,3 +6,4 @@ export { default as InterviewToolbar } from './InterviewToolbar';
 export { default as InterviewResumePreview } from './InterviewResumePreview';
 export { default as InterviewPipelineStatus } from './InterviewPipelineStatus';
 export { default as InterviewChat } from './InterviewChat';
+export { default as InterviewNotesPanel } from './InterviewNotesPanel';
