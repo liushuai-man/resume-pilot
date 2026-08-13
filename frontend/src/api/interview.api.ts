@@ -44,6 +44,7 @@ export interface InterviewReportData {
   candidateProfile?: { skills?: Record<string, unknown> };
   reportVersion?: string;
   rubricVersion?: string;
+  evaluationAudit?: { modelVersion: string; promptVersion: string; rubricVersion: string; modelCallCount: number; reusedCheckpoint: boolean; durationMs: number };
 }
 
 export interface InterviewResult {

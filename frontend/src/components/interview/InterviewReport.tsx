@@ -13,7 +13,7 @@ export default function InterviewReport({ result, questions, answers, generating
     <InterviewReportOverview report={result.report} position={result.position} date={formatDateTime(result.created_at)}/>
     <InterviewReportSummary report={result.report}/>
     <InterviewQuestionReview questions={questions} answers={answers} evaluations={result.report.questionEvaluations || []} onImproveResume={onImproveResume} onPractice={(question, evaluation) => onPractice?.(question, evaluation.knowledgeGap?.join('、') || evaluation.followUpSuggestion || question.content)}/>
-    <Text ta="center" size="xs" c="dimmed">报告版本 {result.report.reportVersion || '未记录'} · Rubric {result.report.rubricVersion || '未记录'}</Text>
+    <Text ta="center" size="xs" c="dimmed">报告版本 {result.report.reportVersion || '未记录'} · Rubric {result.report.rubricVersion || '未记录'}{result.report.evaluationAudit && ` · 模型 ${result.report.evaluationAudit.modelVersion} · 调用 ${result.report.evaluationAudit.modelCallCount} 次 · ${(result.report.evaluationAudit.durationMs / 1000).toFixed(1)} 秒`}</Text>
     <Group justify="center" mt="xl"><Button variant="outline" onClick={onRestart}>重新面试</Button><Button onClick={onBackHome}>返回首页</Button></Group>
   </div>;
 }

@@ -151,6 +151,7 @@ export async function generateInterviewNextQuestion(
 }
 
 export async function finishInterview(userId: string, sessionId: string) {
+  const reportStartedAt = Date.now();
   const state = await loadInterviewState(userId, sessionId);
   const inputHash = evaluationInputHash(state);
   let pending = await prisma.interviewResult.findFirst({
@@ -175,6 +176,7 @@ export async function finishInterview(userId: string, sessionId: string) {
   const storedPipeline = pending.pipeline_state && typeof pending.pipeline_state === 'object' && !Array.isArray(pending.pipeline_state)
     ? pending.pipeline_state as Record<string, string> : {};
   const checkpointValid = pending.evaluation_input_hash === inputHash && Array.isArray(pending.evaluation_checkpoint);
+  const evaluationModel = await getDefaultModelConfig(userId);
   const pipelineState: Record<string, string> = checkpointValid ? { ...storedPipeline } : {};
   try {
   if (!state.questions.length || state.answers.some((answer) => !state.questions.some((question) => question.id === answer.questionId))) {
@@ -202,7 +204,11 @@ export async function finishInterview(userId: string, sessionId: string) {
     resume: { title: state.resumeSnapshot.title, updatedAt: state.resumeSnapshot.updatedAt },
     jobProfile: state.jobProfileSnapshot,
     rubric: state.rubricSnapshot,
-  }, questionEvaluations: evaluatedState.evaluations };
+  }, questionEvaluations: evaluatedState.evaluations, evaluationAudit: {
+    modelVersion: evaluationModel?.model_name || 'unknown', promptVersion: 'interview-batch-evaluation-v1',
+    rubricVersion: state.rubricSnapshot.version, modelCallCount: checkpointValid ? 0 : 1,
+    reusedCheckpoint: checkpointValid, durationMs: Date.now() - reportStartedAt,
+  } };
   const scoredEvaluations: Evaluation[] = evaluatedState.evaluations.filter((item: Evaluation) => item.score > 0);
   const fallbackScore = scoredEvaluations.length
     ? Math.round(
