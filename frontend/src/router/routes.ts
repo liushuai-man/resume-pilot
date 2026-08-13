@@ -28,6 +28,7 @@ const InterviewHistoryPage = React.lazy(
 const InterviewResultPage = React.lazy(
   () => import('@/pages/InterviewResultPage')
 );
+const ProfilePage = React.lazy(() => import('@/pages/ProfilePage'));
 const NotFoundPage = React.lazy(
   () => import('@/components/common/NotFoundPage')
 );
@@ -58,6 +59,7 @@ export const routes: RouteConfig[] = [
       { path: 'interviews/resume/:resumeId', element: protectedPage(React.createElement(InterviewPage)) },
       { path: 'interviews/history', element: protectedPage(React.createElement(InterviewHistoryPage)) },
       { path: 'interviews/results/:id', element: protectedPage(React.createElement(InterviewResultPage)) },
+      { path: 'profile', element: protectedPage(React.createElement(ProfilePage)) },
     ],
   },
 

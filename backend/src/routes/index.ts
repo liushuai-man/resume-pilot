@@ -5,6 +5,7 @@ import interviewRouter from './interview.routes';
 import modelConfigRouter from './model-config.routes';
 import uploadRouter from './upload.routes';
 import jobRouter from './job.routes';
+import profileRouter from './profile.routes';
 
 export {
   authRouter,
@@ -14,4 +15,5 @@ export {
   modelConfigRouter,
   uploadRouter,
   jobRouter,
+  profileRouter,
 };

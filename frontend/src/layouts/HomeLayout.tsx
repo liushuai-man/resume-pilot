@@ -111,11 +111,11 @@ export default function HomeLayout() {
           {/* 用户信息：登录后显示 */}
           {isLoggedIn && user && (
             <div className="flex items-center gap-2">
-              <Avatar
+              <Avatar onClick={() => navigate('/profile')} title="个人中心"
                 size="md"
                 src={user.github_avatar || undefined}
                 alt={user.github_login || 'User'}
-                className="border-2 border-[#D8E1DD] bg-[#176B52] text-white"
+                className="cursor-pointer border-2 border-[#D8E1DD] bg-[#176B52] text-white"
               >
                 {user.github_login?.charAt(0) || 'U'}
               </Avatar>

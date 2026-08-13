@@ -11,6 +11,7 @@ import {
   modelConfigRouter,
   uploadRouter,
   jobRouter,
+  profileRouter,
 } from './routes/index';
 
 export const app: Application = express();
@@ -43,3 +44,4 @@ app.use('/api/interview', interviewRouter);
 app.use('/api/model-config', modelConfigRouter);
 app.use('/api/upload', uploadRouter);
 app.use('/api/jobs', jobRouter);
+app.use('/api/profile', profileRouter);
