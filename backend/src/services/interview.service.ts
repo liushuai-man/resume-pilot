@@ -140,6 +140,9 @@ export async function generateInterviewNextQuestion(
 ) {
   const state = await loadInterviewState(userId, sessionId);
   if (state.isFinished) return null;
+  // 上次已生成并保存、但响应在网络中丢失时，直接返回同一题，避免重复调用模型。
+  const existingQuestion = state.questions[state.currentQuestionIndex];
+  if (existingQuestion) return existingQuestion;
   const result = await runNextQuestionGraph(state);
   await saveInterviewState(sessionId, result.session);
   return result.nextQuestion;

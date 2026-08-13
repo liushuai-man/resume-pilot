@@ -15,6 +15,8 @@ interface InterviewChatProps {
   onSubmitAnswer: () => void;
   getSectionName: (sectionKey: string) => string;
   sessionStarted?: boolean;
+  nextQuestionFailed?: boolean;
+  onRetryNextQuestion?: () => void;
 }
 
 export default function InterviewChat({
@@ -28,6 +30,8 @@ export default function InterviewChat({
   onSubmitAnswer,
   getSectionName,
   sessionStarted,
+  nextQuestionFailed,
+  onRetryNextQuestion,
 }: InterviewChatProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [showHint, setShowHint] = useState(!sessionStarted);
@@ -136,6 +140,14 @@ export default function InterviewChat({
             </div>
           )}
           <div ref={messagesEndRef} />
+          {nextQuestionFailed && (
+            <Paper p="md" radius="md" className="mb-4 border border-red-200 bg-red-50 text-center">
+              <Text size="sm" fw={600} c="red">回答已保存，但下一题尚未生成</Text>
+              <button type="button" onClick={onRetryNextQuestion} className="mt-3 rounded-md bg-[#176B52] px-4 py-2 text-xs font-medium text-white hover:bg-[#115640] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176B52]/40">
+                重新生成下一题
+              </button>
+            </Paper>
+          )}
         </div>
       </div>
 
@@ -149,7 +161,7 @@ export default function InterviewChat({
               value={currentAnswer}
               onChange={(e) => onAnswerChange(e.target.value)}
               rows={4}
-              disabled={!sessionStarted || !currentQuestion || isThinking}
+              disabled={!sessionStarted || !currentQuestion || isThinking || nextQuestionFailed}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();

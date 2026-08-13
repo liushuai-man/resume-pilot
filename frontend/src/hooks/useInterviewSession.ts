@@ -18,6 +18,7 @@ export function useInterviewSession() {
   const [finishing, setFinishing] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
   const [pendingSubmission, setPendingSubmission] = useState<{ id: string; questionId: string; answer: string } | null>(null);
+  const [nextQuestionFailed, setNextQuestionFailed] = useState(false);
 
   const finish = useCallback(async (activeSessionId = sessionId) => {
     if (!activeSessionId) return;
@@ -58,15 +59,37 @@ export function useInterviewSession() {
         ? items : [...items, { questionId: result.questionId, content: submission.answer, submissionId: submission.id }]);
       setCurrentAnswer(''); setPendingSubmission(null);
       if (result.isFinished) await finish(sessionId);
-      else {
+      else try {
         const nextQuestion = await interviewApi.getNextQuestion(sessionId);
-        if (nextQuestion) { setCurrentQuestion(nextQuestion); setQuestions((items) => [...items, nextQuestion]); }
+        if (nextQuestion) {
+          setCurrentQuestion(nextQuestion);
+          setQuestions((items) => items.some((item) => item.id === nextQuestion.id) ? items : [...items, nextQuestion]);
+          setNextQuestionFailed(false);
+        }
+      } catch (error) {
+        setNextQuestionFailed(true);
+        notifications.show({ title: '下一题生成失败', message: getApiErrorMessage(error, '回答已经保存，可单独重试生成下一题'), color: 'red' });
       }
     } catch (error) {
       setCurrentAnswer(submission.answer);
       notifications.show({ title: '回答保存失败', message: getApiErrorMessage(error, '草稿已保留，请重新提交'), color: 'red' });
     } finally { setSubmitting(false); setIsThinking(false); }
   }, [currentAnswer, currentQuestion, finish, pendingSubmission, sessionId]);
+
+  const retryNextQuestion = useCallback(async () => {
+    if (!sessionId) return;
+    setIsThinking(true);
+    try {
+      const nextQuestion = await interviewApi.getNextQuestion(sessionId);
+      if (nextQuestion) {
+        setCurrentQuestion(nextQuestion);
+        setQuestions((items) => items.some((item) => item.id === nextQuestion.id) ? items : [...items, nextQuestion]);
+        setNextQuestionFailed(false);
+      }
+    } catch (error) {
+      notifications.show({ title: '仍未生成下一题', message: getApiErrorMessage(error, '已保存回答不会丢失，请稍后再试'), color: 'red' });
+    } finally { setIsThinking(false); }
+  }, [sessionId]);
 
   const retryReport = useCallback(async () => {
     if (!interviewResult?.id) return;
@@ -85,9 +108,10 @@ export function useInterviewSession() {
 
   const restart = useCallback(() => {
     setSessionId(null); setCurrentQuestion(null); setQuestions([]); setAnswers([]); setCurrentAnswer('');
-    setIsFinished(false); setInterviewResult(null); setPendingSubmission(null);
+    setIsFinished(false); setInterviewResult(null); setPendingSubmission(null); setNextQuestionFailed(false);
   }, []);
 
   return { sessionId, currentQuestion, questions, answers, currentAnswer, setCurrentAnswer, interviewResult,
-    isFinished, starting, submitting, finishing, isThinking, answerSaveFailed: Boolean(pendingSubmission), start, submitAnswer, finish, retryReport, restart };
+    isFinished, starting, submitting, finishing, isThinking, answerSaveFailed: Boolean(pendingSubmission), nextQuestionFailed,
+    start, submitAnswer, retryNextQuestion, finish, retryReport, restart };
 }

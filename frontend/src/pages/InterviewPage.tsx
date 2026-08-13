@@ -85,7 +85,8 @@ export default function InterviewPage() {
           : <InterviewChat questions={interview.questions} answers={interview.answers} currentQuestion={interview.currentQuestion}
               currentAnswer={interview.currentAnswer} submitting={interview.submitting} isThinking={interview.isThinking}
               onAnswerChange={interview.setCurrentAnswer} onSubmitAnswer={interview.submitAnswer} getSectionName={getSectionName}
-              sessionStarted={Boolean(interview.sessionId)} />}
+              sessionStarted={Boolean(interview.sessionId)} nextQuestionFailed={interview.nextQuestionFailed}
+              onRetryNextQuestion={interview.retryNextQuestion} />}
       </div></main>
     </div>
   </div>;
