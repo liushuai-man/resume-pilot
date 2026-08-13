@@ -15,6 +15,9 @@ import {
   FileText,
   ChevronRight,
   Trash2,
+  RefreshCw,
+  Clock3,
+  CircleAlert,
 } from 'lucide-react';
 import { interviewApi, InterviewResult } from '@/api/interview.api';
 import { formatDateTime } from '@/utils/format';
@@ -25,6 +28,7 @@ const InterviewHistoryPage = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [results, setResults] = useState<InterviewResult[]>([]);
+  const [retryingId, setRetryingId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchResults = async () => {
@@ -65,6 +69,21 @@ const InterviewHistoryPage = () => {
         message: '删除面试记录失败',
         color: 'red',
       });
+    }
+  };
+
+  const handleRetry = async (id: string) => {
+    setRetryingId(id);
+    try {
+      const updated = await interviewApi.retryInterviewReport(id);
+      setResults((current) => current.map((item) => item.id === id ? updated : item));
+      notifications.show(updated.status === 'completed'
+        ? { title: '报告已生成', message: '现在可以查看完整评价', color: 'green' }
+        : { title: '生成失败', message: '问答记录仍已保存，请稍后重试', color: 'red' });
+    } catch {
+      notifications.show({ title: '重试失败', message: '问答记录仍已保存，请稍后重试', color: 'red' });
+    } finally {
+      setRetryingId(null);
     }
   };
 
@@ -127,7 +146,7 @@ const InterviewHistoryPage = () => {
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <RingProgress
+                    {result.status === 'completed' || !result.status ? <RingProgress
                       size={64}
                       thickness={6}
                       sections={[
@@ -145,16 +164,20 @@ const InterviewHistoryPage = () => {
                           </Text>
                         </div>
                       }
-                    />
+                    /> : (
+                      <div className={`flex h-16 w-16 items-center justify-center rounded-full ${result.status === 'failed' ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600'}`}>
+                        {result.status === 'failed' ? <CircleAlert size={24} /> : <Clock3 size={24} />}
+                      </div>
+                    )}
                     <div>
                       <Group gap="sm" mb={4}>
                         <Text fw={600}>{result.position || '面试评估'}</Text>
                         <Badge
-                          color={getScoreColor(result.score || 0)}
+                          color={result.status === 'generating' ? 'yellow' : result.status === 'failed' ? 'red' : getScoreColor(result.score || 0)}
                           variant="light"
                           size="sm"
                         >
-                          {getScoreLabel(result.score || 0)}
+                          {result.status === 'failed' ? '生成失败' : result.status === 'generating' ? '生成中' : getScoreLabel(result.score || 0)}
                         </Badge>
                       </Group>
                       <Group gap="md">
@@ -176,6 +199,13 @@ const InterviewHistoryPage = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    {result.status === 'failed' && (
+                      <Button
+                        size="xs" variant="light" leftSection={<RefreshCw size={14} />}
+                        loading={retryingId === result.id}
+                        onClick={(event) => { event.stopPropagation(); handleRetry(result.id); }}
+                      >重试</Button>
+                    )}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

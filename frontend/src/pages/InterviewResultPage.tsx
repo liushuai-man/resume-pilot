@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Loader, Text, Title } from '@mantine/core';
-import { CheckCircle2, CircleAlert, Lightbulb, Trophy } from 'lucide-react';
+import { CheckCircle2, CircleAlert, Lightbulb, Trophy, RefreshCw } from 'lucide-react';
 import { interviewApi, InterviewResult } from '@/api/interview.api';
 import { formatDateTime } from '@/utils/format';
 import { notifications } from '@mantine/notifications';
@@ -20,6 +20,7 @@ const InterviewResultPage = () => {
   const { id } = useParams<{ id: string }>();
   const [loading, setLoading] = useState(true);
   const [result, setResult] = useState<InterviewResult | null>(null);
+  const [retrying, setRetrying] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -46,6 +47,31 @@ const InterviewResultPage = () => {
   if (loading) return <div className="flex min-h-[50vh] items-center justify-center"><Loader size="xl" /></div>;
   if (!result) return <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4"><Text c="dimmed">未找到面试结果</Text><Button variant="outline" onClick={() => navigate('/interviews/history')}>查看面试记录</Button></div>;
 
+  if (result.status === 'generating') return (
+    <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 text-center">
+      <Loader size="lg" /><Title order={3}>报告生成中</Title>
+      <Text c="dimmed">完整问答已保存，稍后刷新即可查看报告。</Text>
+      <Button variant="outline" onClick={() => window.location.reload()}>刷新状态</Button>
+    </div>
+  );
+
+  if (result.status === 'failed') return (
+    <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 px-6 text-center">
+      <CircleAlert size={40} className="text-red-500" /><Title order={3}>报告生成失败</Title>
+      <Text c="dimmed">完整问题和回答已经保存，不需要重新面试。</Text>
+      <Button leftSection={<RefreshCw size={16} />} loading={retrying} onClick={async () => {
+        setRetrying(true);
+        try {
+          const updated = await interviewApi.retryInterviewReport(result.id);
+          setResult(updated);
+          if (updated.status !== 'completed') notifications.show({ title: '仍未生成', message: '请稍后再次重试', color: 'red' });
+        } catch {
+          notifications.show({ title: '重试失败', message: '问答记录仍已安全保存', color: 'red' });
+        } finally { setRetrying(false); }
+      }}>重新生成报告</Button>
+    </div>
+  );
+
   const report = result.report || {};
   const points = [
     radarPoint(metrics.depth, -90),
@@ -66,7 +92,7 @@ const InterviewResultPage = () => {
             <div>
               <div className="mb-3 flex items-center gap-2 text-[#8A5A26]"><Trophy size={18} /><span className="text-sm font-semibold tracking-[0.12em]">INTERVIEW REVIEW</span></div>
               <Title order={1} className="!text-3xl">{result.position || '综合面试评估'}</Title>
-              <Text c="dimmed" mt="sm">{formatDateTime(result.created_at)} · 基于本次回答的即时分析</Text>
+              <Text c="dimmed" mt="sm">{formatDateTime(result.created_at)} · 基于完整问答的批量评价</Text>
               {report.introductionEvaluation && (
                 <div className="mt-5 max-w-xl text-slate-700">
                   <MarkdownContent content={report.introductionEvaluation} />
