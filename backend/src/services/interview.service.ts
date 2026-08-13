@@ -149,13 +149,13 @@ export async function finishInterview(userId: string, sessionId: string) {
     ? await prisma.interviewResult.update({
       where: { id: pending.id },
         data: { status: 'generating', error_message: null, failed_node: null,
-          current_node: 'transcript_validation' },
+          current_node: 'transcript_validation', evaluation_input_hash: inputHash },
       })
     : await prisma.interviewResult.create({
         data: {
           user_id: userId, session_id: sessionId, resume_id: state.resumeId,
           position: state.targetPosition, score: 0, report: {}, status: 'generating',
-          current_node: 'transcript_validation', pipeline_state: {},
+          current_node: 'transcript_validation', pipeline_state: {}, evaluation_input_hash: inputHash,
         },
       });
 
@@ -226,7 +226,34 @@ export async function retryInterviewReport(userId: string, resultId: string) {
   });
   if (!result) throw new Error('INTERVIEW_RESULT_NOT_FOUND');
   if (result.status === 'completed') return result;
+  if (result.status === 'generating') return result;
   if (!result.session_id) throw new Error('INTERVIEW_SESSION_UNAVAILABLE');
+  return finishInterview(userId, result.session_id);
+}
+
+const retryableReportNodes = new Set(['transcript_validation', 'batch_evaluation', 'report_composition', 'report_publication']);
+
+export async function retryInterviewNode(
+  userId: string, resultId: string, nodeKey: string, expectedInputHash: string
+) {
+  if (!retryableReportNodes.has(nodeKey)) throw new Error('INTERVIEW_NODE_NOT_RETRYABLE');
+  const result = await prisma.interviewResult.findFirst({
+    where: { id: resultId, user_id: userId, is_deleted: false },
+  });
+  if (!result) throw new Error('INTERVIEW_RESULT_NOT_FOUND');
+  if (!result.session_id) throw new Error('INTERVIEW_SESSION_UNAVAILABLE');
+  if (result.status === 'generating') throw new Error('INTERVIEW_NODE_ALREADY_RUNNING');
+  if (result.status !== 'failed' || result.failed_node !== nodeKey) throw new Error('INTERVIEW_NODE_STATE_CONFLICT');
+  const state = await loadInterviewState(userId, result.session_id);
+  const currentHash = evaluationInputHash(state);
+  if (!expectedInputHash || expectedInputHash !== currentHash || result.evaluation_input_hash !== currentHash) {
+    throw new Error('INTERVIEW_CHECKPOINT_STALE');
+  }
+  const claimed = await prisma.interviewResult.updateMany({
+    where: { id: result.id, user_id: userId, status: 'failed', failed_node: nodeKey, evaluation_input_hash: expectedInputHash },
+    data: { status: 'generating', current_node: nodeKey, error_message: null },
+  });
+  if (claimed.count !== 1) throw new Error('INTERVIEW_NODE_ALREADY_RUNNING');
   return finishInterview(userId, result.session_id);
 }
 

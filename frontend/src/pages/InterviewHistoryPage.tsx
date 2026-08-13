@@ -76,7 +76,10 @@ const InterviewHistoryPage = () => {
   const handleRetry = async (id: string) => {
     setRetryingId(id);
     try {
-      const updated = await interviewApi.retryInterviewReport(id);
+      const current = results.find((item) => item.id === id);
+      const updated = current?.failed_node && current.evaluation_input_hash
+        ? await interviewApi.retryInterviewNode(id, current.failed_node, current.evaluation_input_hash)
+        : await interviewApi.retryInterviewReport(id);
       setResults((current) => current.map((item) => item.id === id ? updated : item));
       notifications.show(updated.status === 'completed'
         ? { title: '报告已生成', message: '现在可以查看完整评价', color: 'green' }

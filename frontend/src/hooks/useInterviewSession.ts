@@ -65,7 +65,9 @@ export function useInterviewSession() {
     if (!interviewResult?.id) return;
     setFinishing(true);
     try {
-      const result = await interviewApi.retryInterviewReport(interviewResult.id);
+      const result = interviewResult.failed_node && interviewResult.evaluation_input_hash
+        ? await interviewApi.retryInterviewNode(interviewResult.id, interviewResult.failed_node, interviewResult.evaluation_input_hash)
+        : await interviewApi.retryInterviewReport(interviewResult.id);
       setInterviewResult(result);
       if (result.status === 'failed') throw new Error(result.error_message || '报告生成失败');
       notifications.show({ title: '报告已生成', message: '批量评价已完成', color: 'green' });

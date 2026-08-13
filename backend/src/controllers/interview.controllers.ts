@@ -9,7 +9,28 @@ import {
   deleteInterviewResult,
   generateInterviewNextQuestion,
   retryInterviewReport,
+  retryInterviewNode,
 } from '../services/interview.service';
+
+export const retryInterviewNodeHandler = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) return error(res, '需要登录', 401);
+    const { nodeKey, expectedInputHash } = req.body;
+    if (!nodeKey || !expectedInputHash) return error(res, '缺少重试节点或输入版本', 400);
+    const result = await retryInterviewNode(userId, req.params.id, nodeKey, expectedInputHash);
+    return success(res, result, result.status === 'completed' ? '报告已生成' : '节点执行失败');
+  } catch (err) {
+    const code = err instanceof Error ? err.message : '';
+    if (code === 'INTERVIEW_RESULT_NOT_FOUND') return error(res, '未找到面试结果', 404);
+    if (code === 'INTERVIEW_SESSION_UNAVAILABLE') return error(res, '完整问答记录不可用', 409);
+    if (code === 'INTERVIEW_CHECKPOINT_STALE') return error(res, '面试输入已变化，请刷新后重新生成', 409);
+    if (code === 'INTERVIEW_NODE_ALREADY_RUNNING') return error(res, '该步骤正在执行，请勿重复提交', 409);
+    if (code === 'INTERVIEW_NODE_STATE_CONFLICT') return error(res, '当前失败步骤已变化，请刷新页面', 409);
+    if (code === 'INTERVIEW_NODE_NOT_RETRYABLE') return error(res, '该步骤不支持单独重试', 400);
+    return error(res, '重试节点失败');
+  }
+};
 
 export const retryInterviewReportHandler = async (req: Request, res: Response) => {
   try {

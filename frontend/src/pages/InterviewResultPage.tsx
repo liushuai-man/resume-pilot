@@ -65,7 +65,9 @@ const InterviewResultPage = () => {
       <Button leftSection={<RefreshCw size={16} />} loading={retrying} onClick={async () => {
         setRetrying(true);
         try {
-          const updated = await interviewApi.retryInterviewReport(result.id);
+          const updated = result.failed_node && result.evaluation_input_hash
+            ? await interviewApi.retryInterviewNode(result.id, result.failed_node, result.evaluation_input_hash)
+            : await interviewApi.retryInterviewReport(result.id);
           setResult(updated);
           if (updated.status !== 'completed') notifications.show({ title: '仍未生成', message: '请稍后再次重试', color: 'red' });
         } catch {

@@ -117,4 +117,8 @@ export const interviewApi = {
     const response: any = await request.post(`/interview/results/${id}/retry`);
     return response.data || response;
   },
+  retryInterviewNode: async (id: string, nodeKey: string, expectedInputHash: string): Promise<InterviewResult> => {
+    const response: any = await request.post(`/interview/results/${id}/retry-node`, { nodeKey, expectedInputHash });
+    return response.data || response;
+  },
 };
