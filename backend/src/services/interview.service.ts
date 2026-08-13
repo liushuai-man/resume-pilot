@@ -14,6 +14,18 @@ import {
   saveInterviewState,
 } from '../repositories/interview-session.repository';
 import { getDefaultModelConfig } from './model-config.service';
+import { createHash } from 'node:crypto';
+import type { LangGraphInterviewState } from '../ai/types/interview.types';
+
+function evaluationInputHash(state: LangGraphInterviewState): string {
+  return createHash('sha256').update(JSON.stringify({
+    resume: state.resumeSnapshot,
+    jobProfile: state.jobProfileSnapshot,
+    rubric: state.rubricSnapshot,
+    questions: state.questions,
+    answers: state.answers,
+  })).digest('hex');
+}
 
 export async function startInterview(
   userId: string,
@@ -128,6 +140,7 @@ export async function generateInterviewNextQuestion(
 
 export async function finishInterview(userId: string, sessionId: string) {
   const state = await loadInterviewState(userId, sessionId);
+  const inputHash = evaluationInputHash(state);
   let pending = await prisma.interviewResult.findFirst({
     where: { user_id: userId, session_id: sessionId, is_deleted: false },
   });
@@ -136,7 +149,7 @@ export async function finishInterview(userId: string, sessionId: string) {
     ? await prisma.interviewResult.update({
       where: { id: pending.id },
         data: { status: 'generating', error_message: null, failed_node: null,
-          current_node: 'transcript_validation', pipeline_state: {} },
+          current_node: 'transcript_validation' },
       })
     : await prisma.interviewResult.create({
         data: {
@@ -147,7 +160,10 @@ export async function finishInterview(userId: string, sessionId: string) {
       });
 
   let currentNode = 'transcript_validation';
-  const pipelineState: Record<string, string> = {};
+  const storedPipeline = pending.pipeline_state && typeof pending.pipeline_state === 'object' && !Array.isArray(pending.pipeline_state)
+    ? pending.pipeline_state as Record<string, string> : {};
+  const checkpointValid = pending.evaluation_input_hash === inputHash && Array.isArray(pending.evaluation_checkpoint);
+  const pipelineState: Record<string, string> = checkpointValid ? { ...storedPipeline } : {};
   try {
   if (!state.questions.length || state.answers.some((answer) => !state.questions.some((question) => question.id === answer.questionId))) {
     throw new Error('INTERVIEW_TRANSCRIPT_INVALID');
@@ -155,10 +171,21 @@ export async function finishInterview(userId: string, sessionId: string) {
   pipelineState.transcript_validation = 'succeeded';
   currentNode = 'batch_evaluation';
   await prisma.interviewResult.update({ where: { id: pending.id }, data: { current_node: currentNode, pipeline_state: pipelineState } });
-  const graphResult = state.report ? { report: state.report } : await runReportGraph(state);
+  const checkpointState: LangGraphInterviewState = checkpointValid
+    ? { ...state, evaluations: pending.evaluation_checkpoint as unknown as Evaluation[], report: undefined }
+    : state;
+  const graphResult = await runReportGraph(checkpointState);
+  const evaluatedState = graphResult.session;
+  // 评价成功后先保存 checkpoint；后续汇总或发布失败时无需再次调用模型。
+  await saveInterviewState(sessionId, evaluatedState);
+  await prisma.interviewResult.update({ where: { id: pending.id }, data: {
+    evaluation_input_hash: inputHash,
+    evaluation_checkpoint: evaluatedState.evaluations as any,
+    pipeline_state: { ...pipelineState, batch_evaluation: 'succeeded' },
+    current_node: 'report_composition',
+  } });
   pipelineState.batch_evaluation = 'succeeded';
   pipelineState.report_composition = 'succeeded';
-  const evaluatedState = 'session' in graphResult ? graphResult.session : state;
   const report = { ...graphResult.report, interviewContext: {
     resume: { title: state.resumeSnapshot.title, updatedAt: state.resumeSnapshot.updatedAt },
     jobProfile: state.jobProfileSnapshot,

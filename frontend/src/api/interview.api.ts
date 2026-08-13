@@ -26,6 +26,7 @@ export interface InterviewResult {
   current_node?: string | null;
   failed_node?: string | null;
   pipeline_state?: Record<string, 'pending' | 'running' | 'succeeded' | 'failed'>;
+  evaluation_input_hash?: string | null;
   completed_at?: string | null;
   created_at: string;
   updated_at: string;

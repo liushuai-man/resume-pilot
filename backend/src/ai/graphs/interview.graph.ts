@@ -109,7 +109,13 @@ workflow.addNode('record_answer', async (state) => {
 });
 
 workflow.addNode('generate_report', async (state) => {
-  const { evaluations, profile } = await supervisor.evaluateInterview(
+  const existingEvaluations = state.session.evaluations;
+  const evaluated = existingEvaluations.length
+    ? { evaluations: existingEvaluations, profile: existingEvaluations.reduce(
+        (profile, evaluation) => supervisor.updateProfile(profile, evaluation),
+        { skills: {}, overallLevel: 0 } as CandidateProfile
+      ) }
+    : await supervisor.evaluateInterview(
     state.session.questions,
     state.session.answers,
     state.session.resumeText,
@@ -117,6 +123,7 @@ workflow.addNode('generate_report', async (state) => {
     state.session.rubricSnapshot,
     state.session.userId
   );
+  const { evaluations, profile } = evaluated;
   const report = await supervisor.generateReport(
     state.session.questions,
     state.session.answers,

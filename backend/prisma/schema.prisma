@@ -166,6 +166,8 @@ model InterviewResult {
   current_node String?
   failed_node String?
   pipeline_state Json          @default("{}")
+  evaluation_input_hash String?
+  evaluation_checkpoint Json?
   completed_at DateTime?
   created_at DateTime     @default(now())
   updated_at DateTime     @updatedAt

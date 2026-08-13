@@ -394,6 +394,7 @@ failed_retryable → running（单步重试）
 - 正常完成一场面试时，逐题评价只产生一次批量模型调用；题目级模型调用只允许出现在批量重试仍失败后的补偿路径，并记录额外成本。
 - 报告汇总由后端确定性计算，不再调用 Report Agent；相同评价与 Rubric 必须生成相同总分和维度分。常规报告链路因此只有一次 Batch Evaluation 模型调用。
 - 报告任务已持久化 `currentNode / failedNode / pipelineState`，前端可展示问答校验、批量评价、确定性汇总和发布进度；失败时按钮使用具体节点名称，不再只显示笼统“重新生成报告”
+- 批量评价成功后会保存 `evaluationCheckpoint` 与覆盖冻结简历、JobProfile、Rubric、问题和回答的 SHA-256 `evaluationInputHash`；最终发布失败后重试可直接复用评价。输入哈希变化时旧 checkpoint 自动失效，必须重新执行批量评价
 
 当前实施记录：
 

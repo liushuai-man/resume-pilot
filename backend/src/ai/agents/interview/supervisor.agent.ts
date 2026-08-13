@@ -118,6 +118,10 @@ export class InterviewSupervisorAgent {
     return { evaluations, profile };
   }
 
+  updateProfile(profile: CandidateProfile, evaluation: Evaluation): CandidateProfile {
+    return this.memoryAgent.updateProfile(profile, evaluation);
+  }
+
   async generateReport(
     questions: Question[],
     answers: Answer[],
