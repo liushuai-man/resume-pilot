@@ -114,6 +114,7 @@ workflow.addNode('generate_report', async (state) => {
     state.session.answers,
     state.session.resumeText,
     state.session.targetPosition,
+    state.session.rubricSnapshot,
     state.session.userId
   );
   const report = await supervisor.generateReport(
