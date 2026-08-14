@@ -52,6 +52,24 @@ const PROVIDER_PRESETS: Record<
   },
 };
 
+const CONNECTION_TEST_TIMEOUT_MS = 15000;
+
+async function withConnectionTimeout<T>(operation: Promise<T>): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error('MODEL_CONNECTION_TIMEOUT')),
+      CONNECTION_TEST_TIMEOUT_MS
+    );
+  });
+
+  try {
+    return await Promise.race([operation, timeout]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 export function getProviderPresets() {
   return Object.entries(PROVIDER_PRESETS).map(([key, value]) => ({
     provider: key,
@@ -240,7 +258,9 @@ export async function testConnection(data: {
           baseURL: data.baseUrl || undefined,
         },
       });
-      const vector = await embeddings.embedQuery('连接测试');
+      const vector = await withConnectionTimeout(
+        embeddings.embedQuery('连接测试')
+      );
       if (!Array.isArray(vector) || vector.length === 0) {
         throw new Error('向量模型未返回有效向量');
       }
@@ -263,7 +283,7 @@ export async function testConnection(data: {
       },
     });
 
-    const result = await llm.invoke('ping');
+    const result = await withConnectionTimeout(llm.invoke('ping'));
     const responseContent =
       typeof result.content === 'string'
         ? result.content.substring(0, 50)
@@ -286,7 +306,10 @@ export async function testConnection(data: {
         message = '权限不足';
       } else if (error.message.includes('404')) {
         message = '模型不存在';
-      } else if (error.message.includes('timeout')) {
+      } else if (
+        error.message.includes('timeout') ||
+        error.message.includes('MODEL_CONNECTION_TIMEOUT')
+      ) {
         message = '连接超时';
       } else if (error.message.includes('ETIMEDOUT')) {
         message = '网络连接超时';

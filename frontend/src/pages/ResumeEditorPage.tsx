@@ -182,6 +182,7 @@ export default function ResumeEditorPage() {
           display: 'flex',
           borderBottom: '1px solid #e5e7eb',
           backgroundColor: '#f9fafb',
+          paddingLeft: '44px',
         }}
       >
         <button
@@ -243,7 +244,6 @@ export default function ResumeEditorPage() {
         toolbar={
           <EditorToolbar
             title={document?.title || resume?.title || '新建简历'}
-            resumeId={resumeId || ''}
             onSave={handleSave}
             onExport={handleExport}
             lastModified={formatLastSaved(lastSaved)}

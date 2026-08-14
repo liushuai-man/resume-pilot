@@ -18,6 +18,8 @@ const sectionNames: Record<string, string> = {
   education: '教育经历', careerObjective: '职业目标', certifications: '证书', campusExperiences: '校园经历',
 };
 const getSectionName = (key: string) => sectionNames[key] || key;
+const INTERVIEW_TOOL_MIN_WIDTH = 340;
+const INTERVIEW_TOOL_MAX_WIDTH = 800;
 
 export default function InterviewPage() {
   const navigate = useNavigate();
@@ -32,7 +34,7 @@ export default function InterviewPage() {
   const [pdfPage, setPdfPage] = useState(1);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState(false);
-  const [toolWidth, setToolWidth] = useState(() => Number(localStorage.getItem('resume-pilot:interview-tool-width')) || 520);
+  const [toolWidth, setToolWidth] = useState(() => Math.min(INTERVIEW_TOOL_MAX_WIDTH, Math.max(INTERVIEW_TOOL_MIN_WIDTH, Number(localStorage.getItem('resume-pilot:interview-tool-width')) || 520)));
   const [resizing, setResizing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -48,7 +50,7 @@ export default function InterviewPage() {
   }, [interview.maxQuestions, interview.sessionId, interview.sessionResumeId, resources.setSelectedResumeId]);
   useEffect(() => {
     if (!resizing) return;
-    const resize = (event: MouseEvent) => setToolWidth(Math.min(window.innerWidth - 80, Math.max(340, window.innerWidth - event.clientX)));
+    const resize = (event: MouseEvent) => setToolWidth(Math.min(INTERVIEW_TOOL_MAX_WIDTH, Math.max(INTERVIEW_TOOL_MIN_WIDTH, window.innerWidth - event.clientX)));
     const stop = () => { setResizing(false); document.body.style.cursor = ''; document.body.style.userSelect = ''; };
     document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none';
     window.addEventListener('mousemove', resize); window.addEventListener('mouseup', stop);
@@ -90,7 +92,8 @@ export default function InterviewPage() {
 
       {workspace.collapsed && <button type="button" onClick={() => workspace.selectPanel('resume')} aria-label="展开侧边栏" title="展开侧边栏" className="group absolute right-3 top-[calc(4rem+12px)] z-20 flex h-9 items-center overflow-hidden rounded-lg border border-[#D8E1DD] bg-white px-2.5 text-xs font-medium text-[#52615B] shadow-sm transition-all hover:border-[#B9CAC3] hover:bg-[#F7F9F8] focus-visible:border-[#B9CAC3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176B52]/25"><PanelRightOpen size={15} className="shrink-0"/><span className="max-w-0 overflow-hidden whitespace-nowrap opacity-0 transition-all duration-200 group-hover:ml-1.5 group-hover:max-w-24 group-hover:opacity-100 group-focus-visible:ml-1.5 group-focus-visible:max-w-24 group-focus-visible:opacity-100">展开侧边栏</span></button>}
       {!workspace.collapsed && <div role="separator" aria-orientation="vertical" aria-label="调整工具区域宽度" onMouseDown={() => setResizing(true)} className={`group relative z-30 w-1 shrink-0 cursor-col-resize bg-[#D8E1DD] transition-colors hover:bg-[#176B52] ${resizing ? 'bg-[#176B52]' : ''}`}><span className="absolute left-1/2 top-1/2 h-12 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-transparent group-hover:bg-[#176B52]/15"/></div>}
-      <aside style={workspace.collapsed ? undefined : { width: toolWidth }} className={`${workspace.collapsed ? 'hidden' : ''} min-w-[340px] flex-shrink-0 overflow-hidden bg-white`}>
+      <aside aria-hidden={workspace.collapsed} style={{ width: workspace.collapsed ? 0 : toolWidth }} className={`shrink-0 overflow-hidden bg-white ${resizing ? '' : 'transition-[width,opacity] duration-300 ease-out motion-reduce:transition-none'} ${workspace.collapsed ? 'pointer-events-none opacity-0' : 'opacity-100'}`}>
+        <div style={{ width: toolWidth }} className="h-full min-w-[340px]">
         <InterviewToolTabs activePanel={workspace.activePanel} onSelect={workspace.selectPanel} onCollapse={workspace.toggleCollapsed}/>
         <div className="h-[calc(100%-3rem)]">
         {workspace.activePanel === 'job' ? <JobProfilePanel profile={selectedProfile} />
@@ -99,6 +102,7 @@ export default function InterviewPage() {
           : <InterviewResumePreview resume={resources.resume} highlightSection={interview.currentQuestion?.sectionKey} pdfPage={pdfPage}
               loading={previewLoading} error={previewError} onPageChange={setPdfPage} onLoad={() => setPreviewLoading(false)}
               onError={() => { setPreviewLoading(false); setPreviewError(true); }} />}
+        </div>
         </div>
       </aside>
     </div>

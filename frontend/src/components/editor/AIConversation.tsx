@@ -154,7 +154,7 @@ export default function AIConversation({
   return (
     <div className="h-full flex flex-col bg-white">
       {/* 头部 */}
-      <Card className="border-b border-gray-200 border-x-0 border-t-0 rounded-none">
+      <Card className="hidden">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
             <Sparkles size={16} className="text-white" />
@@ -169,7 +169,7 @@ export default function AIConversation({
       </Card>
 
       {/* 消息列表 */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 pt-12 space-y-4">
         {messages.map((msg) => (
           <div
             key={msg.id}
@@ -179,23 +179,23 @@ export default function AIConversation({
               size="sm"
               className={`flex-shrink-0 ${
                 msg.type === 'user'
-                  ? 'bg-blue-500'
-                  : 'bg-gradient-to-br from-blue-400 to-purple-500'
+                  ? '!bg-[#176B52] !text-white'
+                  : '!bg-[#E4F1EC] !text-[#176B52]'
               }`}
             >
               {msg.type === 'user' ? (
-                'U'
+                <span className="font-semibold text-white">U</span>
               ) : (
-                <Sparkles size={14} className="text-white" />
+                <Sparkles size={14} />
               )}
             </Avatar>
             <div
-              className={`max-w-[85%] ${msg.type === 'user' ? 'text-right' : ''}`}
+              className={`min-w-0 max-w-[92%] ${msg.type === 'user' ? 'text-right' : ''}`}
             >
               <div
-                className={`inline-block px-4 py-3 rounded-2xl text-sm ${
+                className={`min-w-0 max-w-full px-4 py-3 rounded-2xl text-sm ${
                   msg.type === 'user'
-                    ? 'bg-blue-500 text-white rounded-tr-sm'
+                    ? 'inline-block bg-[#176B52] text-white rounded-tr-sm'
                     : 'bg-gray-100 text-gray-800 rounded-tl-sm'
                 }`}
               >
@@ -213,16 +213,18 @@ export default function AIConversation({
                 <div className="mt-2 flex gap-2">
                   <Button
                     variant="subtle"
+                    color="teal"
+                    radius="md"
                     size="xs"
-                    className="text-gray-500 hover:bg-gray-50"
                     onClick={() => handleAction(msg.id, 'copy')}
                   >
                     复制
                   </Button>
                   <Button
                     variant="subtle"
+                    color="teal"
+                    radius="md"
                     size="xs"
-                    className="text-gray-500 hover:bg-gray-50"
                     onClick={() => handleAction(msg.id, 'regenerate')}
                   >
                     重新生成
@@ -280,13 +282,16 @@ export default function AIConversation({
             placeholder="输入你的问题或指令..."
             className="flex-1"
             disabled={isLoading}
+            radius="md"
+            styles={{ input: { borderColor: '#D8E1DD', backgroundColor: '#F7F9F8' } }}
           />
           <Button
             variant="filled"
+            color="teal"
+            radius="md"
             size="md"
             onClick={handleSend}
             disabled={isLoading || !inputValue.trim()}
-            className="bg-blue-500 hover:bg-blue-600"
           >
             {isLoading ? (
               <Loader2 size={16} className="animate-spin" />

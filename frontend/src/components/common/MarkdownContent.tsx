@@ -1,4 +1,5 @@
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface MarkdownContentProps {
   content: string;
@@ -12,6 +13,7 @@ export function MarkdownContent({
   return (
     <div className={`min-w-0 break-words text-sm leading-6 ${className}`}>
       <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
         components={{
           h1: ({ children }) => (
             <h1 className="mb-2 mt-3 text-base font-semibold first:mt-0">
@@ -71,6 +73,15 @@ export function MarkdownContent({
             </a>
           ),
           hr: () => <hr className="my-3 border-slate-200" />,
+          table: ({ children }) => (
+            <div className="my-3 w-full max-w-full overflow-hidden rounded-lg border border-slate-200 bg-white">
+              <table className="w-full table-fixed border-collapse text-left text-xs">{children}</table>
+            </div>
+          ),
+          thead: ({ children }) => <thead className="bg-slate-100 text-slate-700">{children}</thead>,
+          th: ({ children }) => <th className="break-words border-b border-r border-slate-200 px-2 py-2 font-semibold last:border-r-0">{children}</th>,
+          td: ({ children }) => <td className="whitespace-normal break-words border-b border-r border-slate-200 px-2 py-2 align-top last:border-r-0">{children}</td>,
+          tr: ({ children }) => <tr className="last:[&>td]:border-b-0">{children}</tr>,
         }}
       >
         {content}

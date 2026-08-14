@@ -1,6 +1,8 @@
 import request from '@/utils/request';
 import { ApiResponse } from '@/types';
 
+const MODEL_SAVE_TIMEOUT_MS = 20000;
+
 export interface ModelPreset {
   provider: string;
   baseUrl: string;
@@ -55,14 +57,18 @@ export const modelConfigApi = {
   create: async (
     data: CreateModelConfigRequest
   ): Promise<ApiResponse<ModelConfig>> => {
-    return await request.post('/model-config', data);
+    return await request.post('/model-config', data, {
+      timeout: MODEL_SAVE_TIMEOUT_MS,
+    });
   },
 
   update: async (
     id: string,
     data: UpdateModelConfigRequest
   ): Promise<ApiResponse<ModelConfig>> => {
-    return await request.put(`/model-config/${id}`, data);
+    return await request.put(`/model-config/${id}`, data, {
+      timeout: MODEL_SAVE_TIMEOUT_MS,
+    });
   },
 
   setDefault: async (id: string): Promise<ApiResponse<ModelConfig>> => {

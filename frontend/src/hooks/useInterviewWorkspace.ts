@@ -18,7 +18,8 @@ const readPreferences = (): WorkspacePreferences => {
     const stored = JSON.parse(localStorage.getItem(PREFERENCES_KEY) || '{}');
     return {
       activePanel: isWorkspacePanel(stored.activePanel) ? stored.activePanel : 'resume',
-      collapsed: stored.collapsed === undefined ? true : Boolean(stored.collapsed),
+      // 每次进入模拟面试时默认关闭侧边栏，不恢复上一次的展开状态。
+      collapsed: true,
     };
   } catch {
     return { activePanel: 'resume', collapsed: true };

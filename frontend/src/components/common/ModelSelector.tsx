@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Menu, Button, Text, ActionIcon } from '@mantine/core';
 import { Cpu, Settings, ChevronDown, Plus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { modelConfigApi, ModelConfig } from '@/api/model-config.api';
 import ModelManagerModal from './ModelManagerModal';
 import { useUserStore } from '@/store/useUserStore';
@@ -16,6 +17,7 @@ export default function ModelSelector({
   variant = 'compact',
   readOnly = false,
 }: ModelSelectorProps) {
+  const navigate = useNavigate();
   const { isLoggedIn } = useUserStore();
   const [configs, setConfigs] = useState<ModelConfig[]>([]);
   const [defaultConfig, setDefaultConfig] = useState<ModelConfig | null>(null);
@@ -62,6 +64,23 @@ export default function ModelSelector({
 
   if (!isLoggedIn) {
     return null;
+  }
+
+  if (readOnly && variant === 'full') {
+    return (
+      <button
+        type="button"
+        onClick={() => navigate('/profile/models')}
+        title="管理面试模型"
+        className="inline-flex h-9 items-center gap-2 rounded-lg border border-[#D8E1DD] bg-[#F7F9F8] px-3 text-sm text-[#52615B] transition-colors hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
+      >
+        <Cpu size={16} />
+        <span>{defaultConfig ? defaultConfig.displayName : '未配置模型'}</span>
+        {defaultConfig && (
+          <span className="text-xs text-[#8A9691]">{defaultConfig.modelName}</span>
+        )}
+      </button>
+    );
   }
 
   if (readOnly) return variant === 'full' ? <div className="inline-flex h-9 items-center gap-2 rounded-lg border border-[#D8E1DD] bg-[#F7F9F8] px-3 text-sm text-[#52615B]"><Cpu size={16}/><span>{defaultConfig ? defaultConfig.displayName : '未配置模型'}</span>{defaultConfig && <span className="text-xs text-[#8A9691]">{defaultConfig.modelName}</span>}</div> : <ActionIcon variant="subtle" size="md" title={defaultConfig ? `当前模型：${defaultConfig.displayName}` : '未配置模型'} disabled><Cpu size={18}/></ActionIcon>;

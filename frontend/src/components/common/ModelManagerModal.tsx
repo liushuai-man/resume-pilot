@@ -33,6 +33,8 @@ interface ModelManagerModalProps {
   opened: boolean;
   onClose: () => void;
   onConfigChange?: () => void;
+  formOnly?: boolean;
+  initialConfig?: ModelConfig | null;
 }
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -48,6 +50,8 @@ export default function ModelManagerModal({
   opened,
   onClose,
   onConfigChange,
+  formOnly = false,
+  initialConfig = null,
 }: ModelManagerModalProps) {
   const [configs, setConfigs] = useState<ModelConfig[]>([]);
   const [presets, setPresets] = useState<ModelPreset[]>([]);
@@ -91,8 +95,28 @@ export default function ModelManagerModal({
     if (opened) {
       loadConfigs();
       loadPresets();
+      if (formOnly) {
+        if (initialConfig) {
+          setEditingId(initialConfig.id);
+          setFormData({
+            provider: initialConfig.provider,
+            modelName: initialConfig.modelName,
+            apiKey: '',
+            baseUrl: initialConfig.baseUrl || '',
+            displayName: initialConfig.displayName,
+            isDefault: initialConfig.isDefault,
+            purpose: initialConfig.purpose,
+          });
+        } else {
+          setEditingId(null);
+          setFormData({ provider: 'openai', modelName: 'gpt-4o', apiKey: '', baseUrl: '', displayName: '', isDefault: false, purpose: 'chat' });
+        }
+        setSaveError(null);
+        setShowApiKey(false);
+        setShowForm(true);
+      }
     }
-  }, [opened]);
+  }, [formOnly, initialConfig, opened]);
 
   const loadConfigs = async () => {
     try {
@@ -161,15 +185,24 @@ export default function ModelManagerModal({
       if (res.code === 200) {
         notification.success(editingId ? '模型配置已更新' : '模型配置已保存');
         resetForm();
-        await loadConfigs();
         onConfigChange?.();
+        if (formOnly) {
+          onClose();
+        } else {
+          await loadConfigs();
+        }
       } else {
         const message = res.message || '模型配置保存失败';
         setSaveError(message);
         notification.error(message);
       }
     } catch (error: any) {
-      const message = getApiErrorMessage(error, '模型配置保存失败');
+      const isTimeout =
+        error?.code === 'ECONNABORTED' ||
+        String(error?.message || '').toLowerCase().includes('timeout');
+      const message = isTimeout
+        ? '连接验证超时（20 秒），请检查 Base URL、模型名称和网络后重试'
+        : getApiErrorMessage(error, '模型配置保存失败');
       setSaveError(message);
       notification.error(message);
     } finally {
@@ -232,12 +265,12 @@ export default function ModelManagerModal({
       onClose={handleClose}
       title="模型管理"
       size="lg"
-      closeOnClickOutside={!loading}
-      closeOnEscape={!loading}
+      closeOnClickOutside={!formOnly && !loading}
+      closeOnEscape={!formOnly && !loading}
       withCloseButton={!loading}
     >
       <Stack gap="md">
-        <Group justify="space-between">
+        {!formOnly && <Group justify="space-between">
           <Text size="sm" c="dimmed">
             已添加 {configs.length} 个模型配置
           </Text>
@@ -256,7 +289,7 @@ export default function ModelManagerModal({
           >
             {showForm ? '取消' : '添加模型'}
           </Button>
-        </Group>
+        </Group>}
 
         {showForm && (
           <Paper p="md" withBorder>
@@ -378,7 +411,7 @@ export default function ModelManagerModal({
           </Paper>
         )}
 
-        <Stack gap="xs">
+        {!formOnly && <Stack gap="xs">
           {configs.length === 0 ? (
             <Paper p="xl" withBorder style={{ textAlign: 'center' }}>
               <Text c="dimmed" size="sm">
@@ -451,7 +484,7 @@ export default function ModelManagerModal({
               </Paper>
             ))
           )}
-        </Stack>
+        </Stack>}
       </Stack>
     </Modal>
   );
