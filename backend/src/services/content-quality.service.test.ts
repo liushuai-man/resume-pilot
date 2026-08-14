@@ -40,3 +40,10 @@ test('拒绝重复或缺失的评价维度', () => {
   invalid.dimensions[4].key = 'coherence';
   assert.throws(() => parseContentQualityOutput(JSON.stringify(invalid), fields), /维度不完整或重复/);
 });
+
+test('兼容模型常用的 info 严重度并归一化为建议', () => {
+  const compatible = JSON.parse(validOutput);
+  compatible.issues[0].severity = 'info';
+  const result = parseContentQualityOutput(JSON.stringify(compatible), fields);
+  assert.equal(result.issues[0].severity, 'suggestion');
+});

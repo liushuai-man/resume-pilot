@@ -19,6 +19,10 @@ const dimensionMaxScores = {
 } as const;
 
 const dimensionKeySchema = z.enum(['coherence', 'informationValue', 'evidenceSpecificity', 'consistency', 'professionalism']);
+const severitySchema = z.preprocess(
+  (value) => value === 'info' ? 'suggestion' : value,
+  z.enum(['error', 'warning', 'suggestion']),
+);
 const outputSchema = z.object({
   dimensions: z.array(z.object({
     key: dimensionKeySchema,
@@ -30,7 +34,7 @@ const outputSchema = z.object({
     fieldId: z.string().trim().min(1),
     evidence: z.string().trim().min(1).max(1000),
     dimension: dimensionKeySchema,
-    severity: z.enum(['error', 'warning', 'suggestion']),
+    severity: severitySchema,
     reason: z.string().trim().min(1).max(500),
     suggestion: z.string().trim().min(1).max(500),
     confidence: z.number().min(0).max(1),

@@ -31,6 +31,7 @@
     "calibrate:content-quality": "tsx src/evals/content-quality.calibration.ts",
     "calibrate:job-match": "tsx src/evals/job-match.calibration.ts",
     "calibrate:job-profile": "tsx src/evals/job-profile.calibration.ts",
+    "calibrate:interview-flow": "tsx src/evals/interview-flow.calibration.ts",
     "calibrate:resume-optimization": "tsx src/evals/resume-optimization.calibration.ts",
     "calibrate:ats-optimization": "tsx src/evals/ats-optimization.calibration.ts",
     "diagnose:model": "tsx src/evals/model-connectivity.ts"
