@@ -16,7 +16,7 @@ import {
 } from '../controllers/job.controllers';
 import { authMiddleware } from '../middlewares/auth.middleware';
 
-const router = Router();
+const router: Router = Router();
 router.use(authMiddleware);
 router.get('/', listJobs);
 router.post('/', createJob);
