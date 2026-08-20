@@ -1,5 +1,8 @@
-import { useEffect, useRef } from 'react';
+import axios from 'axios';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getCurrentUser } from '@/api/auth.api';
+import { useUserStore } from '@/store/useUserStore';
 import {
   ArrowRight,
   ArrowUp,
@@ -59,8 +62,40 @@ const workflow = [
 export default function LandingPage() {
   const navigate = useNavigate();
   const scrollContainerRef = useRef<HTMLElement>(null);
+  const { setUser, clearUser } = useUserStore();
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
 
   useEffect(() => {
+    let active = true;
+
+    const checkSession = async () => {
+      try {
+        const response = await getCurrentUser();
+        if (!active) return;
+
+        if (response.code === 200 && response.data) {
+          setUser(response.data);
+          navigate('/resumes', { replace: true });
+          return;
+        }
+      } catch (error) {
+        if (!active) return;
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
+          clearUser();
+        }
+      }
+
+      if (active) setIsCheckingSession(false);
+    };
+
+    void checkSession();
+    return () => {
+      active = false;
+    };
+  }, [clearUser, navigate, setUser]);
+
+  useEffect(() => {
+    if (isCheckingSession) return;
     const container = scrollContainerRef.current;
     const usesPrecisePointer = window.matchMedia(
       '(pointer: fine) and (min-height: 700px) and (prefers-reduced-motion: no-preference)'
@@ -117,7 +152,11 @@ export default function LandingPage() {
       container.removeEventListener('wheel', handleWheel);
       cancelAnimationFrame(animationFrame);
     };
-  }, []);
+  }, [isCheckingSession]);
+
+  if (isCheckingSession) {
+    return <main className="h-[100svh] bg-[#F4F7F6]" aria-label="正在检查登录状态" />;
+  }
 
   return (
     <main
