@@ -19,6 +19,14 @@ export async function aiChat(request: AIChatRequest): Promise<string> {
   return await chatAgent.chat(request);
 }
 
+export async function aiChatStream(
+  request: AIChatRequest,
+  onDelta: (delta: string) => Promise<void> | void
+): Promise<string> {
+  console.log('=== 使用新的 LangChain AI 流式对话');
+  return await chatAgent.chatStream(request, onDelta);
+}
+
 export async function getSessionSummary(
   sessionId: string,
   userId?: string

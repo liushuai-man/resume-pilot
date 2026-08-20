@@ -4,6 +4,7 @@ import {
   completeText,
   polishText,
   chat,
+  chatStream,
   getChatSummary,
   clearChatSession,
   polishSection,
@@ -41,6 +42,7 @@ router.post(
   completeSection
 );
 router.post('/chat', authMiddleware, aiUserRateLimit, chat);
+router.post('/chat/stream', authMiddleware, aiUserRateLimit, chatStream);
 router.get('/chat/summary/:sessionId', authMiddleware, getChatSummary);
 router.delete('/chat/session/:sessionId', authMiddleware, clearChatSession);
 

@@ -7,6 +7,7 @@ import {
 } from '../services/ai.service';
 import {
   aiChat,
+  aiChatStream,
   getSessionSummary,
   clearSession,
   AIChatRequest,
@@ -131,6 +132,51 @@ export const chat = async (req: Request, res: Response) => {
       console.error('API响应数据:', err.response.data);
     }
     return error(res, `对话失败: ${err.message}`, 500);
+  }
+};
+
+export const chatStream = async (req: Request, res: Response) => {
+  const writeEvent = (event: string, data: unknown) => {
+    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+  };
+
+  try {
+    const {
+      messages,
+      resumeContent,
+      currentField,
+      sessionId,
+      resumeId,
+    }: AIChatRequest = req.body;
+    const userId = (req as any).user?.id;
+
+    if (!messages || messages.length === 0) {
+      return error(res, '请提供对话消息', 400);
+    }
+
+    res.status(200);
+    res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders?.();
+
+    writeEvent('started', { type: 'started' });
+    const content = await aiChatStream(
+      { messages, resumeContent, currentField, sessionId, userId, resumeId },
+      async (delta) => {
+        writeEvent('delta', { type: 'delta', delta });
+      }
+    );
+    writeEvent('completed', { type: 'completed', content });
+    res.end();
+  } catch (err: any) {
+    console.error('=== AI流式对话失败 ===', err);
+    if (!res.headersSent) {
+      return error(res, `对话失败: ${err.message}`, 500);
+    }
+    writeEvent('failed', { type: 'failed', message: err.message || 'AI 对话失败' });
+    res.end();
   }
 };
 

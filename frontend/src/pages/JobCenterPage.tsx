@@ -488,7 +488,7 @@ export default function JobCenterPage() {
             )}
           </div>
         ) : (
-          <div className="flex h-full flex-col items-center justify-center text-center"><h2 className="text-xl font-bold">建立你的目标岗位</h2><p className="mt-2 text-gray-500">从粘贴一份真实 JD 开始。</p><button onClick={openCreate} className="mt-5 rounded-lg bg-blue-600 px-4 py-2 text-white">添加 JD</button></div>
+          <div className="flex h-full flex-col items-center justify-center text-center"><h2 className="text-xl font-bold">建立你的目标岗位</h2><p className="mt-2 text-gray-500">从粘贴一份真实 JD 开始。</p><button onClick={openCreate} className="mt-5 rounded-lg bg-[#176B52] px-4 py-2 text-white transition hover:bg-[#10563F] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#176B52]">添加 JD</button></div>
         )}
       </section>
       </div>

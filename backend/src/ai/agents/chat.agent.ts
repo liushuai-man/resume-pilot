@@ -22,6 +22,20 @@ function serializeResume(resumeContent: unknown): string {
 
 export class ChatAgent {
   async chat(request: AIChatRequest): Promise<string> {
+    return this.runChat(request);
+  }
+
+  async chatStream(
+    request: AIChatRequest,
+    onDelta: (delta: string) => Promise<void> | void
+  ): Promise<string> {
+    return this.runChat(request, onDelta);
+  }
+
+  private async runChat(
+    request: AIChatRequest,
+    onDelta?: (delta: string) => Promise<void> | void
+  ): Promise<string> {
     const {
       sessionId = `temp_${Date.now()}`,
       messages,
@@ -92,13 +106,24 @@ export class ChatAgent {
         new StringOutputParser(),
       ]);
 
-      const response = await chain.invoke({
+      const input = {
         resume: serializeResume(resumeContent),
         longTermMemory,
         currentField,
         history: historyMessages,
         input: latestUserMessage,
-      });
+      };
+      let response = '';
+      if (onDelta) {
+        const stream = await chain.stream(input);
+        for await (const chunk of stream) {
+          if (!chunk) continue;
+          response += chunk;
+          await onDelta(chunk);
+        }
+      } else {
+        response = await chain.invoke(input);
+      }
 
       // Long-term memory persistence is asynchronous so embedding latency does
       // not delay the response shown to the user.

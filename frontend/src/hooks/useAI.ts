@@ -18,6 +18,11 @@ interface UseAIReturn {
     messages: { role: 'user' | 'assistant'; content: string }[],
     resumeContent?: any
   ) => Promise<string | null>;
+  chatStream: (
+    messages: { role: 'user' | 'assistant'; content: string }[],
+    resumeContent: any,
+    onDelta: (delta: string) => void
+  ) => Promise<string | null>;
 }
 
 // 判断是否是网络超时错误
@@ -146,10 +151,41 @@ export function useAI(options: UseAIOptions = {}): UseAIReturn {
     [targetField, sessionId, resumeId, onSuccess, handleError]
   );
 
+  const chatStream = useCallback(
+    async (
+      messages: { role: 'user' | 'assistant'; content: string }[],
+      resumeContent: any,
+      onDelta: (delta: string) => void
+    ): Promise<string | null> => {
+      setIsLoading(true);
+      try {
+        const content = await aiApi.chatStream(
+          {
+            sessionId,
+            resumeId,
+            messages,
+            resumeContent,
+            currentField: targetField,
+          },
+          { onDelta }
+        );
+        onSuccess?.(content);
+        return content;
+      } catch (error: any) {
+        handleError(error, 'AI 流式对话');
+        return null;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [targetField, sessionId, resumeId, onSuccess, handleError]
+  );
+
   return {
     isLoading,
     complete,
     polish,
     chat,
+    chatStream,
   };
 }

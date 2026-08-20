@@ -3,6 +3,7 @@ import { Text, Paper, Loader } from '@mantine/core';
 import { Send, User, Bot, X, Play } from 'lucide-react';
 import type { Question, Answer } from '@/api/interview.api';
 import MarkdownContent from '@/components/common/MarkdownContent';
+import StreamingDots from '@/components/common/StreamingDots';
 
 interface InterviewChatProps {
   questions: Question[];
@@ -137,12 +138,14 @@ export default function InterviewChat({
                   <Text size="xs" c="dimmed" mb={4}>
                     AI 面试官
                   </Text>
-                  <Paper p="md" radius="md" bg="gray.0" withBorder>
-                    <div className="flex items-center gap-2">
-                      <Loader size="xs" />
+                  <Paper p="md" radius="md" bg="gray.0" withBorder className="border-[#DDE5E1]">
+                    <div>
                       <Text size="sm" c="dimmed">
                         {streamStage ? stageLabels[streamStage] || '正在处理...' : '正在思考...'}
                       </Text>
+                      <div className="mt-3">
+                        <StreamingDots />
+                      </div>
                     </div>
                   </Paper>
                 </div>

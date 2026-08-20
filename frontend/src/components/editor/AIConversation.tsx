@@ -8,6 +8,7 @@ import { documentToContent } from '@/utils/resume-migration';
 import { notification } from '@/components/common/Notification';
 import { useAI } from '@/hooks/useAI';
 import MarkdownContent from '@/components/common/MarkdownContent';
+import StreamingDots from '@/components/common/StreamingDots';
 
 interface Message {
   id: string;
@@ -29,6 +30,7 @@ export default function AIConversation({
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { content, resume } = useResumeStore();
   const document = useDocumentStore((state) => state.document);
@@ -42,7 +44,7 @@ export default function AIConversation({
     [document, content]
   );
 
-  const { isLoading, chat } = useAI({
+  const { isLoading, chatStream } = useAI({
     targetField: currentField,
     sessionId,
     resumeId: resume?.id,
@@ -88,24 +90,45 @@ export default function AIConversation({
       { role: 'user', content: inputValue },
     ];
 
-    const aiResponse = await chat(newHistory, currentResumeContent);
+    const aiMessageId = `msg-${Date.now()}-ai`;
+    setStreamingMessageId(aiMessageId);
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: aiMessageId,
+        type: 'ai',
+        content: '',
+        timestamp: new Date(),
+      },
+    ]);
+
+    const aiResponse = await chatStream(newHistory, currentResumeContent, (delta) => {
+      setMessages((prev) =>
+        prev.map((message) =>
+          message.id === aiMessageId
+            ? { ...message, content: message.content + delta }
+            : message
+        )
+      );
+    });
 
     if (aiResponse) {
-      const aiMessage: Message = {
-        id: `msg-${Date.now()}-ai`,
-        type: 'ai',
-        content: aiResponse,
-        timestamp: new Date(),
-        // 检查AI回复是否包含可应用的内容
-        suggestedAction: aiResponse.length > 50 ? 'copy' : undefined,
-      };
-      setMessages((prev) => [...prev, aiMessage]);
+      setMessages((prev) =>
+        prev.map((message) =>
+          message.id === aiMessageId
+            ? { ...message, content: aiResponse, suggestedAction: aiResponse.length > 50 ? 'copy' : undefined }
+            : message
+        )
+      );
       setChatHistory([
         ...newHistory,
         { role: 'assistant', content: aiResponse },
       ]);
+    } else {
+      setMessages((prev) => prev.filter((message) => message.id !== aiMessageId));
     }
-  }, [inputValue, isLoading, chatHistory, currentResumeContent, chat]);
+    setStreamingMessageId(null);
+  }, [inputValue, isLoading, chatHistory, currentResumeContent, chatStream]);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -200,7 +223,14 @@ export default function AIConversation({
                 }`}
               >
                 {msg.type === 'ai' ? (
-                  <MarkdownContent content={msg.content} />
+                  <>
+                    {msg.content && <MarkdownContent content={msg.content} />}
+                    {streamingMessageId === msg.id && (
+                      <div className={msg.content ? 'mt-2' : ''}>
+                        <StreamingDots />
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <p className="whitespace-pre-wrap break-words leading-6">
                     {msg.content}
@@ -242,29 +272,16 @@ export default function AIConversation({
           </div>
         ))}
 
-        {isLoading && (
+        {isLoading && !streamingMessageId && (
           <div className="flex gap-3">
             <Avatar
               size="sm"
-              className="flex-shrink-0 bg-gradient-to-br from-blue-400 to-purple-500"
+              className="flex-shrink-0 !bg-[#E4F1EC] !text-[#176B52]"
             >
-              <Sparkles size={14} className="text-white" />
+              <Sparkles size={14} />
             </Avatar>
             <div className="bg-gray-100 px-4 py-3 rounded-2xl rounded-tl-sm">
-              <div className="flex gap-1">
-                <span
-                  className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                  style={{ animationDelay: '0ms' }}
-                ></span>
-                <span
-                  className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                  style={{ animationDelay: '150ms' }}
-                ></span>
-                <span
-                  className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                  style={{ animationDelay: '300ms' }}
-                ></span>
-              </div>
+              <StreamingDots />
             </div>
           </div>
         )}
