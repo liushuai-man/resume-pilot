@@ -1,6 +1,8 @@
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
+  ArrowUp,
   CheckCircle2,
   FileCheck2,
   Gauge,
@@ -8,7 +10,17 @@ import {
   MessageSquareText,
   ShieldCheck,
   Target,
+  TrendingUp,
 } from 'lucide-react';
+
+const abilityDimensions = [
+  { icon: Layers3, label: '结构完整', value: 92 },
+  { icon: Gauge, label: '表达质量', value: 84 },
+  { icon: Target, label: '岗位匹配', value: 88 },
+  { icon: FileCheck2, label: '成果证据', value: 78 },
+  { icon: MessageSquareText, label: '面试表达', value: 82 },
+  { icon: CheckCircle2, label: '行动准备', value: 86 },
+];
 
 const capabilities = [
   {
@@ -46,10 +58,73 @@ const workflow = [
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const scrollContainerRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    const usesPrecisePointer = window.matchMedia(
+      '(pointer: fine) and (min-height: 700px) and (prefers-reduced-motion: no-preference)'
+    );
+    if (!container || !usesPrecisePointer.matches) return;
+
+    let animationFrame = 0;
+    let isAnimating = false;
+
+    const handleWheel = (event: WheelEvent) => {
+      if (isAnimating || Math.abs(event.deltaY) < 8) {
+        if (isAnimating) event.preventDefault();
+        return;
+      }
+
+      const sections = Array.from(container.querySelectorAll<HTMLElement>('[data-scroll-section]'));
+      const currentTop = container.scrollTop;
+      const currentIndex = sections.reduce((closestIndex, section, index) => {
+        const currentDistance = Math.abs(sections[closestIndex].offsetTop - currentTop);
+        return Math.abs(section.offsetTop - currentTop) < currentDistance ? index : closestIndex;
+      }, 0);
+      const targetIndex = Math.min(
+        sections.length - 1,
+        Math.max(0, currentIndex + (event.deltaY > 0 ? 1 : -1))
+      );
+
+      if (targetIndex === currentIndex) return;
+      event.preventDefault();
+      isAnimating = true;
+
+      const startTop = currentTop;
+      const targetTop = sections[targetIndex].offsetTop;
+      const distance = targetTop - startTop;
+      const duration = 900;
+      const startTime = performance.now();
+
+      const animate = (time: number) => {
+        const progress = Math.min((time - startTime) / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        container.scrollTop = startTop + distance * eased;
+
+        if (progress < 1) {
+          animationFrame = requestAnimationFrame(animate);
+        } else {
+          isAnimating = false;
+        }
+      };
+
+      animationFrame = requestAnimationFrame(animate);
+    };
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      container.removeEventListener('wheel', handleWheel);
+      cancelAnimationFrame(animationFrame);
+    };
+  }, []);
 
   return (
-    <main className="min-h-screen bg-[#F4F7F6] text-[#17211D]">
-      <section className="mx-auto flex min-h-[92vh] w-full max-w-[1440px] flex-col px-6 py-6 lg:px-10">
+    <main
+      ref={scrollContainerRef}
+      className="h-[100svh] snap-y snap-proximity overflow-y-auto overscroll-y-contain scroll-smooth bg-[#F4F7F6] text-[#17211D] motion-reduce:scroll-auto"
+    >
+      <section data-scroll-section className="mx-auto flex min-h-[100svh] w-full max-w-[1440px] snap-start flex-col px-6 py-6 lg:px-10">
         <header className="flex items-center justify-between border-b border-[#D8E1DD] pb-5">
           <button type="button" className="flex items-center gap-3 text-left" onClick={() => navigate('/')}>
             <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#176B52] text-white">
@@ -138,37 +213,149 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="border-y border-[#D8E1DD] bg-white">
-        <div className="mx-auto grid w-full max-w-[1440px] gap-4 px-6 py-10 lg:grid-cols-4 lg:px-10">
-          {capabilities.map((item) => {
-            const Icon = item.icon;
-            return (
-              <article key={item.title} className="rounded-[8px] border border-[#E3EAE7] p-5">
-                <Icon size={22} className="text-[#176B52]" />
-                <h2 className="mt-4 text-base font-semibold">{item.title}</h2>
-                <p className="mt-3 text-sm leading-6 text-[#56635E]">{item.text}</p>
-                <p className="mt-4 border-t border-[#E3EAE7] pt-4 text-xs leading-5 text-[#7A8782]">{item.detail}</p>
-              </article>
-            );
-          })}
+      <section data-scroll-section className="flex min-h-[100svh] snap-start items-center border-y border-[#D8E1DD] bg-[#F4F7F6]">
+        <div className="mx-auto grid w-full max-w-[1440px] items-center gap-10 px-6 py-14 lg:grid-cols-[0.82fr_1.18fr] lg:px-10 lg:py-20">
+          <div>
+            <div className="flex items-center gap-2 text-[#176B52]">
+              <TrendingUp size={20} />
+              <span className="text-xs font-semibold uppercase tracking-[0.16em]">Career readiness</span>
+            </div>
+            <h2 className="mt-4 max-w-lg text-3xl font-semibold leading-tight text-[#17211D] sm:text-4xl">
+              六个维度，形成完整的求职能力闭环
+            </h2>
+            <p className="mt-4 max-w-lg text-sm leading-7 text-[#66736D]">
+              不只修改一份简历，而是把内容、岗位与面试放在同一套能力坐标中持续校准。
+            </p>
+
+            <div className="mt-8 grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
+              {abilityDimensions.map((dimension) => {
+                const Icon = dimension.icon;
+                return (
+                  <div key={dimension.label} className="group border-l-2 border-[#D8E1DD] pl-3 transition-colors hover:border-[#176B52]">
+                    <div className="flex items-center gap-2.5">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-md bg-[#EAF3EF] text-[#176B52]">
+                        <Icon size={17} strokeWidth={1.8} />
+                      </span>
+                      <div>
+                        <p className="text-sm font-semibold text-[#17211D]">{dimension.label}</p>
+                        <p className="mt-0.5 text-xs font-medium tabular-nums text-[#8A5A26]">{dimension.value}%</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="relative mx-auto flex w-full max-w-[680px] items-center justify-center overflow-hidden rounded-[8px] border border-[#D8E1DD] bg-white px-2 py-5 sm:px-8 sm:py-8">
+            <svg
+              viewBox="0 0 520 410"
+              className="h-auto w-full max-w-[600px]"
+              role="img"
+              aria-labelledby="ability-radar-title ability-radar-description"
+            >
+              <title id="ability-radar-title">求职能力六维雷达图</title>
+              <desc id="ability-radar-description">展示结构完整、表达质量、岗位匹配、成果证据、面试表达和行动准备六项能力。</desc>
+
+              <g transform="translate(80 25)">
+                {[40, 80, 120].map((radius) => {
+                  const half = radius * 0.5;
+                  const side = radius * 0.866;
+                  return (
+                    <polygon
+                      key={radius}
+                      points={`180,${180 - radius} ${180 + side},${180 - half} ${180 + side},${180 + half} 180,${180 + radius} ${180 - side},${180 + half} ${180 - side},${180 - half}`}
+                      fill={radius === 120 ? '#EDF3F0' : 'none'}
+                      stroke="#C9D7D1"
+                      strokeWidth="1"
+                    />
+                  );
+                })}
+
+                {[
+                  [180, 60], [284, 120], [284, 240],
+                  [180, 300], [76, 240], [76, 120],
+                ].map(([x, y]) => (
+                  <line key={`${x}-${y}`} x1="180" y1="180" x2={x} y2={y} stroke="#D6E1DC" strokeWidth="1" />
+                ))}
+
+                <polygon
+                  points="180,69.6 267.3,129.6 271.4,232.8 180,273.6 94.8,229.2 90.6,128.4"
+                  fill="#176B52"
+                  fillOpacity="0.2"
+                  stroke="#176B52"
+                  strokeWidth="2.5"
+                  strokeLinejoin="round"
+                />
+                {[
+                  [180, 69.6], [267.3, 129.6], [271.4, 232.8],
+                  [180, 273.6], [94.8, 229.2], [90.6, 128.4],
+                ].map(([x, y]) => (
+                  <circle key={`${x}-${y}`} cx={x} cy={y} r="4.5" fill="#F4F7F6" stroke="#176B52" strokeWidth="2.5" />
+                ))}
+
+                <g fill="#17211D" fontSize="13" fontWeight="600" textAnchor="middle">
+                  <text x="180" y="38">结构完整</text>
+                  <text x="321" y="112">表达质量</text>
+                  <text x="329" y="255">岗位匹配</text>
+                  <text x="180" y="330">成果证据</text>
+                  <text x="33" y="255">面试表达</text>
+                  <text x="35" y="112">行动准备</text>
+                </g>
+              </g>
+            </svg>
+          </div>
         </div>
       </section>
 
-      <section className="mx-auto grid w-full max-w-[1440px] gap-6 px-6 py-12 lg:grid-cols-[0.8fr_1.2fr] lg:px-10">
-        <div>
-          <ShieldCheck size={24} className="text-[#176B52]" />
-          <h2 className="mt-4 text-2xl font-semibold">登录与展示模式的区别</h2>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-[8px] border border-[#D8E1DD] bg-white p-5">
-            <p className="font-semibold">登录后</p>
-            <p className="mt-2 text-sm leading-6 text-[#56635E]">可以创建和保存简历，上传文件，调用 AI 优化、岗位分析和模拟面试，并保留历史记录。</p>
+      <section data-scroll-section className="relative flex min-h-[100svh] snap-start items-center border-y border-[#D8E1DD] bg-[#F4F7F6] pb-20">
+        <div className="mx-auto w-full max-w-[1440px] px-6 py-10 lg:px-10">
+          <div className="grid gap-4 lg:grid-cols-4">
+            {capabilities.map((item) => {
+              const Icon = item.icon;
+              return (
+                <article key={item.title} className="rounded-[8px] border border-[#E3EAE7] p-5">
+                  <Icon size={22} className="text-[#176B52]" />
+                  <h2 className="mt-4 text-base font-semibold">{item.title}</h2>
+                  <p className="mt-3 text-sm leading-6 text-[#56635E]">{item.text}</p>
+                  <p className="mt-4 border-t border-[#E3EAE7] pt-4 text-xs leading-5 text-[#7A8782]">{item.detail}</p>
+                </article>
+              );
+            })}
           </div>
-          <div className="rounded-[8px] border border-[#D8E1DD] bg-white p-5">
-            <p className="font-semibold">跳过登录</p>
-            <p className="mt-2 text-sm leading-6 text-[#56635E]">只进入界面预览。涉及数据保存、上传和 AI 调用的操作会被拦截，适合先了解信息架构。</p>
+
+          <div className="mt-8 grid gap-5 border-t border-[#D8E1DD] pt-7 lg:grid-cols-[0.72fr_1.28fr] lg:items-start">
+            <div className="flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#EAF3EF] text-[#176B52]">
+                <ShieldCheck size={21} />
+              </span>
+              <div>
+                <h2 className="text-lg font-semibold">选择你的体验方式</h2>
+                <p className="mt-1 text-sm text-[#66736D]">登录使用完整能力，或先浏览界面。</p>
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="border-l-2 border-[#176B52] pl-4">
+                <p className="font-semibold">登录后</p>
+                <p className="mt-1 text-sm leading-6 text-[#56635E]">创建、保存和上传简历，使用 AI 优化、岗位分析、模拟面试及历史记录。</p>
+              </div>
+              <div className="border-l-2 border-[#C5D1CC] pl-4">
+                <p className="font-semibold">跳过登录</p>
+                <p className="mt-1 text-sm leading-6 text-[#56635E]">浏览完整界面；数据保存、上传和 AI 操作保持不可用。</p>
+              </div>
+            </div>
           </div>
         </div>
+
+        <button
+          type="button"
+          onClick={() => scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="absolute inset-x-0 bottom-0 flex h-16 items-center justify-center gap-2 border-t border-white/70 bg-white/60 text-sm font-semibold text-[#176B52] backdrop-blur-md transition-colors hover:bg-white/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-[#176B52]"
+        >
+          <ArrowUp size={17} />
+          返回顶部
+        </button>
       </section>
     </main>
   );
