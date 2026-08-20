@@ -59,7 +59,7 @@ export default function InterviewPage() {
   }, [resizing]);
   useEffect(() => { localStorage.setItem('resume-pilot:interview-tool-width', String(toolWidth)); }, [toolWidth]);
 
-  if (resources.loading || interview.restoring) return <div className="flex h-[calc(100vh-4rem)] items-center justify-center"><Loader size="xl" /></div>;
+  if (resources.loading || interview.restoring) return <div className="flex h-[calc(100vh-4rem)] items-center justify-center"><Loader size="xl" color="#176B52" /></div>;
 
   if (isGuest) {
     return (

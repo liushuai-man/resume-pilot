@@ -61,7 +61,7 @@ export default function ProfileModelsPage() {
       <p className="text-sm text-[#66736D]">管理模拟面试使用的模型配置、连接信息和默认模型。</p>
       <Button size="sm" leftSection={<Plus size={15} />} onClick={() => openForm()}>添加模型</Button>
     </div>
-    {loading ? <div className="flex min-h-64 items-center justify-center"><Loader /></div> :
+      {loading ? <div className="flex min-h-64 items-center justify-center"><Loader color="#176B52" /></div> :
       <div className="space-y-3">
         {configs.length === 0 ? <Paper withBorder p="xl" className="text-center"><Text c="dimmed" size="sm">尚未配置模型。添加后才能使用 AI 面试与分析功能。</Text></Paper> :
           configs.map((config) => <Paper key={config.id} withBorder p="md" radius="md">

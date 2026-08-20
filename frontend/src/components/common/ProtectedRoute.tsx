@@ -2,7 +2,6 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { getCurrentUser } from '@/api/auth.api';
 import { useUserStore } from '@/store/useUserStore';
-import LoadingPage from './LoadingPage';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -10,14 +9,14 @@ interface ProtectedRouteProps {
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const location = useLocation();
-  const { setUser, clearUser, isGuest } = useUserStore();
+  const { setUser, clearUser, isGuest, isLoggedIn } = useUserStore();
   const [isChecking, setIsChecking] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    if (isGuest) {
+    if (isGuest || isLoggedIn) {
       setIsChecking(false);
-      setIsAuthenticated(false);
+      setIsAuthenticated(isLoggedIn);
       return;
     }
 
@@ -46,10 +45,10 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     return () => {
       active = false;
     };
-  }, [clearUser, isGuest, setUser]);
+  }, [clearUser, isGuest, isLoggedIn, setUser]);
 
   if (isChecking) {
-    return <LoadingPage title="正在验证登录状态..." />;
+    return null;
   }
 
   if (!isAuthenticated && !isGuest) {

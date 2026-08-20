@@ -6,7 +6,7 @@ import { formatDateTime } from '@/utils/format';
 
 export default function ProfilePage() {
   const { data, loading, error } = useProfileOverview();
-  if (loading) return <div className="flex min-h-[480px] items-center justify-center"><Loader size="xl"/></div>;
+  if (loading) return <div className="flex min-h-[480px] items-center justify-center"><Loader size="xl" color="#176B52"/></div>;
   if (error || !data) return <div className="flex min-h-[480px] flex-col items-center justify-center gap-3"><Text c="dimmed">个人中心数据加载失败</Text><Button onClick={() => window.location.reload()}>重新加载</Button></div>;
   return <>
     <div className="mb-5 min-h-12 border-b border-[#D8E1DD] pb-4"><p className="text-sm text-[#66736D]">关键求职数据概览；样本不足的指标以“—”显示。</p></div>

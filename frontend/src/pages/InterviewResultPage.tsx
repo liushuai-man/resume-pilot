@@ -23,10 +23,10 @@ export default function InterviewResultPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  if (loading) return <div className="flex min-h-[50vh] items-center justify-center"><Loader size="xl"/></div>;
+  if (loading) return <div className="flex min-h-[50vh] items-center justify-center"><Loader size="xl" color="#176B52"/></div>;
   if (!result) return <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4"><Text c="dimmed">未找到面试结果</Text><Button variant="outline" onClick={() => navigate('/interviews/history')}>查看面试记录</Button></div>;
 
-  if (result.status === 'generating') return <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 text-center"><Loader size="lg"/><Title order={3}>报告生成中</Title><Text c="dimmed">当前步骤：{interviewNodeLabel(result.current_node)}。完整问答已保存。</Text><InterviewPipelineStatus result={result}/><Button variant="outline" onClick={() => window.location.reload()}>刷新状态</Button></div>;
+  if (result.status === 'generating') return <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 text-center"><Loader size="lg" color="#176B52"/><Title order={3}>报告生成中</Title><Text c="dimmed">当前步骤：{interviewNodeLabel(result.current_node)}。完整问答已保存。</Text><InterviewPipelineStatus result={result}/><Button variant="outline" onClick={() => window.location.reload()}>刷新状态</Button></div>;
 
   if (result.status === 'failed') return <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 px-6 text-center"><CircleAlert size={40} className="text-red-500"/><Title order={3}>报告生成失败</Title><Text c="dimmed">“{interviewNodeLabel(result.failed_node)}”未完成，完整问题和回答已经保存。</Text><InterviewPipelineStatus result={result}/><Button leftSection={<RefreshCw size={16}/>} loading={retrying} onClick={async () => {
     setRetrying(true);

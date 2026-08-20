@@ -191,7 +191,7 @@ export default function InterviewChat({
                 title={sessionStarted ? '发送回答' : '开始面试'}
                 className="flex h-9 w-9 items-center justify-center rounded-full bg-[#176B52] text-white transition hover:bg-[#10563F] disabled:cursor-not-allowed disabled:bg-[#CBD3CF]"
               >
-                {submitting || starting ? <Loader size="xs" /> : sessionStarted ? <Send size={14} /> : <Play size={14} />}
+                {submitting || starting ? <Loader size="xs" color="white" /> : sessionStarted ? <Send size={14} /> : <Play size={14} />}
               </button>
             </div>
           </div>

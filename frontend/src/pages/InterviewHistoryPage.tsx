@@ -7,7 +7,7 @@ import { useInterviewHistory } from '@/hooks/useInterviewHistory';
 export default function InterviewHistoryPage() {
   const navigate = useNavigate();
   const history = useInterviewHistory();
-  if (history.loading) return <div className="flex min-h-[480px] items-center justify-center"><Loader size="xl"/></div>;
+  if (history.loading) return <div className="flex min-h-[480px] items-center justify-center"><Loader size="xl" color="#176B52"/></div>;
   return <>
     <div className="mb-5 min-h-12 border-b border-[#D8E1DD] pb-4"><p className="text-sm text-[#66736D]">查看每一次模拟面试及最终报告，生成中的任务会自动更新状态。</p></div>
     <div className="mx-auto max-w-4xl">{history.results.length === 0
