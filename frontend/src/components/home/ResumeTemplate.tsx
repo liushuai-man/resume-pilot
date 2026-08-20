@@ -32,15 +32,15 @@ export default function ResumeTemplate({
 
   return (
     <>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid justify-start gap-5 [grid-template-columns:repeat(auto-fill,minmax(220px,248px))]">
         {LAYOUT_TEMPLATES.map((template) => (
           <Card
             key={template.id}
-            className={`group relative flex flex-col h-full overflow-hidden border border-gray-200 transition-all duration-300 cursor-pointer hover:shadow-md ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}
+            className={`group relative aspect-[210/297] overflow-hidden border border-[#D8E1DD] bg-white transition-all duration-200 hover:-translate-y-0.5 hover:border-[#AFC3BA] hover:shadow-[0_12px_30px_rgba(31,54,45,0.12)] ${loading ? 'cursor-not-allowed opacity-60' : ''}`}
             p={0}
           >
-            {/* CSS 缩放缩略图 */}
-            <div className="flex-1 min-h-0 overflow-hidden bg-white">
+            {/* A4 页面直接铺满卡片，底部由模板信息覆盖。 */}
+            <div className="absolute inset-0 overflow-hidden bg-white">
               <ThumbnailPreview
                 content={template.demoContent}
                 templateStyle={template.styleConfig}
@@ -49,21 +49,21 @@ export default function ResumeTemplate({
             </div>
 
             {/* 模板信息 */}
-            <div className="px-3 py-2 bg-white border-t border-gray-100">
+            <div className="absolute inset-x-0 bottom-0 z-20 border-t border-[#DCE5E1] bg-white/95 px-4 py-3 shadow-[0_-8px_22px_rgba(31,54,45,0.08)] backdrop-blur-sm">
               <Text
                 size="sm"
                 fw="semibold"
-                className="text-gray-800 mb-1 truncate"
+                className="mb-0.5 truncate text-[#17211D]"
               >
                 {template.name}
               </Text>
-              <Text size="xs" className="text-gray-400 truncate">
+              <Text size="xs" className="text-[#7A8782] truncate">
                 {template.description}
               </Text>
             </div>
 
             {/* Hover 操作层 */}
-            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-3">
+            <div className="absolute inset-x-0 bottom-[65px] top-0 z-10 flex items-center justify-center gap-3 bg-[#17211D]/32 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
               <Button
                 variant="filled"
                 size="xs"
@@ -80,7 +80,7 @@ export default function ResumeTemplate({
               <Button
                 variant="filled"
                 size="xs"
-                className="bg-blue-600 hover:bg-blue-700 text-white h-8 px-4"
+                className="bg-[#176B52] hover:bg-[#10563F] text-white h-8 px-4"
                 onClick={(e) => {
                   e.stopPropagation();
                   onSelect(template.layout);
