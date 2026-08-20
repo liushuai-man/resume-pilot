@@ -20,12 +20,17 @@ export const authController = {
    * GitHub OAuth 授权入口
    * 前端访问 /api/auth/github，后端重定向到 GitHub 授权页面
    */
-  githubAuthRedirect: async (_req: Request, res: Response) => {
+  githubAuthRedirect: async (req: Request, res: Response) => {
+    const returnTo = typeof req.query.returnTo === 'string' && req.query.returnTo.startsWith('/')
+      ? req.query.returnTo
+      : '/resumes';
+    const state = Buffer.from(JSON.stringify({ returnTo })).toString('base64url');
     const githubAuthUrl =
       `https://github.com/login/oauth/authorize` +
       `?client_id=${authConfig.github.clientId}` +
       `&redirect_uri=${authConfig.github.redirectUri}` +
-      `&scope=read:user user:email`;
+      `&scope=read:user user:email` +
+      `&state=${state}`;
 
     return res.redirect(githubAuthUrl);
   },
@@ -34,7 +39,7 @@ export const authController = {
    * GitHub 授权后会跳转到此路由，携带 code 参数
    */
   githubAuthCallback: async (req: Request, res: Response) => {
-    const { code, error, error_description } = req.query;
+    const { code, error } = req.query;
     // 处理 GitHub 返回的错误
     if (error) {
       return res.redirect(
@@ -51,6 +56,7 @@ export const authController = {
     
       // 调用 service 处理登录
       const { token } = await authService.githubLogin(code as string);
+      const returnTo = parseReturnTo(req.query.state);
       // 设置 cookie
       res.cookie('token', token, {
         httpOnly: true,
@@ -60,7 +66,8 @@ export const authController = {
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 天
       });
       // 登录成功，重定向回前端首页（带登录成功标记）
-      return res.redirect(`${authConfig.frontendUrl}?login=success`);
+      const separator = returnTo.includes('?') ? '&' : '?';
+      return res.redirect(`${authConfig.frontendUrl}${returnTo}${separator}login=success`);
     } catch (err) {
       return res.redirect(
         `${authConfig.frontendUrl}/auth/login?error=auth_failed`
@@ -110,4 +117,16 @@ export const authController = {
       return error(res, 'Logout failed');
     }
   },
+};
+
+const parseReturnTo = (state: unknown) => {
+  if (typeof state !== 'string') return '/resumes';
+  try {
+    const parsed = JSON.parse(Buffer.from(state, 'base64url').toString('utf8'));
+    return typeof parsed.returnTo === 'string' && parsed.returnTo.startsWith('/')
+      ? parsed.returnTo
+      : '/resumes';
+  } catch {
+    return '/resumes';
+  }
 };

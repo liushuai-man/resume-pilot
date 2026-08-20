@@ -5,7 +5,9 @@ import type { GithubUser } from '@/types/index';
 interface UserState {
   user: GithubUser | null;
   isLoggedIn: boolean;
+  isGuest: boolean;
   setUser: (user: GithubUser) => void;
+  enterGuestMode: () => void;
   clearUser: () => void;
 }
 
@@ -14,16 +16,26 @@ export const useUserStore = create<UserState>()(
     (set) => ({
       user: null,
       isLoggedIn: false,
+      isGuest: false,
       setUser: (user) => {
         set({
           user,
           isLoggedIn: true,
+          isGuest: false,
+        });
+      },
+      enterGuestMode: () => {
+        set({
+          user: null,
+          isLoggedIn: false,
+          isGuest: true,
         });
       },
       clearUser: () => {
         set({
           user: null,
           isLoggedIn: false,
+          isGuest: false,
         });
       },
     }),
@@ -33,6 +45,7 @@ export const useUserStore = create<UserState>()(
       partialize: (state) => ({
         user: state.user,
         isLoggedIn: state.isLoggedIn,
+        isGuest: state.isGuest,
       }),
     }
   )

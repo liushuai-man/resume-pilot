@@ -28,7 +28,10 @@ export function useInterviewResources(userId?: string, initialResumeId?: string)
   }, [loadDocument, loadTemplate, setContent, setResume]);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
     resumeApi.getUserResumes().then(async (response) => {
       const items = response.data || []; setResumes(items);
       const selected = items.find((item: any) => item.id === initialResumeId) || items[0];

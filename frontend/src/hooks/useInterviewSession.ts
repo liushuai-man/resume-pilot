@@ -5,6 +5,7 @@ import { getApiErrorMessage } from '@/utils/api-error';
 
 interface StartOptions { resumeId: string; targetPosition?: string; questionCount: number; jobProfileId?: string; practiceTopic?: string; }
 const ACTIVE_SESSION_KEY = 'resume-pilot:active-interview-session';
+const STREAMING_ENABLED = import.meta.env.VITE_INTERVIEW_STREAMING_ENABLED === 'true';
 
 export function useInterviewSession() {
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -23,6 +24,7 @@ export function useInterviewSession() {
   const [restoring, setRestoring] = useState(true);
   const [sessionResumeId, setSessionResumeId] = useState<string | null>(null);
   const [maxQuestions, setMaxQuestions] = useState(5);
+  const [streamStage, setStreamStage] = useState<string | null>(null);
 
   useEffect(() => {
     const storedSessionId = localStorage.getItem(ACTIVE_SESSION_KEY);
@@ -39,7 +41,18 @@ export function useInterviewSession() {
     if (!activeSessionId) return;
     setFinishing(true);
     try {
-      const result = await interviewApi.finishInterview(activeSessionId);
+      let result: InterviewResult | null = null;
+      if (STREAMING_ENABLED) {
+        try {
+          await interviewApi.streamOperation({ operation: 'finish', sessionId: activeSessionId }, (event) => {
+            if (event.type === 'stage.changed') setStreamStage((event.data as { stage?: string }).stage || null);
+            if (event.type === 'result.committed') result = (event.data as { result?: InterviewResult }).result || null;
+          });
+        } catch {
+          result = null;
+        }
+      }
+      result = result || await interviewApi.finishInterview(activeSessionId);
       setInterviewResult(result); setIsFinished(true);
       localStorage.removeItem(ACTIVE_SESSION_KEY);
       notifications.show(result.status === 'failed'
@@ -47,20 +60,31 @@ export function useInterviewSession() {
         : { title: '完成', message: '面试已完成，查看报告', color: 'green' });
     } catch (error) {
       notifications.show({ title: '完成面试失败', message: getApiErrorMessage(error, '请稍后重试'), color: 'red' });
-    } finally { setFinishing(false); }
+    } finally { setFinishing(false); setStreamStage(null); }
   }, [sessionId]);
 
   const start = useCallback(async (options: StartOptions) => {
     setStarting(true); setIsThinking(true);
     try {
-      const result = await interviewApi.startInterview(options.resumeId, options.targetPosition, options.questionCount, options.jobProfileId, options.practiceTopic);
+      let result = null as Awaited<ReturnType<typeof interviewApi.startInterview>> | null;
+      if (STREAMING_ENABLED) {
+        try {
+          await interviewApi.streamOperation({ operation: 'start', ...options }, (event) => {
+            if (event.type === 'stage.changed') setStreamStage((event.data as { stage?: string }).stage || null);
+            if (event.type === 'result.committed') result = (event.data as { start?: Awaited<ReturnType<typeof interviewApi.startInterview>> }).start || null;
+          });
+        } catch {
+          result = null;
+        }
+      }
+      result = result || await interviewApi.startInterview(options.resumeId, options.targetPosition, options.questionCount, options.jobProfileId, options.practiceTopic);
       setSessionId(result.sessionId); setCurrentQuestion(result.firstQuestion); setQuestions([result.firstQuestion]);
       setSessionResumeId(options.resumeId); setMaxQuestions(options.questionCount);
       localStorage.setItem(ACTIVE_SESSION_KEY, result.sessionId);
     } catch (error) {
       setSessionId(null); setCurrentQuestion(null); setQuestions([]);
       notifications.show({ title: '开始面试失败', message: getApiErrorMessage(error, '请检查模型配置和网络连接后重试'), color: 'red' });
-    } finally { setStarting(false); setIsThinking(false); }
+    } finally { setStarting(false); setIsThinking(false); setStreamStage(null); }
   }, []);
 
   const submitAnswer = useCallback(async () => {
@@ -78,10 +102,22 @@ export function useInterviewSession() {
       setCurrentAnswer(''); setPendingSubmission(null);
       if (result.isFinished) await finish(sessionId);
       else try {
-        const nextQuestion = await interviewApi.getNextQuestion(sessionId);
-        if (nextQuestion) {
-          setCurrentQuestion(nextQuestion);
-          setQuestions((items) => items.some((item) => item.id === nextQuestion.id) ? items : [...items, nextQuestion]);
+        let nextQuestion: Question | null = null;
+        if (STREAMING_ENABLED) {
+          try {
+            await interviewApi.streamOperation({ operation: 'next_question', sessionId }, (event) => {
+              if (event.type === 'stage.changed') setStreamStage((event.data as { stage?: string }).stage || null);
+              if (event.type === 'result.committed') nextQuestion = (event.data as { question?: Question | null }).question || null;
+            });
+          } catch {
+            nextQuestion = null;
+          }
+        }
+        nextQuestion = nextQuestion || await interviewApi.getNextQuestion(sessionId);
+        const committedQuestion = nextQuestion;
+        if (committedQuestion) {
+          setCurrentQuestion(committedQuestion);
+          setQuestions((items) => items.some((item) => item.id === committedQuestion.id) ? items : [...items, committedQuestion]);
           setNextQuestionFailed(false);
         }
       } catch (error) {
@@ -91,7 +127,7 @@ export function useInterviewSession() {
     } catch (error) {
       setCurrentAnswer(submission.answer);
       notifications.show({ title: '回答保存失败', message: getApiErrorMessage(error, '草稿已保留，请重新提交'), color: 'red' });
-    } finally { setSubmitting(false); setIsThinking(false); }
+    } finally { setSubmitting(false); setIsThinking(false); setStreamStage(null); }
   }, [currentAnswer, currentQuestion, finish, pendingSubmission, sessionId]);
 
   const retryNextQuestion = useCallback(async () => {
@@ -132,6 +168,6 @@ export function useInterviewSession() {
 
   return { sessionId, currentQuestion, questions, answers, currentAnswer, setCurrentAnswer, interviewResult,
     isFinished, starting, submitting, finishing, isThinking, restoring, sessionResumeId, maxQuestions,
-    answerSaveFailed: Boolean(pendingSubmission), nextQuestionFailed,
+    streamStage, answerSaveFailed: Boolean(pendingSubmission), nextQuestionFailed,
     start, submitAnswer, retryNextQuestion, finish, retryReport, restart };
 }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BarChart3, Check, FileText, Loader2, RefreshCw, Save, Sparkles, Trash2 } from 'lucide-react';
+import { BarChart3, Check, FileText, Loader2, RefreshCw, Save, Sparkles, Target, Trash2 } from 'lucide-react';
 import { jobApi } from '@/api/job.api';
 import { resumeApi } from '@/api/home.api';
 import { notification } from '@/components/common/Notification';
@@ -19,6 +19,7 @@ import CreateJobPanel, { type CreateProgress } from '@/components/job-center/Cre
 import AtsAnalysisPanel from '@/components/job-center/AtsAnalysisPanel';
 import ContentQualityPanel from '@/components/job-center/ContentQualityPanel';
 import JobMatchPanel from '@/components/job-center/JobMatchPanel';
+import { useUserStore } from '@/store/useUserStore';
 const toEditable = (profile: JobProfile): EditableJobProfile => ({
   jobTitle: profile.jobTitle,
   seniority: profile.seniority || '',
@@ -30,6 +31,7 @@ const toEditable = (profile: JobProfile): EditableJobProfile => ({
 });
 
 export default function JobCenterPage() {
+  const { isGuest } = useUserStore();
   const [jobs, setJobs] = useState<JobDescription[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [profile, setProfile] = useState<JobProfile | null>(null);
@@ -126,6 +128,10 @@ export default function JobCenterPage() {
   };
 
   useEffect(() => {
+    if (isGuest) {
+      setLoading(false);
+      return;
+    }
     void loadJobs();
     void resumeApi.getUserResumes({ excludeUploaded: true }).then((response) => {
       if (response.code !== 200) throw new Error(response.message);
@@ -134,7 +140,7 @@ export default function JobCenterPage() {
       setSelectedResumeId(initialResumeId);
       if (initialResumeId) void loadLatestContentQuality(initialResumeId);
     }).catch((cause) => notification.error(getApiErrorMessage(cause, '简历列表加载失败')));
-  }, []);
+  }, [isGuest]);
 
   useEffect(() => {
     if (selectedId && selectedResumeId) void loadLatestMatch(selectedId, selectedResumeId);
@@ -329,6 +335,20 @@ export default function JobCenterPage() {
 
   if (loading) {
     return <div className="flex min-h-[480px] items-center justify-center"><Loader2 className="animate-spin" /></div>;
+  }
+
+  if (isGuest) {
+    return (
+      <div className="mx-auto flex h-full max-w-[1440px] items-center justify-center px-6">
+        <div className="w-full max-w-[520px] rounded-[8px] border border-[#D8E1DD] bg-white p-6 text-center shadow-sm">
+          <Target className="mx-auto text-[#176B52]" size={24} />
+          <h1 className="mt-4 text-lg font-semibold text-[#17211D]">岗位匹配需要登录后使用</h1>
+          <p className="mt-2 text-sm leading-6 text-[#66736D]">
+            展示模式不会保存 JD、生成岗位画像或调用 AI 匹配。登录后可以创建岗位、分析简历并查看历史结果。
+          </p>
+        </div>
+      </div>
+    );
   }
 
   const confirmed = profile?.status === 'confirmed';

@@ -1,4 +1,5 @@
 import request from '@/utils/request';
+import { postSse, type SseEnvelope } from './sse-client';
 
 export interface Question {
   id: string;
@@ -101,6 +102,18 @@ export interface ActiveInterviewSession {
 
 export interface FinishInterviewResponse extends InterviewResult {}
 
+export type InterviewStreamOperation =
+  | {
+      operation: 'start';
+      resumeId: string;
+      targetPosition?: string;
+      questionCount: number;
+      jobProfileId?: string;
+      practiceTopic?: string;
+    }
+  | { operation: 'next_question'; sessionId: string }
+  | { operation: 'finish'; sessionId: string };
+
 export const interviewApi = {
   getActiveSession: async (id: string): Promise<ActiveInterviewSession> => {
     const response: any = await request.get(`/interview/sessions/${id}`);
@@ -176,5 +189,12 @@ export const interviewApi = {
   retryInterviewNode: async (id: string, nodeKey: string, expectedInputHash: string): Promise<InterviewResult> => {
     const response: any = await request.post(`/interview/results/${id}/retry-node`, { nodeKey, expectedInputHash });
     return response.data || response;
+  },
+  streamOperation: async (
+    operation: InterviewStreamOperation,
+    onEvent: (event: SseEnvelope) => void,
+    signal?: AbortSignal
+  ): Promise<void> => {
+    await postSse({ path: '/interview/streams', body: operation, onEvent, signal });
   },
 };

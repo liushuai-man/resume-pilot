@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Button, Loader, Text } from '@mantine/core';
-import { PanelRightOpen } from 'lucide-react';
+import { Lock, PanelRightOpen } from 'lucide-react';
 import { InterviewChat, InterviewNotesPanel, InterviewReport } from '@/components/interview';
 import InterviewResumePreview from '@/components/interview/InterviewResumePreview';
 import InterviewToolbar from '@/components/interview/InterviewToolbar';
@@ -23,9 +23,10 @@ const INTERVIEW_TOOL_MAX_WIDTH = 800;
 
 export default function InterviewPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { resumeId } = useParams<{ resumeId?: string }>();
   const [searchParams] = useSearchParams();
-  const { user } = useUserStore();
+  const { user, isGuest } = useUserStore();
   const resources = useInterviewResources(user?.id, resumeId);
   const interview = useInterviewSession();
   const workspace = useInterviewWorkspace(interview.sessionId);
@@ -60,6 +61,29 @@ export default function InterviewPage() {
 
   if (resources.loading || interview.restoring) return <div className="flex h-[calc(100vh-4rem)] items-center justify-center"><Loader size="xl" /></div>;
 
+  if (isGuest) {
+    return (
+      <div className="flex h-[calc(100vh-4rem)] items-center justify-center bg-[#F4F7F6] px-6">
+        <div className="w-full max-w-[460px] rounded-[8px] border border-[#D8E1DD] bg-white p-6 text-center shadow-sm">
+          <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-lg bg-[#EDF5F1] text-[#176B52]">
+            <Lock size={20} />
+          </div>
+          <h1 className="mt-5 text-lg font-semibold text-[#17211D]">模拟面试需要登录后使用</h1>
+          <p className="mt-2 text-sm leading-6 text-[#66736D]">
+            展示模式可以查看页面结构，但生成问题、保存问答和输出报告需要登录后启用。
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate('/auth/login', { state: { from: location.pathname } })}
+            className="mt-5 h-10 rounded-lg bg-[#176B52] px-4 text-sm font-semibold text-white transition hover:bg-[#10563F]"
+          >
+            登录后使用
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const selectedResume = resources.resumes.find((item) => item.id === resources.selectedResumeId);
   const selectedProfile = resources.jobProfiles.find((item) => item.id === resources.selectedJobProfileId);
   const startInterview = () => {
@@ -78,6 +102,7 @@ export default function InterviewPage() {
               onPractice={(_question, topic) => { interview.restart(); navigate(`/interviews/resume/${interview.sessionResumeId || resources.selectedResumeId}?practice=${encodeURIComponent(topic)}`); }} />
           : <InterviewChat questions={interview.questions} answers={interview.answers} currentQuestion={interview.currentQuestion}
               currentAnswer={interview.currentAnswer} submitting={interview.submitting} isThinking={interview.isThinking}
+              streamStage={interview.streamStage}
               onAnswerChange={interview.setCurrentAnswer} onSubmitAnswer={interview.submitAnswer} getSectionName={getSectionName}
               sessionStarted={Boolean(interview.sessionId)} nextQuestionFailed={interview.nextQuestionFailed}
               onStart={startInterview} starting={interview.starting} canStart={Boolean(selectedResume)}

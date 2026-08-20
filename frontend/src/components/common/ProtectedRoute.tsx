@@ -10,11 +10,17 @@ interface ProtectedRouteProps {
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const location = useLocation();
-  const { setUser, clearUser } = useUserStore();
+  const { setUser, clearUser, isGuest } = useUserStore();
   const [isChecking, setIsChecking] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
+    if (isGuest) {
+      setIsChecking(false);
+      setIsAuthenticated(false);
+      return;
+    }
+
     let active = true;
 
     const verifySession = async () => {
@@ -40,13 +46,13 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     return () => {
       active = false;
     };
-  }, [clearUser, setUser]);
+  }, [clearUser, isGuest, setUser]);
 
   if (isChecking) {
     return <LoadingPage title="正在验证登录状态..." />;
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated && !isGuest) {
     return (
       <Navigate
         to="/auth/login"

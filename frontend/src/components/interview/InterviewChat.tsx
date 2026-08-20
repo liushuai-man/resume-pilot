@@ -11,6 +11,7 @@ interface InterviewChatProps {
   currentAnswer: string;
   submitting: boolean;
   isThinking: boolean;
+  streamStage?: string | null;
   onAnswerChange: (value: string) => void;
   onSubmitAnswer: () => void;
   getSectionName: (sectionKey: string) => string;
@@ -30,6 +31,7 @@ export default function InterviewChat({
   currentAnswer,
   submitting,
   isThinking,
+  streamStage,
   onAnswerChange,
   onSubmitAnswer,
   getSectionName,
@@ -139,7 +141,7 @@ export default function InterviewChat({
                     <div className="flex items-center gap-2">
                       <Loader size="xs" />
                       <Text size="sm" c="dimmed">
-                        正在思考...
+                        {streamStage ? stageLabels[streamStage] || '正在处理...' : '正在思考...'}
                       </Text>
                     </div>
                   </Paper>
@@ -195,3 +197,15 @@ export default function InterviewChat({
     </div>
   );
 }
+
+const stageLabels: Record<string, string> = {
+  queued: '正在排队...',
+  loading_context: '正在读取简历和岗位上下文...',
+  planning: '正在规划面试路径...',
+  generating: '正在生成问题...',
+  validating: '正在校验结果...',
+  saving: '正在保存结果...',
+  evaluating_answers: '正在批量评估回答...',
+  building_report: '正在生成面试报告...',
+  completed: '已完成',
+};

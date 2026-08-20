@@ -17,6 +17,7 @@ const ProfileLayout = React.lazy(() => import('@/layouts/ProfileLayout'));
 
 // 页面组件（延迟加载）
 const LoginPage = React.lazy(() => import('@/pages/LoginPage'));
+const LandingPage = React.lazy(() => import('@/pages/LandingPage'));
 const HomePage = React.lazy(() => import('@/pages/HomePage'));
 const JobCenterPage = React.lazy(() => import('@/pages/JobCenterPage'));
 const ResumeEditorPage = React.lazy(() => import('@/pages/ResumeEditorPage'));
@@ -41,6 +42,8 @@ const protectedPage = (element: React.ReactNode) =>
 
 // 路由配置
 export const routes: RouteConfig[] = [
+  { path: '/', element: React.createElement(LandingPage) },
+
   // 认证相关页面
   {
     path: '/auth',
@@ -53,7 +56,6 @@ export const routes: RouteConfig[] = [
     path: '/',
     layout: React.createElement(HomeLayout),
     children: [
-      { path: '', element: React.createElement(Navigate, { to: '/resumes', replace: true }) },
       { path: 'resumes', element: React.createElement(HomePage) },
       { path: 'resumes/:id/edit', element: protectedPage(React.createElement(ResumeEditorPage)) },
       { path: 'resumes/:id/optimizations', element: protectedPage(React.createElement(ResumeOptimizationHistoryPage)) },

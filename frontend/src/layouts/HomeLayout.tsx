@@ -9,7 +9,7 @@ import { notification } from '@/components/common/Notification';
 import ModelSelector from '@/components/common/ModelSelector';
 
 export default function HomeLayout() {
-  const { user, clearUser, isLoggedIn, setUser } = useUserStore();
+  const { user, clearUser, isLoggedIn, isGuest, setUser } = useUserStore();
   const navigate = useNavigate();
   const location = useLocation();
   const isWorkspaceRoute = /^\/resumes\/[^/]+\/edit$/.test(location.pathname)
@@ -17,28 +17,29 @@ export default function HomeLayout() {
     || location.pathname.startsWith('/interviews/resume/');
   const isContainedRoute = location.pathname === '/jobs' || location.pathname.startsWith('/profile');
   useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const loginSucceeded = urlParams.get('login') === 'success';
+    if (isGuest && !loginSucceeded) return;
     // 检查登录状态
     const checkAuth = async () => {
       try {
         const res = await getCurrentUser();
         if (res.code === 200 && res.data) {
           setUser(res.data);
-          const urlParams = new URLSearchParams(window.location.search);
-          if (urlParams.get('login') === 'success') {
+          if (loginSucceeded) {
             notification.success(
               `欢迎回来，${res.data.github_login}！`,
               '登录成功'
             );
             window.history.replaceState({}, '', window.location.pathname);
           }
-        } else if (res.code === 401) {
+        } else if (res.code === 401 && !isGuest) {
           clearUser();
         }
       } catch (error) {
         console.error('获取用户信息失败:', error);
-        clearUser();
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('login') === 'success') {
+        if (!isGuest) clearUser();
+        if (loginSucceeded) {
           notification.error(
             'GitHub 授权已返回，但登录状态未能保存，请检查 Cookie 配置',
             '登录失败'
@@ -49,7 +50,7 @@ export default function HomeLayout() {
     };
 
     checkAuth();
-  }, []);
+  }, [clearUser, isGuest, setUser]);
 
   const handleLogin = () => {
     navigate('/auth/login');
@@ -124,6 +125,12 @@ export default function HomeLayout() {
                 {user.github_login || '用户'}
               </Text>
             </div>
+          )}
+
+          {isGuest && (
+            <span className="hidden rounded-lg border border-[#D8E1DD] bg-white px-3 py-1.5 text-xs font-semibold text-[#66736D] sm:inline">
+              展示模式
+            </span>
           )}
 
           {/* 登录/登出按钮 */}

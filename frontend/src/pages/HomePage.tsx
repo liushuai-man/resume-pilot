@@ -15,7 +15,7 @@ import { getApiErrorMessage } from '@/utils/api-error';
 const MAX_RESUMES = 7;
 
 export default function HomePage() {
-  const { isLoggedIn } = useUserStore();
+  const { isLoggedIn, isGuest } = useUserStore();
   const navigate = useNavigate();
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -45,6 +45,10 @@ export default function HomePage() {
   }, [resumes, searchKeyword, sortBy, sortOrder]);
 
   const createResume = async (templateId: string, title = '我的简历') => {
+    if (isGuest) {
+      notification.info('展示模式无法创建简历，登录后可使用完整功能');
+      return navigate('/auth/login', { state: { from: '/resumes' } });
+    }
     if (!isLoggedIn) return navigate('/auth/login');
     setIsCreating(true);
     try {
