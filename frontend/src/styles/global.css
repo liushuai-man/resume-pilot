@@ -16,6 +16,90 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+html,
+body,
+#root {
+  transition: background-color 180ms ease, color 180ms ease;
+}
+
+html[data-theme='dark'] body {
+  color: #e5ece9;
+  background: #101714;
+}
+
+/* The resume itself remains a white print artifact in either interface theme. */
+.theme-paper,
+.resume-preview-page {
+  color-scheme: light;
+}
+
+/* Dark theme bridge for the existing utility palette. */
+html[data-theme='dark'] [class~='bg-white']:not(.theme-paper):not([data-theme-exempt='true']):not([data-theme-exempt='true'] *),
+html[data-theme='dark'] [class~='bg-[#F8FAF9]']:not([data-theme-exempt='true'] *),
+html[data-theme='dark'] [class~='bg-[#F7F9F8]']:not([data-theme-exempt='true'] *),
+html[data-theme='dark'] [class~='bg-[#F9FBFA]']:not([data-theme-exempt='true'] *) {
+  background-color: #18211d !important;
+}
+
+html[data-theme='dark'] [class~='bg-[#F4F7F6]']:not([data-theme-exempt='true'] *),
+html[data-theme='dark'] [class~='bg-[#EEF3F1]']:not([data-theme-exempt='true'] *),
+html[data-theme='dark'] [class~='bg-[#EEF2F0]']:not([data-theme-exempt='true'] *),
+html[data-theme='dark'] [class~='bg-[#EDF2F0]']:not([data-theme-exempt='true'] *),
+html[data-theme='dark'] [class~='bg-gray-50']:not([data-theme-exempt='true'] *),
+html[data-theme='dark'] [class~='bg-gray-100']:not([data-theme-exempt='true'] *) {
+  background-color: #101714 !important;
+}
+
+html[data-theme='dark'] [class~='bg-[#E4F0EB]']:not([data-theme-exempt='true'] *),
+html[data-theme='dark'] [class~='bg-[#EAF3EF]']:not([data-theme-exempt='true'] *),
+html[data-theme='dark'] [class~='bg-[#EDF5F1]']:not([data-theme-exempt='true'] *),
+html[data-theme='dark'] [class~='bg-[#E4F1EC]']:not([data-theme-exempt='true'] *) {
+  background-color: #1b2c25 !important;
+}
+
+html[data-theme='dark'] [class~='text-[#17211D]']:not([data-theme-exempt='true'] *),
+html[data-theme='dark'] [class~='text-[#24312C]']:not([data-theme-exempt='true'] *),
+html[data-theme='dark'] [class~='text-[#34423D]']:not([data-theme-exempt='true'] *),
+html[data-theme='dark'] [class~='text-gray-900']:not([data-theme-exempt='true'] *),
+html[data-theme='dark'] [class~='text-gray-800']:not([data-theme-exempt='true'] *) {
+  color: #e7eeeb !important;
+}
+
+html[data-theme='dark'] [class~='text-[#52615B]']:not([data-theme-exempt='true'] *),
+html[data-theme='dark'] [class~='text-[#52635C]']:not([data-theme-exempt='true'] *),
+html[data-theme='dark'] [class~='text-[#56635E]']:not([data-theme-exempt='true'] *),
+html[data-theme='dark'] [class~='text-[#66736D]']:not([data-theme-exempt='true'] *),
+html[data-theme='dark'] [class~='text-[#718079]']:not([data-theme-exempt='true'] *),
+html[data-theme='dark'] [class~='text-[#7A8782]']:not([data-theme-exempt='true'] *),
+html[data-theme='dark'] [class~='text-gray-700']:not([data-theme-exempt='true'] *),
+html[data-theme='dark'] [class~='text-gray-600']:not([data-theme-exempt='true'] *),
+html[data-theme='dark'] [class~='text-gray-500']:not([data-theme-exempt='true'] *) {
+  color: #aab8b2 !important;
+}
+
+html[data-theme='dark'] [class~='border-[#D8E1DD]']:not([data-theme-exempt='true'] *),
+html[data-theme='dark'] [class~='border-[#E3EAE7]']:not([data-theme-exempt='true'] *),
+html[data-theme='dark'] [class~='border-[#E1E7E4]']:not([data-theme-exempt='true'] *),
+html[data-theme='dark'] [class~='border-[#DDE5E1]']:not([data-theme-exempt='true'] *),
+html[data-theme='dark'] [class~='border-gray-200']:not([data-theme-exempt='true'] *),
+html[data-theme='dark'] [class~='border-gray-300']:not([data-theme-exempt='true'] *) {
+  border-color: #314039 !important;
+}
+
+html[data-theme='dark'] .theme-toggle {
+  background: #1b2c25 !important;
+  color: #8fd0b5 !important;
+  border-color: #395247 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html,
+  body,
+  #root {
+    transition: none;
+  }
+}
+
 #root {
   min-height: 100vh;
 }

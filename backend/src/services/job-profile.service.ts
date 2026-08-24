@@ -1,6 +1,9 @@
 import { z } from 'zod';
 import { StringOutputParser } from '@langchain/core/output_parsers';
-import { createUserLLM, getUserModelClientConfig } from '../ai/providers/llm.provider';
+import {
+  createUserLLM,
+  getUserModelClientConfig,
+} from '../ai/providers/llm.provider';
 import {
   buildJobProfilePrompt,
   JOB_PROFILE_PARSER_VERSION,
@@ -45,7 +48,9 @@ export function assertProfileEvidence(
   for (const requirement of requirements) {
     const evidence = normalizeEvidenceText(requirement.evidence);
     if (!evidence || !normalizedSource.includes(evidence)) {
-      throw new Error(`岗位要求“${requirement.name}”的证据无法在 JD 原文中定位`);
+      throw new Error(
+        `岗位要求“${requirement.name}”的证据无法在 JD 原文中定位`
+      );
     }
   }
 }
@@ -82,9 +87,9 @@ export async function parseJobDescription(
     temperature: 0.1,
     maxTokens: 2200,
   });
-  const output = await llm.pipe(new StringOutputParser()).invoke(
-    buildJobProfilePrompt(rawText)
-  );
+  const output = await llm
+    .pipe(new StringOutputParser())
+    .invoke(buildJobProfilePrompt(rawText));
   const parsed = parseJobProfileOutput(output, rawText);
 
   return {

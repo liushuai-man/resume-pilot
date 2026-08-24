@@ -8,7 +8,7 @@ const GITHUB_REQUEST_TIMEOUT_MS = 12_000;
 
 // 创建一个忽略 SSL 验证的 https Agent（用于开发环境）
 export const authService = {
-  async githubLogin(code: string): Promise<{ user: User; token: string }> {;
+  async githubLogin(code: string): Promise<{ user: User; token: string }> {
     // 1. 用 code 换取 access_token
     const tokenResponse = await axios.post(
       'https://github.com/login/oauth/access_token',

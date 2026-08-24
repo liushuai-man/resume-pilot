@@ -1,6 +1,13 @@
-import type { InterviewStreamRequest, StreamFailure } from '../ai/streaming/interview-stream.events';
+import type {
+  InterviewStreamRequest,
+  StreamFailure,
+} from '../ai/streaming/interview-stream.events';
 import type { InterviewStreamPublisher } from '../ai/streaming/interview-stream.publisher';
-import { finishInterview, generateInterviewNextQuestion, startInterview } from './interview.service';
+import {
+  finishInterview,
+  generateInterviewNextQuestion,
+  startInterview,
+} from './interview.service';
 
 export async function runInterviewStream(
   userId: string,
@@ -33,7 +40,10 @@ export async function runInterviewStream(
     if (request.operation === 'next_question') {
       await publisher.stage('loading_context');
       await publisher.stage('generating');
-      const question = await generateInterviewNextQuestion(userId, request.sessionId);
+      const question = await generateInterviewNextQuestion(
+        userId,
+        request.sessionId
+      );
       await publisher.stage('saving');
       await publisher.committed({ question });
       await publisher.completed();
@@ -49,7 +59,10 @@ export async function runInterviewStream(
     await publisher.completed();
   } catch (error) {
     const failure: StreamFailure = {
-      code: error instanceof Error && error.message === 'MODEL_CONFIG_REQUIRED' ? 'MODEL_OUTPUT_INVALID' : 'INTERNAL_ERROR',
+      code:
+        error instanceof Error && error.message === 'MODEL_CONFIG_REQUIRED'
+          ? 'MODEL_OUTPUT_INVALID'
+          : 'INTERNAL_ERROR',
       message: error instanceof Error ? error.message : '流式执行失败',
       retryable: true,
       retryFrom: request.operation,

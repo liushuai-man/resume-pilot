@@ -8,14 +8,24 @@ import '@mantine/notifications/styles.css';
 import './styles/global.css';
 import './styles/editor.css';
 import App from './App';
+import { ThemeProvider, useTheme } from './theme/ThemeProvider';
+
+function ThemedApp() {
+  const { colorScheme } = useTheme();
+  return (
+    <MantineProvider forceColorScheme={colorScheme}>
+      <Notifications position="top-right" />
+      <App />
+    </MantineProvider>
+  );
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
-      <MantineProvider>
-        <Notifications position="top-right" />
-        <App />
-      </MantineProvider>
+      <ThemeProvider>
+        <ThemedApp />
+      </ThemeProvider>
     </BrowserRouter>
   </StrictMode>
 );

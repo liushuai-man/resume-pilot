@@ -47,6 +47,7 @@ export function MinimalLayout({
   return (
     <Card
       className={cardClassName}
+      data-theme-exempt="true"
       style={{ fontFamily, fontSize: `${fontSize}px`, backgroundColor, lineHeight: '1.8' }}
     >
       <div style={{ padding: '50px 40px' }}>

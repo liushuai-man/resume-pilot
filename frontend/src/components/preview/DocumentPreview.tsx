@@ -330,6 +330,7 @@ export function DocumentPreview({
 
               <div
                 className="resume-preview-page"
+                data-theme-exempt="true"
                 style={{
                   width: `${A4_PAGE_WIDTH}px`,
                   height: `${A4_PAGE_HEIGHT}px`,

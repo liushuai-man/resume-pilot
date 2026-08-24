@@ -7,6 +7,7 @@ import { useUserStore } from '@/store/useUserStore';
 import { logout } from '@/api/auth.api';
 import { notification } from '@/components/common/Notification';
 import ModelSelector from '@/components/common/ModelSelector';
+import ThemeToggle from '@/components/common/ThemeToggle';
 
 export default function HomeLayout() {
   const { user, clearUser, isLoggedIn, isGuest, setUser } = useUserStore();
@@ -109,6 +110,7 @@ export default function HomeLayout() {
 
         <div className="flex shrink-0 items-center gap-3">
           <div className="hidden lg:block"><ModelSelector variant="full" readOnly /></div>
+          <ThemeToggle />
 
           {/* 用户信息：登录后显示 */}
           {isLoggedIn && user && (
