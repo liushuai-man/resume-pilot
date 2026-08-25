@@ -19,6 +19,7 @@ export default function InterviewReportOverview({ report, position, date }: { re
         <div className="mb-2 flex items-center justify-between"><Text size="sm" fw={600}>{item.label}</Text><Text size="sm" fw={700} c={item.questionCount ? 'teal' : 'dimmed'}>{item.questionCount ? `${item.score} 分` : '未覆盖'}</Text></div>
         <div className="h-1.5 overflow-hidden rounded-full bg-[#DDE5E1]"><div className="h-full rounded-full bg-[#176B52]" style={{ width: `${item.questionCount ? item.score : 0}%` }}/></div>
         <Text mt={6} size="xs" c="dimmed">{item.questionCount ? `${item.questionCount} 道题提供评价证据` : '本场没有足够样本，不生成推断'}</Text>
+        {item.evidence?.length ? <details className="mt-2"><summary className="cursor-pointer text-xs font-medium text-[#176B52]">查看评分依据</summary><div className="mt-2 space-y-2">{item.evidence.map((evidence, index) => <div key={`${evidence.questionId}-${index}`} className="rounded-lg border border-[#D8E1DD] bg-white p-2 text-xs leading-5 text-[#52615B]"><p className="font-medium text-[#26332E]">{evidence.rationale}</p>{evidence.answerExcerpt && <p className="mt-1 text-[#718079]">回答摘录：“{evidence.answerExcerpt}”</p>}</div>)}</div></details> : null}
       </div>)}</div>
     </Paper>
   </>;

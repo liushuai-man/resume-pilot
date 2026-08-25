@@ -2,6 +2,45 @@
 @tailwind components;
 @tailwind utilities;
 
+:root,
+html[data-theme='light'] {
+  --color-canvas: 244 247 246;
+  --color-surface: 255 255 255;
+  --color-surface-muted: 238 243 241;
+  --color-surface-raised: 255 255 255;
+  --color-border: 216 225 221;
+  --color-border-strong: 185 202 195;
+  --color-ink: 23 33 29;
+  --color-muted: 102 115 109;
+  --color-subtle: 122 135 130;
+  --color-brand: 23 107 82;
+  --color-brand-hover: 16 86 63;
+  --color-brand-soft: 228 240 235;
+  --color-brand-contrast: 255 255 255;
+  --color-danger: 181 71 71;
+  --color-warning: 138 90 38;
+  --color-shadow: 25 48 39;
+}
+
+html[data-theme='dark'] {
+  --color-canvas: 16 23 20;
+  --color-surface: 24 33 29;
+  --color-surface-muted: 27 44 37;
+  --color-surface-raised: 31 42 37;
+  --color-border: 49 64 57;
+  --color-border-strong: 66 86 77;
+  --color-ink: 231 238 235;
+  --color-muted: 170 184 178;
+  --color-subtle: 137 153 146;
+  --color-brand: 90 190 151;
+  --color-brand-hover: 116 209 172;
+  --color-brand-soft: 27 63 49;
+  --color-brand-contrast: 8 31 23;
+  --color-danger: 235 139 139;
+  --color-warning: 221 173 105;
+  --color-shadow: 0 0 0;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -10,8 +49,8 @@
 
 body {
   font-family: 'Noto Sans SC', 'Microsoft YaHei UI', 'Segoe UI', sans-serif;
-  color: #17211d;
-  background: #f4f7f6;
+  color: rgb(var(--color-ink));
+  background: rgb(var(--color-canvas));
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -23,8 +62,8 @@ body,
 }
 
 html[data-theme='dark'] body {
-  color: #e5ece9;
-  background: #101714;
+  color: rgb(var(--color-ink));
+  background: rgb(var(--color-canvas));
 }
 
 /* The resume itself remains a white print artifact in either interface theme. */
@@ -87,9 +126,9 @@ html[data-theme='dark'] [class~='border-gray-300']:not([data-theme-exempt='true'
 }
 
 html[data-theme='dark'] .theme-toggle {
-  background: #1b2c25 !important;
-  color: #8fd0b5 !important;
-  border-color: #395247 !important;
+  background: rgb(var(--color-brand-soft)) !important;
+  color: rgb(var(--color-brand)) !important;
+  border-color: rgb(var(--color-border-strong)) !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -118,13 +157,13 @@ html[data-theme='dark'] .theme-toggle {
 /* 选中项高亮 */
 .mantine-Select-option[data-selected='true'],
 .mantine-Select-option[aria-selected='true'] {
-  background-color: #dbeafe !important;
-  color: #1d4ed8 !important;
+  background-color: rgb(var(--color-brand-soft)) !important;
+  color: rgb(var(--color-brand)) !important;
   font-weight: 500;
 }
 
 /* 悬浮项高亮 */
 .mantine-Select-option:hover,
 .mantine-Select-option[data-hovered] {
-  background-color: #f3f4f6 !important;
+  background-color: rgb(var(--color-surface-muted)) !important;
 }

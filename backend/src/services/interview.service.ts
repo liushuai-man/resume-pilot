@@ -42,12 +42,13 @@ export async function startInterview(
   if (jobProfileId && !jobProfile) throw new Error('JOB_PROFILE_NOT_CONFIRMED');
   const position = jobProfile?.job_title || targetPosition || '通用岗位';
   const rubricSnapshot = {
-    version: 'interview-rubric-v1',
+    version: 'interview-rubric-v2-four-dimensions',
     mode: jobProfile ? ('job_profile' as const) : ('general' as const),
     dimensions: [
-      { key: 'technical', label: '技术能力', weight: jobProfile ? 0.45 : 0.4 },
-      { key: 'communication', label: '表达能力', weight: 0.3 },
-      { key: 'project', label: '项目深度', weight: jobProfile ? 0.25 : 0.3 },
+      { key: 'technical_depth', label: '技术深度', weight: 0.3 },
+      { key: 'project_articulation', label: '项目阐述', weight: 0.25 },
+      { key: 'communication', label: '表达沟通', weight: 0.2 },
+      { key: 'problem_solving', label: '问题解决', weight: 0.25 },
     ],
   };
   const planTopics = jobProfile
@@ -69,7 +70,7 @@ export async function startInterview(
       dimensionLabel: dimension.label,
       topic:
         planTopics[index] ||
-        (dimension.key === 'project' ? '项目经历与技术取舍' : dimension.label),
+        (dimension.key === 'project_articulation' ? '项目经历、个人贡献与结果' : dimension.label),
       priority: Math.round(dimension.weight * 10),
       count:
         index < questionSlots

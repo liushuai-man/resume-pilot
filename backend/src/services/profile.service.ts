@@ -26,7 +26,16 @@ interface Dimension {
   label: string;
   score: number;
   questionCount: number;
+  evidence?: Array<{ questionId: string; answerExcerpt: string; rationale: string }>;
 }
+
+const PROFILE_DIMENSIONS = [
+  { key: 'technical_depth', label: '技术深度', legacyKey: 'technical' },
+  { key: 'project_articulation', label: '项目阐述', legacyKey: 'project' },
+  { key: 'communication', label: '表达沟通', legacyKey: '' },
+  { key: 'problem_solving', label: '问题解决', legacyKey: '' },
+] as const;
+const canonicalDimension = (key: string) => PROFILE_DIMENSIONS.find((item) => item.key === key || item.legacyKey === key);
 
 const contextOf = (value: unknown) =>
   value && typeof value === 'object'
@@ -113,23 +122,32 @@ export async function getUserProfileOverview(userId: string) {
 
   const groups = new Map<
     string,
-    { label: string; scores: number[]; evidenceCount: number }
+    { label: string; scores: number[]; evidenceCount: number; evidence: Array<{ interviewId: string; position: string; date: Date; answerExcerpt: string; rationale: string }> }
   >();
   const positionGroups = new Map<
     string,
     { label: string; interviews: InterviewRow[] }
   >();
+  PROFILE_DIMENSIONS.forEach((item) => groups.set(item.key, { label: item.label, scores: [], evidenceCount: 0, evidence: [] }));
   interviews.forEach((interview) =>
     dimensionsOf(interview.report).forEach((dimension) => {
       if (!dimension.questionCount) return;
-      const group = groups.get(dimension.key) || {
-        label: dimension.label,
+      const canonical = canonicalDimension(dimension.key);
+      if (!canonical) return;
+      const group = groups.get(canonical.key) || {
+        label: canonical.label,
         scores: [],
         evidenceCount: 0,
+        evidence: [],
       };
       group.scores.push(dimension.score);
       group.evidenceCount += dimension.questionCount;
-      groups.set(dimension.key, group);
+      group.evidence.push(...(dimension.evidence || []).map((item) => ({
+        interviewId: interview.id, position: interview.position,
+        date: interview.completed_at || interview.created_at,
+        answerExcerpt: item.answerExcerpt, rationale: item.rationale,
+      })));
+      groups.set(canonical.key, group);
     })
   );
   interviews.forEach((interview) => {
@@ -224,17 +242,18 @@ export async function getUserProfileOverview(userId: string) {
         : null,
     },
     capabilityProfile:
-      interviews.length < 2
+      interviews.length === 0
         ? []
         : [...groups.entries()].map(([key, item]) => ({
             key,
             label: item.label,
-            score: Math.round(
+            score: item.scores.length ? Math.round(
               item.scores.reduce((sum, score) => sum + score, 0) /
                 item.scores.length
-            ),
+            ) : 0,
             interviewSamples: item.scores.length,
             evidenceCount: item.evidenceCount,
+            evidence: item.evidence.slice(-6).reverse(),
             confidence:
               item.scores.length >= 5
                 ? 'high'
@@ -292,7 +311,7 @@ export async function getUserProfileOverview(userId: string) {
               };
             }),
     })),
-    capabilityMinimumSamples: 2,
+    capabilityMinimumSamples: 1,
     recentActivity,
     funnel: {
       jobDescriptions: jobDescriptionCount,

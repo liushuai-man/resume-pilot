@@ -67,6 +67,7 @@ export class EvaluationAgent {
         knowledgeGap: parsed.knowledgeGap || [],
         followUpSuggestion: parsed.followUpSuggestion || '',
         profileUpdate: parsed.profileUpdate || null,
+        dimensionEvaluations: parsed.dimensionEvaluations || [],
     };
   }
 }
@@ -83,8 +84,24 @@ export function validateBatchEvaluations(input: unknown, expectedIds: string[]):
       knowledgeLevel: item.knowledgeLevel, strengths: Array.isArray(item.strengths) ? item.strengths.map(String) : [],
       weaknesses: Array.isArray(item.weaknesses) ? item.weaknesses.map(String) : [],
       knowledgeGap: Array.isArray(item.knowledgeGap) ? item.knowledgeGap.map(String) : [],
-      followUpSuggestion: String(item.followUpSuggestion || ''), profileUpdate: item.profileUpdate || null } as Evaluation;
+      followUpSuggestion: String(item.followUpSuggestion || ''), profileUpdate: item.profileUpdate || null,
+      dimensionEvaluations: validateDimensionEvaluations(item.dimensionEvaluations) } as Evaluation;
   });
   if (seen.size !== expectedIds.length || expectedIds.some((id) => !seen.has(id))) throw new Error('BATCH_EVALUATION_INCOMPLETE');
   return evaluations;
+}
+
+const DIMENSION_KEYS = new Set(['technical_depth', 'project_articulation', 'communication', 'problem_solving']);
+function validateDimensionEvaluations(input: unknown): NonNullable<Evaluation['dimensionEvaluations']> {
+  if (!Array.isArray(input)) return [];
+  const seen = new Set<string>();
+  return input.map((item: any) => {
+    const key = String(item?.key || '');
+    const score = Number(item?.score);
+    const rationale = String(item?.rationale || '').trim();
+    if (!DIMENSION_KEYS.has(key) || seen.has(key)) throw new Error('BATCH_EVALUATION_DIMENSION_INVALID');
+    if (!Number.isInteger(score) || score < 1 || score > 10 || !rationale) throw new Error('BATCH_EVALUATION_DIMENSION_INVALID');
+    seen.add(key);
+    return { key, score, rationale } as NonNullable<Evaluation['dimensionEvaluations']>[number];
+  });
 }

@@ -18,11 +18,7 @@ export const EVALUATE_ANSWER_PROMPT = PromptTemplate.fromTemplate(`
 简历相关内容：
 {resumeSectionContent}
 
-请从以下维度评估（1-10分）：
-1. 回答的准确性 - 是否有技术错误
-2. 内容的完整性 - 是否覆盖了问题的关键点
-3. 专业性 - 是否展现了深入的理解
-4. 表达能力 - 是否逻辑清晰、条理分明
+请从四个固定维度分别评估（1-10分）：技术深度、项目阐述、表达沟通、问题解决。没有证据覆盖的维度不得猜测。
 
 请按照以下 JSON 格式回答：
 {{
@@ -37,7 +33,10 @@ export const EVALUATE_ANSWER_PROMPT = PromptTemplate.fromTemplate(`
     "skill": "相关技能名称",
     "level": 1-10,
     "confidence": 0.0-1.0
-  }}
+  }},
+  "dimensionEvaluations": [
+    {{ "key": "technical_depth|project_articulation|communication|problem_solving", "score": 1-10, "rationale": "只基于回答事实的判定依据" }}
+  ]
 }}
 
 注意：
@@ -48,6 +47,7 @@ export const EVALUATE_ANSWER_PROMPT = PromptTemplate.fromTemplate(`
 5. followUpSuggestion 建议下一步考察方向
 6. profileUpdate 中 confidence 表示评估置信度（0-1），回答越详细置信度越高
 7. 如果无法判断具体技能，profileUpdate 可以为 null
+8. dimensionEvaluations 仅包含本题能够直接评价的维度；rationale 必须说明回答中的具体事实，禁止空泛评价
 `.trim());
 
 export const BATCH_EVALUATE_INTERVIEW_PROMPT = PromptTemplate.fromTemplate(`
@@ -74,6 +74,9 @@ export const BATCH_EVALUATE_INTERVIEW_PROMPT = PromptTemplate.fromTemplate(`
       "knowledgeGap": ["知识缺口"],
       "followUpSuggestion": "后续专项训练建议",
       "profileUpdate": {{ "skill": "能力主题", "level": 1-10, "confidence": 0.0-1.0 }} 或 null
+      ,"dimensionEvaluations": [
+        {{ "key": "technical_depth|project_articulation|communication|problem_solving", "score": 1-10, "rationale": "回答中支持该分数的具体事实" }}
+      ]
     }}
   ]
 }}
@@ -84,4 +87,6 @@ export const BATCH_EVALUATE_INTERVIEW_PROMPT = PromptTemplate.fromTemplate(`
 3. 不得把 JD 要求当成候选人事实，不得补造项目、数字或技术细节。
 4. 回答信息不足时降低 confidence 并明确指出缺少什么，不得猜测。
 5. 不输出总分、综合报告或面试过程建议；这里只生成逐题结构化评价。
+6. 四个维度定义：技术深度看原理、边界、取舍与准确性；项目阐述看背景、职责、行动、结果与个人贡献；表达沟通看结构、清晰度、重点和受众意识；问题解决看拆解、定位、方案比较、验证与复盘。
+7. 每题只评价有直接回答证据的维度。dimensionEvaluations.rationale 必须落到回答事实，不能使用“表现较好”等空话。
 `.trim());

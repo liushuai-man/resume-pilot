@@ -13,7 +13,7 @@ export default function ThemeToggle() {
       title={label}
       aria-label={label}
       aria-pressed={isDark}
-      className="theme-toggle group relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[#D8E1DD] bg-white text-[#52615B] transition-colors hover:border-[#B9CAC3] hover:bg-[#F3F7F5] hover:text-[#176B52] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#176B52]"
+      className="theme-toggle group relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-surface text-muted transition-colors hover:border-border-strong hover:bg-brand-soft hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
     >
       <Sun className={`absolute transition-all duration-300 motion-reduce:transition-none ${isDark ? '-rotate-90 scale-0 opacity-0' : 'rotate-0 scale-100 opacity-100'}`} size={17} />
       <Moon className={`absolute transition-all duration-300 motion-reduce:transition-none ${isDark ? 'rotate-0 scale-100 opacity-100' : 'rotate-90 scale-0 opacity-0'}`} size={17} />

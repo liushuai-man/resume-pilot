@@ -7,6 +7,12 @@ const evaluation = (questionId: string, score = 7) => ({
   knowledgeGap: [], followUpSuggestion: '', profileUpdate: null,
 });
 
+test('四维评价必须使用固定维度、整数分和具体依据', () => {
+  const item = { ...evaluation('q1'), dimensionEvaluations: [{ key: 'technical_depth', score: 8, rationale: '解释了缓存击穿和互斥锁取舍' }] };
+  assert.equal(validateBatchEvaluations([item], ['q1'])[0].dimensionEvaluations?.[0].score, 8);
+  assert.throws(() => validateBatchEvaluations([{ ...item, dimensionEvaluations: [{ key: 'other', score: 8, rationale: '依据' }] }], ['q1']), /DIMENSION_INVALID/);
+});
+
 test('批量评价必须完整覆盖输入问题并保持顺序可用', () => {
   const result = validateBatchEvaluations([evaluation('q1'), evaluation('q2', 8)], ['q1', 'q2']);
   assert.deepEqual(result.map((item) => item.questionId), ['q1', 'q2']);

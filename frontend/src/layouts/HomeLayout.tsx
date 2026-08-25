@@ -78,16 +78,16 @@ export default function HomeLayout() {
   ];
 
   return (
-    <div className={`flex flex-col bg-[#F4F7F6] text-[#17211D] ${isContainedRoute || isWorkspaceRoute ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
+    <div className={`flex flex-col bg-canvas text-ink ${isContainedRoute || isWorkspaceRoute ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
       {/* 顶部导航栏 */}
-      <header className="sticky top-0 z-30 flex h-16 items-center border-b border-[#D8E1DD] bg-white/95 px-4 backdrop-blur sm:px-6 lg:px-8">
+      <header className="sticky top-0 z-30 flex h-16 items-center border-b border-border bg-surface/95 px-4 text-ink backdrop-blur sm:px-6 lg:px-8">
         <button onClick={() => navigate('/resumes')} className="flex shrink-0 items-center gap-3 text-left">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#176B52] text-white">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand text-brand-contrast">
             <FileCheck2 size={20} strokeWidth={1.9} />
           </div>
           <div className="hidden xl:block">
-            <Text size="sm" fw={700} c="#17211D">AI 简历助手</Text>
-            <Text size="xs" c="#7A8782">求职证据工作台</Text>
+            <Text size="sm" fw={700} className="text-ink">AI 简历助手</Text>
+            <Text size="xs" className="text-subtle">求职证据工作台</Text>
           </div>
         </button>
 
@@ -98,11 +98,11 @@ export default function HomeLayout() {
               <button
                 key={item.path}
                 onClick={() => navigate(item.path)}
-                className={`relative flex h-full items-center gap-2 px-3 text-sm transition-colors lg:px-5 ${item.active ? 'font-semibold text-[#176B52]' : 'text-[#66736D] hover:text-[#17211D]'}`}
+                className={`relative flex h-full items-center gap-2 px-3 text-sm transition-colors lg:px-5 ${item.active ? 'font-semibold text-brand' : 'text-muted hover:text-ink'}`}
               >
                 <Icon size={17} />
                 <span className="hidden md:inline">{item.label}</span>
-                {item.active && <span className="absolute inset-x-3 bottom-0 h-0.5 bg-[#176B52]" />}
+                {item.active && <span className="absolute inset-x-3 bottom-0 h-0.5 bg-brand" />}
               </button>
             );
           })}
@@ -119,7 +119,7 @@ export default function HomeLayout() {
                 size="md"
                 src={user.github_avatar || undefined}
                 alt={user.github_login || 'User'}
-                className="cursor-pointer border-2 border-[#D8E1DD] bg-[#176B52] text-white"
+                className="cursor-pointer border-2 border-border bg-brand text-brand-contrast"
               >
                 {user.github_login?.charAt(0) || 'U'}
               </Avatar>
@@ -130,7 +130,7 @@ export default function HomeLayout() {
           )}
 
           {isGuest && (
-            <span className="hidden rounded-lg border border-[#D8E1DD] bg-white px-3 py-1.5 text-xs font-semibold text-[#66736D] sm:inline">
+            <span className="hidden rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-muted sm:inline">
               展示模式
             </span>
           )}
@@ -139,7 +139,7 @@ export default function HomeLayout() {
           <button
             onClick={isLoggedIn ? handleLogout : handleLogin}
             title={isLoggedIn ? '退出登录' : '登录'}
-            className="rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
+            className="rounded-lg p-2 text-subtle transition hover:bg-surface-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
             {isLoggedIn ? <LogOut size={18} /> : '登录'}
           </button>
@@ -152,7 +152,7 @@ export default function HomeLayout() {
       </main>
 
       {/* 底部 Footer */}
-      {!isWorkspaceRoute && !isContainedRoute && <footer className="flex items-center justify-between border-t border-[#D8E1DD] bg-white px-8 py-5 text-[#7A8782]">
+      {!isWorkspaceRoute && !isContainedRoute && <footer className="flex items-center justify-between border-t border-border bg-surface px-8 py-5 text-subtle">
         <Text size="xs">© 2026 AI 简历助手</Text>
         <Text size="xs">让每一次投递都有依据</Text>
       </footer>}
