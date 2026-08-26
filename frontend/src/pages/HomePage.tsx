@@ -13,6 +13,10 @@ import { notification } from '@/components/common/Notification';
 import type { Resume } from '@/types/resume';
 import { getApiErrorMessage } from '@/utils/api-error';
 import { uploadApi } from '@/api/upload.api';
+import { useDocumentStore } from '@/store/useDocumentStore';
+import { useResumeStore } from '@/store/useResumeStore';
+import { contentToDocument } from '@/utils/resume-migration';
+import { guestWorkspace } from '@/services/guest-workspace';
 
 const MAX_RESUMES = 7;
 
@@ -28,6 +32,15 @@ export default function HomePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    if (isGuest) {
+      void guestWorkspace.listResumes().then((items) => {
+        const localResume = useResumeStore.getState().resume;
+        const merged = localResume?.id.startsWith('guest-') && !items.some((item) => item.id === localResume.id)
+          ? [localResume, ...items] : items;
+        setResumes(merged);
+      });
+      return;
+    }
     if (!isLoggedIn) return;
     void (async () => {
       try {
@@ -37,7 +50,7 @@ export default function HomePage() {
         notification.error(getApiErrorMessage(error, '简历列表加载失败，请刷新后重试'));
       }
     })();
-  }, [isLoggedIn]);
+  }, [isLoggedIn, isGuest]);
 
   const filteredResumes = useMemo(() => {
     const result = resumes.filter((resume) => resume.title.toLowerCase().includes(searchKeyword.trim().toLowerCase()));
@@ -50,8 +63,16 @@ export default function HomePage() {
 
   const createResume = async (templateId: string, title = '我的简历') => {
     if (isGuest) {
-      notification.info('展示模式无法创建简历，登录后可使用完整功能');
-      return navigate('/auth/login', { state: { from: '/resumes' } });
+      const id = `guest-${Date.now()}`;
+      const guestResume: Resume = { id, user_id: 'guest', template_id: templateId, title, content: emptyResumeContent, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), is_deleted: false };
+      const doc = contentToDocument(emptyResumeContent, null, templateId);
+      doc.id = id;
+      doc.title = title;
+      useDocumentStore.getState().loadDocument(doc);
+      useResumeStore.getState().setResume(guestResume);
+      await guestWorkspace.saveResume(guestResume);
+      notification.info('已创建游客草稿，仅保存在当前浏览器');
+      return navigate(`/resumes/${id}/edit`);
     }
     if (!isLoggedIn) return navigate('/auth/login');
     setIsCreating(true);
@@ -67,7 +88,7 @@ export default function HomePage() {
     if (!file) return;
     if (isGuest) {
       event.target.value = '';
-      notification.info('展示模式无法导入简历，登录后可使用完整功能');
+      notification.info('文件导入需要登录，以便安全处理和保存文件');
       return navigate('/auth/login', { state: { from: '/resumes' } });
     }
     const supportedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp'];

@@ -11,6 +11,10 @@ import { resumeApi } from '@/api/home.api';
 import { downloadPdf } from '@/utils/downloadPdf';
 import { formatDateTime } from '@/utils/format';
 import ConfirmModal from '@/components/common/ConfirmModal';
+import { useUserStore } from '@/store/useUserStore';
+import { useResumeStore } from '@/store/useResumeStore';
+import { useDocumentStore } from '@/store/useDocumentStore';
+import { guestWorkspace } from '@/services/guest-workspace';
 
 interface HistoryResumeProps {
   resume: Resume;
@@ -22,6 +26,7 @@ interface HistoryResumeProps {
 export default function HistoryResume({ resume, onDelete, templateStyle, templateLayout }: HistoryResumeProps) {
   const { id, title, content, updated_at } = resume;
   const navigate = useNavigate();
+  const isGuest = useUserStore((state) => state.isGuest);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -29,6 +34,11 @@ export default function HistoryResume({ resume, onDelete, templateStyle, templat
   const document = useMemo(() => contentToDocument(content, templateStyle || null, layout), [content, templateStyle, layout]);
 
   const handleExport = async () => {
+    if (isGuest) {
+      setPreviewOpen(true);
+      notification.info('打开预览后，可使用浏览器打印并另存为 PDF');
+      return;
+    }
     setIsExporting(true);
     try {
       notification.info('正在生成 PDF 简历…');
@@ -40,6 +50,14 @@ export default function HistoryResume({ resume, onDelete, templateStyle, templat
 
   const confirmDelete = async () => {
     try {
+      if (isGuest) {
+        await guestWorkspace.deleteResume(id);
+        useResumeStore.getState().reset();
+        useDocumentStore.getState().reset();
+        onDelete?.(id);
+        notification.success('本机游客草稿已删除');
+        return;
+      }
       const result = await resumeApi.deleteResume(id);
       if (result.code !== 200) throw new Error(result.message);
       notification.success('简历已删除');
@@ -67,7 +85,7 @@ export default function HistoryResume({ resume, onDelete, templateStyle, templat
             <Menu.Target><button type="button" aria-label={`${title}更多操作`} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[#66736D] hover:bg-[#F1F5F3] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#176B52]"><MoreHorizontal size={19} /></button></Menu.Target>
             <Menu.Dropdown>
               <Menu.Item leftSection={<Eye size={15} />} onClick={() => setPreviewOpen(true)}>预览简历</Menu.Item>
-              <Menu.Item leftSection={<History size={15} />} onClick={() => navigate(`/resumes/${id}/optimizations`)}>优化历史</Menu.Item>
+              {!isGuest && <Menu.Item leftSection={<History size={15} />} onClick={() => navigate(`/resumes/${id}/optimizations`)}>优化历史</Menu.Item>}
               <Menu.Item leftSection={<Download size={15} />} onClick={() => void handleExport()} disabled={isExporting}>{isExporting ? '导出中…' : '导出 PDF'}</Menu.Item>
               <Menu.Divider />
               <Menu.Item color="red" leftSection={<Trash2 size={15} />} onClick={() => setDeleteOpen(true)}>删除简历</Menu.Item>

@@ -8,9 +8,12 @@ import { logout } from '@/api/auth.api';
 import { notification } from '@/components/common/Notification';
 import ModelSelector from '@/components/common/ModelSelector';
 import ThemeToggle from '@/components/common/ThemeToggle';
+import GuestDataNotice from '@/components/common/GuestDataNotice';
+import { useResumeStore } from '@/store/useResumeStore';
+import { useDocumentStore } from '@/store/useDocumentStore';
 
 export default function HomeLayout() {
-  const { user, clearUser, isLoggedIn, isGuest, setUser } = useUserStore();
+  const { user, clearUser, enterGuestMode, isLoggedIn, isGuest, setUser } = useUserStore();
   const navigate = useNavigate();
   const location = useLocation();
   const isWorkspaceRoute = /^\/resumes\/[^/]+\/edit$/.test(location.pathname)
@@ -60,13 +63,17 @@ export default function HomeLayout() {
   const handleLogout = async () => {
     try {
       const res = await logout();
-      if (res.code === 200) {
-        clearUser();
-        localStorage.removeItem('token');
-        notification.success('登出成功');
-      }
+      if (res.code !== 200) throw new Error(res.message || '退出登录失败');
     } catch (error) {
       console.error('登出失败:', error);
+    } finally {
+      useResumeStore.getState().reset();
+      useDocumentStore.getState().reset();
+      localStorage.removeItem('token');
+      sessionStorage.removeItem('token');
+      enterGuestMode();
+      navigate('/resumes', { replace: true });
+      notification.success('已退出登录，当前为游客模式');
     }
   };
 
@@ -111,6 +118,7 @@ export default function HomeLayout() {
         <div className="flex shrink-0 items-center gap-3">
           <div className="hidden lg:block"><ModelSelector variant="full" readOnly /></div>
           <ThemeToggle />
+          <GuestDataNotice />
 
           {/* 用户信息：登录后显示 */}
           {isLoggedIn && user && (
@@ -127,12 +135,6 @@ export default function HomeLayout() {
                 {user.github_login || '用户'}
               </Text>
             </div>
-          )}
-
-          {isGuest && (
-            <span className="hidden rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-muted sm:inline">
-              展示模式
-            </span>
           )}
 
           {/* 登录/登出按钮 */}

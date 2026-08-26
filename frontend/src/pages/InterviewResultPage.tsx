@@ -8,6 +8,8 @@ import InterviewPipelineStatus, { interviewNodeLabel } from '@/components/interv
 import InterviewReportOverview from '@/components/interview/InterviewReportOverview';
 import InterviewReportSummary from '@/components/interview/InterviewReportSummary';
 import { formatDateTime } from '@/utils/format';
+import { useUserStore } from '@/store/useUserStore';
+import { guestWorkspace } from '@/services/guest-workspace';
 
 export default function InterviewResultPage() {
   const navigate = useNavigate();
@@ -15,13 +17,17 @@ export default function InterviewResultPage() {
   const [loading, setLoading] = useState(true);
   const [result, setResult] = useState<InterviewResult | null>(null);
   const [retrying, setRetrying] = useState(false);
+  const isGuest = useUserStore((state) => state.isGuest);
 
   useEffect(() => {
     if (!id) return;
-    interviewApi.getInterviewResult(id).then(setResult)
+    const loadResult = isGuest
+      ? guestWorkspace.listInterviewResults().then((items) => items.find((item) => item.id === id) || null)
+      : interviewApi.getInterviewResult(id);
+    loadResult.then(setResult)
       .catch(() => notifications.show({ title: '错误', message: '获取面试结果失败', color: 'red' }))
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, isGuest]);
 
   if (loading) return <div className="flex min-h-[50vh] items-center justify-center"><Loader size="xl" color="#176B52"/></div>;
   if (!result) return <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4"><Text c="dimmed">未找到面试结果</Text><Button variant="outline" onClick={() => navigate('/interviews/history')}>查看面试记录</Button></div>;

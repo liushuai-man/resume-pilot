@@ -2,12 +2,14 @@ import { useCallback, useEffect, useState } from 'react';
 import { notifications } from '@mantine/notifications';
 import { interviewApi, type Answer, type InterviewResult, type Question } from '@/api/interview.api';
 import { getApiErrorMessage } from '@/utils/api-error';
+import { createGuestInterviewReport, guestInterviewQuestions } from '@/utils/guest-samples';
+import { guestWorkspace } from '@/services/guest-workspace';
 
 interface StartOptions { resumeId: string; targetPosition?: string; questionCount: number; jobProfileId?: string; practiceTopic?: string; }
 const ACTIVE_SESSION_KEY = 'resume-pilot:active-interview-session';
 const STREAMING_ENABLED = import.meta.env.VITE_INTERVIEW_STREAMING_ENABLED === 'true';
 
-export function useInterviewSession() {
+export function useInterviewSession(isGuest = false) {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -27,6 +29,7 @@ export function useInterviewSession() {
   const [streamStage, setStreamStage] = useState<string | null>(null);
 
   useEffect(() => {
+    if (isGuest) { setRestoring(false); return; }
     const storedSessionId = localStorage.getItem(ACTIVE_SESSION_KEY);
     if (!storedSessionId) { setRestoring(false); return; }
     interviewApi.getActiveSession(storedSessionId).then((session) => {
@@ -35,12 +38,21 @@ export function useInterviewSession() {
       setNextQuestionFailed(session.nextQuestionPending);
       setSessionResumeId(session.resumeId); setMaxQuestions(session.maxQuestions);
     }).catch(() => localStorage.removeItem(ACTIVE_SESSION_KEY)).finally(() => setRestoring(false));
-  }, []);
+  }, [isGuest]);
 
   const finish = useCallback(async (activeSessionId = sessionId) => {
     if (!activeSessionId) return;
     setFinishing(true);
     try {
+      if (isGuest) {
+        const result = createGuestInterviewReport(activeSessionId, sessionResumeId || 'guest-sample-resume', '系统集成工程师', questions, answers);
+        await guestWorkspace.saveInterviewResult(result);
+        setInterviewResult(result);
+        setIsFinished(true);
+        localStorage.removeItem(ACTIVE_SESSION_KEY);
+        notifications.show({ title: '练习完成', message: '本次问答和报告已存到本机', color: 'green' });
+        return;
+      }
       let result: InterviewResult | null = null;
       if (STREAMING_ENABLED) {
         try {
@@ -61,11 +73,19 @@ export function useInterviewSession() {
     } catch (error) {
       notifications.show({ title: '完成面试失败', message: getApiErrorMessage(error, '请稍后重试'), color: 'red' });
     } finally { setFinishing(false); setStreamStage(null); }
-  }, [sessionId]);
+  }, [answers, isGuest, questions, sessionId, sessionResumeId]);
 
   const start = useCallback(async (options: StartOptions) => {
     setStarting(true); setIsThinking(true);
     try {
+      if (isGuest) {
+        const nextSessionId = `guest-${crypto.randomUUID()}`;
+        const localQuestions = guestInterviewQuestions.slice(0, Math.min(3, options.questionCount));
+        setSessionId(nextSessionId); setCurrentQuestion(localQuestions[0]); setQuestions(localQuestions.slice(0, 1));
+        setSessionResumeId(options.resumeId); setMaxQuestions(localQuestions.length);
+        localStorage.setItem(ACTIVE_SESSION_KEY, nextSessionId);
+        return;
+      }
       let result = null as Awaited<ReturnType<typeof interviewApi.startInterview>> | null;
       if (STREAMING_ENABLED) {
         try {
@@ -85,7 +105,7 @@ export function useInterviewSession() {
       setSessionId(null); setCurrentQuestion(null); setQuestions([]);
       notifications.show({ title: '开始面试失败', message: getApiErrorMessage(error, '请检查模型配置和网络连接后重试'), color: 'red' });
     } finally { setStarting(false); setIsThinking(false); setStreamStage(null); }
-  }, []);
+  }, [isGuest]);
 
   const submitAnswer = useCallback(async () => {
     if (!currentQuestion || !sessionId || !currentAnswer.trim()) return;
@@ -96,6 +116,22 @@ export function useInterviewSession() {
     setPendingSubmission(submission);
     setSubmitting(true); setIsThinking(true);
     try {
+      if (isGuest) {
+        const nextAnswers = answers.some((item) => item.submissionId === submission.id)
+          ? answers : [...answers, { questionId: currentQuestion.id, content: submission.answer, submissionId: submission.id }];
+        setAnswers(nextAnswers); setCurrentAnswer(''); setPendingSubmission(null);
+        const nextQuestion = guestInterviewQuestions[nextAnswers.length] || null;
+        if (!nextQuestion || nextAnswers.length >= maxQuestions) {
+          const result = createGuestInterviewReport(sessionId, sessionResumeId || 'guest-sample-resume', '系统集成工程师', questions, nextAnswers);
+          await guestWorkspace.saveInterviewResult(result);
+          setInterviewResult(result); setIsFinished(true); localStorage.removeItem(ACTIVE_SESSION_KEY);
+          notifications.show({ title: '练习完成', message: '本次问答和报告已存到本机', color: 'green' });
+        } else {
+          setCurrentQuestion(nextQuestion);
+          setQuestions((items) => items.some((item) => item.id === nextQuestion.id) ? items : [...items, nextQuestion]);
+        }
+        return;
+      }
       const result = await interviewApi.submitAnswer(sessionId, submission.answer, submission.id);
       setAnswers((items) => items.some((item) => item.submissionId === submission.id)
         ? items : [...items, { questionId: result.questionId, content: submission.answer, submissionId: submission.id }]);
@@ -128,10 +164,11 @@ export function useInterviewSession() {
       setCurrentAnswer(submission.answer);
       notifications.show({ title: '回答保存失败', message: getApiErrorMessage(error, '草稿已保留，请重新提交'), color: 'red' });
     } finally { setSubmitting(false); setIsThinking(false); setStreamStage(null); }
-  }, [currentAnswer, currentQuestion, finish, pendingSubmission, sessionId]);
+  }, [answers, currentAnswer, currentQuestion, finish, isGuest, maxQuestions, pendingSubmission, questions, sessionId, sessionResumeId]);
 
   const retryNextQuestion = useCallback(async () => {
     if (!sessionId) return;
+    if (isGuest) { setNextQuestionFailed(false); return; }
     setIsThinking(true);
     try {
       const nextQuestion = await interviewApi.getNextQuestion(sessionId);
@@ -143,10 +180,11 @@ export function useInterviewSession() {
     } catch (error) {
       notifications.show({ title: '仍未生成下一题', message: getApiErrorMessage(error, '已保存回答不会丢失，请稍后再试'), color: 'red' });
     } finally { setIsThinking(false); }
-  }, [sessionId]);
+  }, [isGuest, sessionId]);
 
   const retryReport = useCallback(async () => {
     if (!interviewResult?.id) return;
+    if (isGuest) return;
     setFinishing(true);
     try {
       const result = interviewResult.failed_node && interviewResult.evaluation_input_hash
@@ -158,7 +196,7 @@ export function useInterviewSession() {
     } catch (error) {
       notifications.show({ title: '重试失败', message: getApiErrorMessage(error, '完整问答仍已安全保存，请稍后重试'), color: 'red' });
     } finally { setFinishing(false); }
-  }, [interviewResult]);
+  }, [interviewResult, isGuest]);
 
   const restart = useCallback(() => {
     setSessionId(null); setCurrentQuestion(null); setQuestions([]); setAnswers([]); setCurrentAnswer('');

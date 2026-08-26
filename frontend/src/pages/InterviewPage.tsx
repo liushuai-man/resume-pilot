@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Button, Loader, Modal, Text } from '@mantine/core';
-import { CheckCircle2, Lock, PanelRightOpen } from 'lucide-react';
+import { CheckCircle2, PanelRightOpen } from 'lucide-react';
 import { InterviewChat, InterviewNotesPanel, InterviewReport } from '@/components/interview';
 import InterviewResumePreview from '@/components/interview/InterviewResumePreview';
 import InterviewToolbar from '@/components/interview/InterviewToolbar';
@@ -23,12 +23,11 @@ const INTERVIEW_TOOL_MAX_WIDTH = 800;
 
 export default function InterviewPage() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { resumeId } = useParams<{ resumeId?: string }>();
   const [searchParams] = useSearchParams();
   const { user, isGuest } = useUserStore();
-  const resources = useInterviewResources(user?.id, resumeId);
-  const interview = useInterviewSession();
+  const resources = useInterviewResources(user?.id, resumeId, isGuest);
+  const interview = useInterviewSession(isGuest);
   const workspace = useInterviewWorkspace(interview.sessionId);
 
   const [questionCount, setQuestionCount] = useState('5');
@@ -69,29 +68,6 @@ export default function InterviewPage() {
   }, [interview.interviewResult]);
 
   if (resources.loading || interview.restoring) return <div className="flex h-[calc(100vh-4rem)] items-center justify-center"><Loader size="xl" color="#176B52" /></div>;
-
-  if (isGuest) {
-    return (
-      <div className="flex h-[calc(100vh-4rem)] items-center justify-center bg-canvas px-6">
-        <div className="w-full max-w-[460px] rounded-[8px] border border-border bg-surface p-6 text-center shadow-sm">
-          <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-lg bg-brand-soft text-brand">
-            <Lock size={20} />
-          </div>
-          <h1 className="mt-5 text-lg font-semibold text-ink">模拟面试需要登录后使用</h1>
-          <p className="mt-2 text-sm leading-6 text-muted">
-            展示模式可以查看页面结构，但生成问题、保存问答和输出报告需要登录后启用。
-          </p>
-          <button
-            type="button"
-            onClick={() => navigate('/auth/login', { state: { from: location.pathname } })}
-            className="mt-5 h-10 rounded-lg bg-brand px-4 text-sm font-semibold text-brand-contrast transition hover:bg-brand-hover"
-          >
-            登录后使用
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   const selectedResume = resources.resumes.find((item) => item.id === resources.selectedResumeId);
   const selectedProfile = resources.jobProfiles.find((item) => item.id === resources.selectedJobProfileId);
