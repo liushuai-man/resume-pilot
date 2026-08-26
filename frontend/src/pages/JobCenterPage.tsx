@@ -340,7 +340,9 @@ export default function JobCenterPage() {
     try {
       if (isGuest) {
         const selectedResume = resumes.find((item) => item.id === selectedResumeId) || guestSampleResume;
-        setAtsResult(createGuestAtsResult(selectedResume, selected.id)); setAnalysisView('structure');
+        const result = createGuestAtsResult(selectedResume, selected.id);
+        await Promise.all([guestWorkspace.saveResume(selectedResume), guestWorkspace.saveJob(selected), guestWorkspace.saveAnalysis({ id: `ats:${selected.id}:${selectedResume.id}`, kind: 'ats', resumeId: selectedResume.id, jobId: selected.id, result })]);
+        setAtsResult(result); setAnalysisView('structure');
         notification.success('ATS 本地分析完成'); return;
       }
       const response = await jobApi.analyzeAts(selected.id, selectedResumeId);
@@ -364,7 +366,9 @@ export default function JobCenterPage() {
     try {
       if (isGuest) {
         const selectedResume = resumes.find((item) => item.id === selectedResumeId) || guestSampleResume;
-        setContentQuality(createGuestQualityResult(selectedResume)); setAnalysisView('quality');
+        const result = createGuestQualityResult(selectedResume);
+        await Promise.all([guestWorkspace.saveResume(selectedResume), guestWorkspace.saveAnalysis({ id: `quality:${selectedResume.id}`, kind: 'content-quality', resumeId: selectedResume.id, result })]);
+        setContentQuality(result); setAnalysisView('quality');
         notification.success('内容质量体验分析完成'); return;
       }
       const response = await resumeApi.analyzeContentQuality(selectedResumeId);
@@ -387,7 +391,9 @@ export default function JobCenterPage() {
       if (isGuest) {
         const selectedResume = resumes.find((item) => item.id === selectedResumeId) || guestSampleResume;
         const activeProfile = profile || selected.latestProfile || guestSampleProfile;
-        setMatchResult(createGuestMatchResult(selectedResume, selected, activeProfile)); setAnalysisView('match');
+        const result = createGuestMatchResult(selectedResume, selected, activeProfile);
+        await Promise.all([guestWorkspace.saveResume(selectedResume), guestWorkspace.saveJob({ ...selected, latestProfile: activeProfile }), guestWorkspace.saveAnalysis({ id: `match:${selected.id}:${selectedResume.id}`, kind: 'job-match', resumeId: selectedResume.id, jobId: selected.id, jobProfileId: activeProfile.id, result })]);
+        setMatchResult(result); setAnalysisView('match');
         notification.success('岗位匹配体验分析完成'); return;
       }
       const response = await jobApi.analyzeMatch(selected.id, selectedResumeId);

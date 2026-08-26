@@ -8,6 +8,7 @@ import {
   notFound,
   error,
 } from '../utils/response';
+import { guestMigrationService, type GuestMigrationEntity } from '../services/guest-migration.service';
 
 interface AuthRequest extends Request {
   user?: {
@@ -115,6 +116,22 @@ export const authController = {
     } catch (err) {
       console.error('Logout failed:', err);
       return error(res, 'Logout failed');
+    }
+  },
+  migrateGuestWorkspace: async (req: AuthRequest, res: Response) => {
+    try {
+      if (!req.user?.id) return unauthorized(res, 'Unauthorized');
+      const entities = Array.isArray(req.body?.entities) ? req.body.entities as GuestMigrationEntity[] : [];
+      if (entities.length > 200) return error(res.status(413), '游客数据数量超过单次迁移上限', 413);
+      const allowed = new Set(['resume', 'job', 'analysis', 'interview-result']);
+      if (entities.some((item) => !item || !allowed.has(item.entityType) || typeof item.entityId !== 'string' || !item.payload)) {
+        return error(res.status(400), '游客迁移数据格式无效', 400);
+      }
+      const mappings = await guestMigrationService.migrate(req.user.id, entities);
+      return success(res, { mappings, migrated: mappings.length });
+    } catch (err) {
+      console.error('Guest migration failed:', err);
+      return error(res, '游客数据迁移失败');
     }
   },
 };

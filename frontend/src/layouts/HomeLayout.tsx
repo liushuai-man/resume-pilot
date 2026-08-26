@@ -1,21 +1,23 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { getCurrentUser } from '@/api/auth.api';
 import { Avatar, Text } from '@mantine/core';
 import { FileCheck2, FileText, LogOut, Target, UserRound, UserRoundSearch } from 'lucide-react';
 import { useUserStore } from '@/store/useUserStore';
-import { logout } from '@/api/auth.api';
+import { logout, migrateGuestWorkspace } from '@/api/auth.api';
 import { notification } from '@/components/common/Notification';
 import ModelSelector from '@/components/common/ModelSelector';
 import ThemeToggle from '@/components/common/ThemeToggle';
 import GuestDataNotice from '@/components/common/GuestDataNotice';
 import { useResumeStore } from '@/store/useResumeStore';
 import { useDocumentStore } from '@/store/useDocumentStore';
+import { GUEST_WORKSPACE_ID_KEY, guestWorkspace } from '@/services/guest-workspace';
 
 export default function HomeLayout() {
   const { user, clearUser, enterGuestMode, isLoggedIn, isGuest, setUser } = useUserStore();
   const navigate = useNavigate();
   const location = useLocation();
+  const migrationStarted = useRef(false);
   const isWorkspaceRoute = /^\/resumes\/[^/]+\/edit$/.test(location.pathname)
     || location.pathname === '/interviews'
     || location.pathname.startsWith('/interviews/resume/');
@@ -55,6 +57,34 @@ export default function HomeLayout() {
 
     checkAuth();
   }, [clearUser, isGuest, setUser]);
+
+  useEffect(() => {
+    if (localStorage.getItem(GUEST_WORKSPACE_ID_KEY)) void guestWorkspace.cleanup();
+    const releaseMemory = () => guestWorkspace.releaseMemory();
+    window.addEventListener('pagehide', releaseMemory);
+    return () => window.removeEventListener('pagehide', releaseMemory);
+  }, []);
+
+  useEffect(() => {
+    if (!isLoggedIn || migrationStarted.current || !localStorage.getItem(GUEST_WORKSPACE_ID_KEY)) return;
+    migrationStarted.current = true;
+    void (async () => {
+      try {
+        const payload = await guestWorkspace.createMigrationPayload();
+        if (!payload.entities.length) return;
+        sessionStorage.setItem('resume-pilot:guest-migration-pending', payload.workspaceId);
+        const response = await migrateGuestWorkspace(payload);
+        if (response.code !== 200) throw new Error(response.message);
+        await guestWorkspace.markSynced(response.data.mappings);
+        sessionStorage.removeItem('resume-pilot:guest-migration-pending');
+        notification.success(`已将 ${response.data.migrated} 项游客成果同步到账号`, '游客数据已保留');
+      } catch (error) {
+        console.error('游客数据迁移失败:', error);
+        migrationStarted.current = false;
+        notification.error('游客成果仍安全保存在本机，稍后进入工作台会自动重试', '同步尚未完成');
+      }
+    })();
+  }, [isLoggedIn]);
 
   const handleLogin = () => {
     navigate('/auth/login');
