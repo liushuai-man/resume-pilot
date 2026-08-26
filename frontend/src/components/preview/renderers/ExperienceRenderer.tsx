@@ -1,6 +1,7 @@
 import type { RendererProps } from './index';
 import { SectionWrapper } from './SectionWrapper';
 import { DateRange, DescriptionText, AchievementList } from './common';
+import { filterDistinctAchievements } from '../content-dedup';
 
 export function ExperienceRenderer({
   section,
@@ -27,7 +28,9 @@ export function ExperienceRenderer({
       onClick={onClick}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {safeItems.map((item) => (
+        {safeItems.map((item) => {
+          const visibleAchievements = filterDistinctAchievements(item.description, item.achievements);
+          return (
           <div
             key={item.id}
             className="experience-item"
@@ -76,14 +79,15 @@ export function ExperienceRenderer({
                 variant={variant}
               />
             )}
-            {item.achievements && item.achievements.length > 0 && (
+            {visibleAchievements.length > 0 && (
               <AchievementList
-                achievements={item.achievements}
+                achievements={visibleAchievements}
                 fontSize={descSize}
               />
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
     </SectionWrapper>
   );

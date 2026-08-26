@@ -130,6 +130,11 @@ export function DocumentPreview({
               : 0;
             const totalHeight =
               measured.getBoundingClientRect().height + marginTop + marginBottom;
+            const titleElement = wrapper.querySelector<HTMLElement>('.section-title');
+            const titleComputed = titleElement ? window.getComputedStyle(titleElement) : null;
+            const titleHeight = titleElement
+              ? titleElement.getBoundingClientRect().height + (Number.parseFloat(titleComputed?.marginBottom || '0') || 0)
+              : 0;
             const itemsHeight = Array.from(itemHeights.values()).reduce(
               (total, height) => total + height,
               0
@@ -145,6 +150,7 @@ export function DocumentPreview({
               itemHeights,
               itemGap,
               baseHeight,
+              titleHeight,
             });
           }
         });
@@ -230,6 +236,7 @@ export function DocumentPreview({
           const itemIds = new Set(fragment.itemIds);
           return {
             ...section,
+            title: fragment.showTitle === false ? '' : section.title,
             data: section.data.filter((item: any) => itemIds.has(item?.id)),
           } as ResumeSection;
         })
