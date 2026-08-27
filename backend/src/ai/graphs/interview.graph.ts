@@ -30,6 +30,7 @@ export function createInitialInterviewState(
   resumeContent: any,
   targetPosition?: string,
   questionCount = 5,
+  questionCountMode: 'fixed' | 'adaptive' = 'fixed',
   userId?: string,
   context?: Pick<LangGraphInterviewState, 'resumeSnapshot' | 'jobProfileSnapshot' | 'rubricSnapshot' | 'interviewPlan'>
 ): { session: LangGraphInterviewState; firstQuestion: Question } {
@@ -51,6 +52,8 @@ export function createInitialInterviewState(
       resumeText: getResumeText(resumeContent),
       targetPosition: targetPosition || '通用岗位',
       maxQuestions: questionCount,
+      minQuestions: questionCountMode === 'adaptive' ? 5 : questionCount,
+      questionCountMode,
       questions: [firstQuestion],
       answers: [],
       evaluations: [],
@@ -99,12 +102,15 @@ workflow.addNode('record_answer', async (state) => {
   if (!question) throw new Error('Current interview question does not exist');
   const answer: Answer = { questionId: question.id, content: state.answer, submissionId: state.submissionId };
   const currentQuestionIndex = state.session.currentQuestionIndex + 1;
+  const session = {
+    ...state.session,
+    answers: [...state.session.answers, answer],
+    currentQuestionIndex,
+  };
   return {
     session: {
-      ...state.session,
-      answers: [...state.session.answers, answer],
-      currentQuestionIndex,
-      isFinished: currentQuestionIndex >= state.session.maxQuestions,
+      ...session,
+      isFinished: supervisor.shouldFinishInterview(session),
     },
     feedback: '',
   };

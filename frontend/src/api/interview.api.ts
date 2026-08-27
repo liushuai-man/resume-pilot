@@ -93,6 +93,8 @@ export interface ActiveInterviewSession {
   resumeId: string;
   targetPosition: string;
   maxQuestions: number;
+  minQuestions: number;
+  questionCountMode: 'fixed' | 'adaptive';
   questions: Question[];
   answers: Answer[];
   currentQuestion: Question | null;
@@ -108,7 +110,7 @@ export type InterviewStreamOperation =
       operation: 'start';
       resumeId: string;
       targetPosition?: string;
-      questionCount: number;
+      questionCount?: number;
       jobProfileId?: string;
       practiceTopic?: string;
     }

@@ -86,12 +86,13 @@ export const startInterviewHandler = async (req: Request, res: Response) => {
       return error(res, '请提供简历ID', 400);
     }
 
-    const normalizedQuestionCount = Number(questionCount || 5);
-    if (
+    const hasQuestionCount = questionCount !== undefined && questionCount !== null && questionCount !== '';
+    const normalizedQuestionCount = hasQuestionCount ? Number(questionCount) : undefined;
+    if (normalizedQuestionCount !== undefined && (
       !Number.isInteger(normalizedQuestionCount) ||
       normalizedQuestionCount < 3 ||
       normalizedQuestionCount > 10
-    ) {
+    )) {
       return error(res, '面试题数必须是 3 到 10 之间的整数', 400);
     }
 

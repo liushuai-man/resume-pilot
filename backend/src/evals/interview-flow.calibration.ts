@@ -32,7 +32,7 @@ async function main() {
   if (!user) throw new Error('没有配置默认聊天模型的用户');
 
   const initial = createInitialInterviewState(
-    'synthetic-resume', syntheticResume, '中级 Java 后端工程师', 3, user.id,
+    'synthetic-resume', syntheticResume, '中级 Java 后端工程师', 3, 'fixed', user.id,
     {
       resumeSnapshot: {
         title: '模拟面试校准简历',

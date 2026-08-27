@@ -5,7 +5,7 @@ import { getApiErrorMessage } from '@/utils/api-error';
 import { createGuestInterviewReport, guestInterviewQuestions } from '@/utils/guest-samples';
 import { guestWorkspace } from '@/services/guest-workspace';
 
-interface StartOptions { resumeId: string; targetPosition?: string; questionCount: number; jobProfileId?: string; practiceTopic?: string; }
+interface StartOptions { resumeId: string; targetPosition?: string; questionCount?: number; jobProfileId?: string; practiceTopic?: string; }
 const ACTIVE_SESSION_KEY = 'resume-pilot:active-interview-session';
 const STREAMING_ENABLED = import.meta.env.VITE_INTERVIEW_STREAMING_ENABLED === 'true';
 
@@ -26,6 +26,8 @@ export function useInterviewSession(isGuest = false) {
   const [restoring, setRestoring] = useState(true);
   const [sessionResumeId, setSessionResumeId] = useState<string | null>(null);
   const [maxQuestions, setMaxQuestions] = useState(5);
+  const [minQuestions, setMinQuestions] = useState(5);
+  const [questionCountMode, setQuestionCountMode] = useState<'fixed' | 'adaptive'>('adaptive');
   const [streamStage, setStreamStage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -36,7 +38,8 @@ export function useInterviewSession(isGuest = false) {
       setSessionId(session.sessionId); setQuestions(session.questions); setAnswers(session.answers);
       setCurrentQuestion(session.currentQuestion); setIsFinished(session.isFinished);
       setNextQuestionFailed(session.nextQuestionPending);
-      setSessionResumeId(session.resumeId); setMaxQuestions(session.maxQuestions);
+      setSessionResumeId(session.resumeId); setMaxQuestions(session.maxQuestions); setMinQuestions(session.minQuestions);
+      setQuestionCountMode(session.questionCountMode);
     }).catch(() => localStorage.removeItem(ACTIVE_SESSION_KEY)).finally(() => setRestoring(false));
   }, [isGuest]);
 
@@ -80,9 +83,12 @@ export function useInterviewSession(isGuest = false) {
     try {
       if (isGuest) {
         const nextSessionId = `guest-${crypto.randomUUID()}`;
-        const localQuestions = guestInterviewQuestions.slice(0, Math.min(3, options.questionCount));
+        const adaptive = options.questionCount == null;
+        const limit = options.questionCount ?? 10;
+        const localQuestions = guestInterviewQuestions.slice(0, limit);
         setSessionId(nextSessionId); setCurrentQuestion(localQuestions[0]); setQuestions(localQuestions.slice(0, 1));
-        setSessionResumeId(options.resumeId); setMaxQuestions(localQuestions.length);
+        setSessionResumeId(options.resumeId); setMaxQuestions(limit); setMinQuestions(adaptive ? 5 : limit);
+        setQuestionCountMode(adaptive ? 'adaptive' : 'fixed');
         localStorage.setItem(ACTIVE_SESSION_KEY, nextSessionId);
         return;
       }
@@ -99,7 +105,8 @@ export function useInterviewSession(isGuest = false) {
       }
       result = result || await interviewApi.startInterview(options.resumeId, options.targetPosition, options.questionCount, options.jobProfileId, options.practiceTopic);
       setSessionId(result.sessionId); setCurrentQuestion(result.firstQuestion); setQuestions([result.firstQuestion]);
-      setSessionResumeId(options.resumeId); setMaxQuestions(options.questionCount);
+      setSessionResumeId(options.resumeId); setMaxQuestions(options.questionCount ?? 10);
+      setMinQuestions(options.questionCount ?? 5); setQuestionCountMode(options.questionCount == null ? 'adaptive' : 'fixed');
       localStorage.setItem(ACTIVE_SESSION_KEY, result.sessionId);
     } catch (error) {
       setSessionId(null); setCurrentQuestion(null); setQuestions([]);
@@ -121,7 +128,9 @@ export function useInterviewSession(isGuest = false) {
           ? answers : [...answers, { questionId: currentQuestion.id, content: submission.answer, submissionId: submission.id }];
         setAnswers(nextAnswers); setCurrentAnswer(''); setPendingSubmission(null);
         const nextQuestion = guestInterviewQuestions[nextAnswers.length] || null;
-        if (!nextQuestion || nextAnswers.length >= maxQuestions) {
+        const adaptiveReady = questionCountMode === 'adaptive' && nextAnswers.length >= minQuestions &&
+          (nextAnswers.filter((item) => item.content.trim().length >= 40).length >= Math.ceil(nextAnswers.length * 0.6) || nextAnswers.length >= 8);
+        if (!nextQuestion || nextAnswers.length >= maxQuestions || adaptiveReady) {
           const result = createGuestInterviewReport(sessionId, sessionResumeId || 'guest-sample-resume', '系统集成工程师', questions, nextAnswers);
           await guestWorkspace.saveInterviewResult(result);
           setInterviewResult(result); setIsFinished(true); localStorage.removeItem(ACTIVE_SESSION_KEY);
@@ -164,7 +173,7 @@ export function useInterviewSession(isGuest = false) {
       setCurrentAnswer(submission.answer);
       notifications.show({ title: '回答保存失败', message: getApiErrorMessage(error, '草稿已保留，请重新提交'), color: 'red' });
     } finally { setSubmitting(false); setIsThinking(false); setStreamStage(null); }
-  }, [answers, currentAnswer, currentQuestion, finish, isGuest, maxQuestions, pendingSubmission, questions, sessionId, sessionResumeId]);
+  }, [answers, currentAnswer, currentQuestion, finish, isGuest, maxQuestions, minQuestions, pendingSubmission, questionCountMode, questions, sessionId, sessionResumeId]);
 
   const retryNextQuestion = useCallback(async () => {
     if (!sessionId) return;
@@ -205,7 +214,7 @@ export function useInterviewSession(isGuest = false) {
   }, []);
 
   return { sessionId, currentQuestion, questions, answers, currentAnswer, setCurrentAnswer, interviewResult,
-    isFinished, starting, submitting, finishing, isThinking, restoring, sessionResumeId, maxQuestions,
+    isFinished, starting, submitting, finishing, isThinking, restoring, sessionResumeId, maxQuestions, minQuestions, questionCountMode,
     streamStage, answerSaveFailed: Boolean(pendingSubmission), nextQuestionFailed,
     start, submitAnswer, retryNextQuestion, finish, retryReport, restart };
 }

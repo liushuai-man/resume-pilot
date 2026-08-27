@@ -100,6 +100,8 @@ export interface LangGraphInterviewState {
   resumeText: string;
   targetPosition: string;
   maxQuestions: number;
+  minQuestions: number;
+  questionCountMode: 'fixed' | 'adaptive';
   questions: Question[];
   answers: Answer[];
   evaluations: Evaluation[];

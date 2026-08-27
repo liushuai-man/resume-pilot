@@ -6,6 +6,7 @@ import {
   Question,
   LangGraphInterviewState,
 } from '../../types/interview.types';
+import { shouldFinishInterview } from './completion-policy';
 
 function cleanJson(str: string): string {
   let cleaned = str.trim();
@@ -17,6 +18,12 @@ function cleanJson(str: string): string {
 }
 
 export class InterviewDecisionAgent {
+  shouldFinishInterview(state: LangGraphInterviewState): boolean {
+    // 自适应模式由 Decision Agent 根据覆盖度和回答信息量收敛；即使证据不足，
+    // 第 8 题后也允许结束，最终仍由 10 题硬上限兜底。
+    return shouldFinishInterview(state);
+  }
+
   async generateNextQuestion(
     state: LangGraphInterviewState
   ): Promise<Question> {

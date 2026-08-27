@@ -27,6 +27,10 @@ export class InterviewSupervisorAgent {
     return this.decisionAgent.generateNextQuestion(state);
   }
 
+  shouldFinishInterview(state: LangGraphInterviewState): boolean {
+    return this.decisionAgent.shouldFinishInterview(state);
+  }
+
   async evaluateInterview(
     questions: Question[], answers: Answer[], resumeText: string,
     targetPosition: string, rubricSnapshot: unknown, userId?: string

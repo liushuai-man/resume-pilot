@@ -54,7 +54,7 @@ export type InterviewStreamRequest =
       operation: 'start';
       resumeId: string;
       targetPosition?: string;
-      questionCount: number;
+      questionCount?: number;
       jobProfileId?: string;
       practiceTopic?: string;
     }

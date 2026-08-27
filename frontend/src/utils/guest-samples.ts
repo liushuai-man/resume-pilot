@@ -38,6 +38,13 @@ export const guestInterviewQuestions: Question[] = [
   { id: 'guest-q1', content: '请用两分钟介绍你自己，并说明为什么想从事系统集成工作。', section: '基本信息', sectionKey: 'basicInfo', isIntroduction: true, dimensionKeys: ['communication'] },
   { id: 'guest-q2', content: '请选择一个你参与过的系统集成项目，说明目标、你的职责以及最终结果。', section: '项目经历', sectionKey: 'projects', dimensionKeys: ['project', 'problem_solving'] },
   { id: 'guest-q3', content: '如果部署后服务无法访问，你会按照什么顺序定位网络和应用问题？', section: '专业技能', sectionKey: 'skills', dimensionKeys: ['technical', 'problem_solving'] },
+  { id: 'guest-q4', content: '请说明你如何设计一套可回滚的 Docker 部署方案。', section: '专业技能', sectionKey: 'skills', dimensionKeys: ['technical', 'problem_solving'] },
+  { id: 'guest-q5', content: '客户在交付前临时变更需求，你会如何评估影响并沟通方案？', section: '项目经历', sectionKey: 'projects', dimensionKeys: ['communication', 'problem_solving'] },
+  { id: 'guest-q6', content: '请举例说明你如何记录和复盘一次生产故障。', section: '项目经历', sectionKey: 'projects', dimensionKeys: ['project', 'communication'] },
+  { id: 'guest-q7', content: '如何判断一个问题出在 Kubernetes 网络、服务发现还是应用本身？', section: '专业技能', sectionKey: 'skills', dimensionKeys: ['technical', 'problem_solving'] },
+  { id: 'guest-q8', content: '请介绍一次你在技术方案中做出取舍的经历。', section: '项目经历', sectionKey: 'projects', dimensionKeys: ['project', 'problem_solving'] },
+  { id: 'guest-q9', content: '在多系统联调时，你会如何制定验证清单和验收标准？', section: '专业技能', sectionKey: 'skills', dimensionKeys: ['technical', 'project'] },
+  { id: 'guest-q10', content: '如果重新实施刚才的项目，你最想改进哪一点，为什么？', section: '项目经历', sectionKey: 'projects', dimensionKeys: ['communication', 'problem_solving'] },
 ];
 
 export function createGuestAtsResult(resume: Resume, jobId: string): AtsAnalysisResult {

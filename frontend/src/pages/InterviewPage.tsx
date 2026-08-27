@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Button, Loader, Modal, Text } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
 import { CheckCircle2, PanelRightOpen } from 'lucide-react';
 import { InterviewChat, InterviewNotesPanel, InterviewReport } from '@/components/interview';
 import InterviewResumePreview from '@/components/interview/InterviewResumePreview';
@@ -30,7 +31,7 @@ export default function InterviewPage() {
   const interview = useInterviewSession(isGuest);
   const workspace = useInterviewWorkspace(interview.sessionId);
 
-  const [questionCount, setQuestionCount] = useState('5');
+  const [questionCount, setQuestionCount] = useState('');
   const [pdfPage, setPdfPage] = useState(1);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState(false);
@@ -48,8 +49,8 @@ export default function InterviewPage() {
   }, [pdfPage, resources.resume?.content?.isUploadedFile, resources.resume?.id]);
   useEffect(() => {
     if (interview.sessionResumeId) resources.setSelectedResumeId(interview.sessionResumeId);
-    if (interview.sessionId) setQuestionCount(String(interview.maxQuestions));
-  }, [interview.maxQuestions, interview.sessionId, interview.sessionResumeId, resources.setSelectedResumeId]);
+    if (interview.sessionId) setQuestionCount(interview.questionCountMode === 'adaptive' ? '' : String(interview.maxQuestions));
+  }, [interview.maxQuestions, interview.questionCountMode, interview.sessionId, interview.sessionResumeId, resources.setSelectedResumeId]);
   useEffect(() => {
     if (!resizing) return;
     const resize = (event: MouseEvent) => setToolWidth(Math.min(INTERVIEW_TOOL_MAX_WIDTH, Math.max(INTERVIEW_TOOL_MIN_WIDTH, window.innerWidth - event.clientX)));
@@ -73,8 +74,13 @@ export default function InterviewPage() {
   const selectedProfile = resources.jobProfiles.find((item) => item.id === resources.selectedJobProfileId);
   const startInterview = () => {
     if (!selectedResume) return;
+    const parsedQuestionCount = questionCount === '' ? undefined : Number(questionCount);
+    if (parsedQuestionCount !== undefined && (!Number.isInteger(parsedQuestionCount) || parsedQuestionCount < 3 || parsedQuestionCount > 10)) {
+      notifications.show({ title: '题数无效', message: '请输入 3–10 之间的整数，或留空由 Agent 决定。', color: 'orange' });
+      return;
+    }
     interview.start({ resumeId: selectedResume.id, targetPosition: selectedProfile?.jobTitle,
-      questionCount: Number(questionCount), jobProfileId: selectedProfile?.id, practiceTopic: searchParams.get('practice') || undefined });
+      questionCount: parsedQuestionCount, jobProfileId: selectedProfile?.id, practiceTopic: searchParams.get('practice') || undefined });
   };
   return <div className="flex h-[calc(100vh-4rem)] flex-col bg-canvas text-ink">
     <Modal opened={reportReadyOpen} onClose={() => setReportReadyOpen(false)} centered radius="lg" title={<span className="font-semibold text-[#17211D]">面试报告已生成</span>} overlayProps={{ backgroundOpacity: 0.42, blur: 2 }}>
@@ -101,6 +107,7 @@ export default function InterviewPage() {
               onStart={startInterview} starting={interview.starting} canStart={Boolean(selectedResume)}
               onRetryNextQuestion={interview.retryNextQuestion} controls={<InterviewToolbar resumes={resources.resumes} selectedResumeId={resources.selectedResumeId}
                 jobProfiles={resources.jobProfiles} selectedJobProfileId={resources.selectedJobProfileId} questionCount={questionCount}
+                questionCountMode={interview.questionCountMode} minQuestions={interview.minQuestions} maxQuestions={interview.maxQuestions}
                 sessionId={interview.sessionId} answerCount={interview.answers.length} finishing={interview.finishing}
                 uploading={resources.uploading} fileInputRef={fileInputRef}
                 onSelectResume={(id) => resources.setSelectedResumeId(id)}

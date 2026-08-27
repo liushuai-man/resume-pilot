@@ -62,8 +62,10 @@ export async function startInterview(
       ].filter(Boolean)
     : [];
   if (practiceTopic?.trim()) planTopics.unshift(practiceTopic.trim());
-  // 计划题数包含固定的自我介绍题；communication 的 askedCount=1 与之对应。
-  const questionSlots = questionCount || 5;
+  // 留空表示自适应模式：至少 5 题、至多 10 题。
+  const questionCountMode = questionCount == null ? 'adaptive' as const : 'fixed' as const;
+  const maxQuestions = questionCount ?? 10;
+  const questionSlots = questionCount ?? 5;
   const interviewPlan: InterviewPlanItem[] = rubricSnapshot.dimensions.map(
     (dimension, index) => ({
       dimensionKey: dimension.key,
@@ -123,7 +125,8 @@ export async function startInterview(
     resumeId,
     resume.content,
     position,
-    questionCount,
+    maxQuestions,
+    questionCountMode,
     userId,
     {
       resumeSnapshot: {
@@ -360,6 +363,8 @@ export async function getActiveInterviewSession(
     resumeId: state.resumeId,
     targetPosition: state.targetPosition,
     maxQuestions: state.maxQuestions,
+    minQuestions: state.minQuestions ?? state.maxQuestions,
+    questionCountMode: state.questionCountMode ?? 'fixed',
     questions: state.questions,
     answers: state.answers,
     currentQuestion,
