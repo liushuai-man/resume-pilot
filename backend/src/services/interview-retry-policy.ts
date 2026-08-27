@@ -11,13 +11,17 @@ export const retryableReportNodes = [
 export type RetryableReportNode = (typeof retryableReportNodes)[number];
 
 export function evaluationInputHash(state: LangGraphInterviewState): string {
-  return createHash('sha256').update(JSON.stringify({
-    resume: state.resumeSnapshot,
-    jobProfile: state.jobProfileSnapshot,
-    rubric: state.rubricSnapshot,
-    questions: state.questions,
-    answers: state.answers,
-  })).digest('hex');
+  return createHash('sha256')
+    .update(
+      JSON.stringify({
+        resume: state.resumeSnapshot,
+        jobProfile: state.jobProfileSnapshot,
+        rubric: state.rubricSnapshot,
+        questions: state.questions,
+        answers: state.answers,
+      })
+    )
+    .digest('hex');
 }
 
 export function assertRetryRequest(input: {
@@ -38,9 +42,9 @@ export function assertRetryRequest(input: {
     throw new Error('INTERVIEW_NODE_STATE_CONFLICT');
   }
   if (
-    !input.expectedInputHash
-    || input.expectedInputHash !== input.currentInputHash
-    || input.storedInputHash !== input.currentInputHash
+    !input.expectedInputHash ||
+    input.expectedInputHash !== input.currentInputHash ||
+    input.storedInputHash !== input.currentInputHash
   ) {
     throw new Error('INTERVIEW_CHECKPOINT_STALE');
   }

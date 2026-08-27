@@ -51,6 +51,7 @@ export function SidebarLayout({
   return (
     <Card
       className={cardClassName}
+      data-theme-exempt="true"
       style={{
         fontFamily,
         fontSize: `${fontSize}px`,

@@ -6,6 +6,7 @@ import {
   AchievementList,
   TechStackTags,
 } from './common';
+import { filterDistinctAchievements } from '../content-dedup';
 
 export function ProjectRenderer({
   section,
@@ -32,7 +33,9 @@ export function ProjectRenderer({
       onClick={onClick}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {safeItems.map((item) => (
+        {safeItems.map((item) => {
+          const visibleAchievements = filterDistinctAchievements(item.description, item.achievements);
+          return (
           <div
             key={item.id}
             className="project-item"
@@ -90,14 +93,15 @@ export function ProjectRenderer({
                 variant={variant}
               />
             )}
-            {item.achievements && item.achievements.length > 0 && (
+            {visibleAchievements.length > 0 && (
               <AchievementList
-                achievements={item.achievements}
+                achievements={visibleAchievements}
                 fontSize={descSize}
               />
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
     </SectionWrapper>
   );

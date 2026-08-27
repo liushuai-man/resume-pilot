@@ -1,6 +1,6 @@
 {
   "name": "resume-pilot-frontend",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "packageManager": "pnpm@10.33.2",
   "type": "module",
   "scripts": {
@@ -8,7 +8,8 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "test:pagination": "../backend/node_modules/.bin/tsx --test src/components/preview/pagination.test.ts src/utils/resume-migration.test.ts"
+    "test:pagination": "../backend/node_modules/.bin/tsx --test src/components/preview/pagination.test.ts src/utils/resume-migration.test.ts",
+    "test:guest": "../backend/node_modules/.bin/tsx --test src/utils/guest-samples.test.ts src/services/guest-workspace.test.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.4",

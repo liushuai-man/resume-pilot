@@ -9,13 +9,18 @@ const sectionAliases: Record<string, string[]> = {
   skills: ['skills', 'skill'],
 };
 
-const normalize = (value: unknown) => typeof value === 'string'
-  ? value.normalize('NFKC').replace(/\s+/g, '').toLocaleLowerCase()
-  : '';
+const normalize = (value: unknown) =>
+  typeof value === 'string'
+    ? value.normalize('NFKC').replace(/\s+/g, '').toLocaleLowerCase()
+    : '';
 
 const cloneJson = (value: unknown): any => JSON.parse(JSON.stringify(value));
 
-function updateValue(target: any, issue: ContentQualityIssue, suggestedText: string) {
+function updateValue(
+  target: any,
+  issue: ContentQualityIssue,
+  suggestedText: string
+) {
   if (!target || typeof target !== 'object') return false;
   const current = target[issue.field];
   if (typeof current !== 'string') return false;
@@ -28,38 +33,68 @@ function updateValue(target: any, issue: ContentQualityIssue, suggestedText: str
   return true;
 }
 
-function updateCanonical(content: any, issue: ContentQualityIssue, suggestedText: string) {
+function updateCanonical(
+  content: any,
+  issue: ContentQualityIssue,
+  suggestedText: string
+) {
   if (issue.section === 'basic') {
     if (updateValue(content.basicInfo, issue, suggestedText)) return true;
-    if (issue.field === 'summary' && typeof content.basicInfo?.bio === 'string') {
+    if (
+      issue.field === 'summary' &&
+      typeof content.basicInfo?.bio === 'string'
+    ) {
       const bioIssue = { ...issue, field: 'bio' };
       return updateValue(content.basicInfo, bioIssue, suggestedText);
     }
     return false;
   }
   if (issue.section === 'objective') {
-    if (issue.field !== 'content' || normalize(content.careerObjective) !== normalize(issue.evidence)) return false;
+    if (
+      issue.field !== 'content' ||
+      normalize(content.careerObjective) !== normalize(issue.evidence)
+    )
+      return false;
     content.careerObjective = suggestedText;
     return true;
   }
-  const collectionKey = issue.section === 'projects' ? 'projects' : issue.section === 'skills' ? 'skills' : issue.section;
+  const collectionKey =
+    issue.section === 'projects'
+      ? 'projects'
+      : issue.section === 'skills'
+        ? 'skills'
+        : issue.section;
   const collection = content[collectionKey];
   if (!Array.isArray(collection)) return false;
-  const item = collection.find((value: any, index: number) => String(value?.id ?? index) === issue.itemId);
+  const item = collection.find(
+    (value: any, index: number) => String(value?.id ?? index) === issue.itemId
+  );
   return updateValue(item, issue, suggestedText);
 }
 
-function updateDocumentSections(content: any, issue: ContentQualityIssue, suggestedText: string) {
+function updateDocumentSections(
+  content: any,
+  issue: ContentQualityIssue,
+  suggestedText: string
+) {
   if (!Array.isArray(content._documentSections)) return true;
-  const section = content._documentSections.find((value: any) => sectionAliases[issue.section]?.includes(value?.type));
+  const section = content._documentSections.find((value: any) =>
+    sectionAliases[issue.section]?.includes(value?.type)
+  );
   if (!section) return false;
   if (!issue.itemId) return updateValue(section.data, issue, suggestedText);
   if (!Array.isArray(section.data)) return false;
-  const item = section.data.find((value: any, index: number) => String(value?.id ?? index) === issue.itemId);
+  const item = section.data.find(
+    (value: any, index: number) => String(value?.id ?? index) === issue.itemId
+  );
   return updateValue(item, issue, suggestedText);
 }
 
-export function applyContentQualitySuggestion(contentInput: unknown, issue: ContentQualityIssue, suggestedText: string) {
+export function applyContentQualitySuggestion(
+  contentInput: unknown,
+  issue: ContentQualityIssue,
+  suggestedText: string
+) {
   const content = cloneJson(contentInput);
   if (!suggestedText.trim()) throw new Error('建议文本不能为空');
   if (!updateCanonical(content, issue, suggestedText.trim())) {

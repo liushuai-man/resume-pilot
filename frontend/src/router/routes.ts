@@ -37,8 +37,8 @@ const NotFoundPage = React.lazy(
   () => import('@/components/common/NotFoundPage')
 );
 
-const protectedPage = (element: React.ReactNode) =>
-  React.createElement(ProtectedRoute, null, element);
+const protectedPage = (element: React.ReactNode, allowGuest = false) =>
+  React.createElement(ProtectedRoute, { allowGuest }, element);
 
 // 路由配置
 export const routes: RouteConfig[] = [
@@ -57,14 +57,14 @@ export const routes: RouteConfig[] = [
     layout: React.createElement(HomeLayout),
     children: [
       { path: 'resumes', element: React.createElement(HomePage) },
-      { path: 'resumes/:id/edit', element: protectedPage(React.createElement(ResumeEditorPage)) },
-      { path: 'resumes/:id/optimizations', element: protectedPage(React.createElement(ResumeOptimizationHistoryPage)) },
-      { path: 'jobs', element: protectedPage(React.createElement(JobCenterPage)) },
-      { path: 'interviews', element: protectedPage(React.createElement(InterviewPage)) },
-      { path: 'interviews/resume/:resumeId', element: protectedPage(React.createElement(InterviewPage)) },
-      { path: 'interviews/history', element: protectedPage(React.createElement(InterviewHistoryPage)) },
-      { path: 'interviews/results/:id', element: protectedPage(React.createElement(InterviewResultPage)) },
-      { path: 'profile', layout: protectedPage(React.createElement(ProfileLayout)), children: [
+      { path: 'resumes/:id/edit', element: protectedPage(React.createElement(ResumeEditorPage), true) },
+      { path: 'resumes/:id/optimizations', element: protectedPage(React.createElement(ResumeOptimizationHistoryPage), true) },
+      { path: 'jobs', element: protectedPage(React.createElement(JobCenterPage), true) },
+      { path: 'interviews', element: protectedPage(React.createElement(InterviewPage), true) },
+      { path: 'interviews/resume/:resumeId', element: protectedPage(React.createElement(InterviewPage), true) },
+      { path: 'interviews/history', element: protectedPage(React.createElement(InterviewHistoryPage), true) },
+      { path: 'interviews/results/:id', element: protectedPage(React.createElement(InterviewResultPage), true) },
+      { path: 'profile', layout: protectedPage(React.createElement(ProfileLayout), true), children: [
         { path: '', element: React.createElement(ProfilePage) },
         { path: 'insights', element: React.createElement(ProfileInsightsPage) },
         { path: 'interviews', element: React.createElement(InterviewHistoryPage) },
@@ -76,35 +76,35 @@ export const routes: RouteConfig[] = [
   // 主要功能布局
   {
     path: '/resumes/:id/print',
-    element: protectedPage(React.createElement(ResumePrintPage)),
+    element: protectedPage(React.createElement(ResumePrintPage), true),
   },
   {
     path: '/resume/:id',
-    element: protectedPage(React.createElement(ResumeEditorPage)),
+    element: protectedPage(React.createElement(ResumeEditorPage), true),
   },
   {
     path: '/resume/:id/print',
-    element: protectedPage(React.createElement(ResumePrintPage)),
+    element: protectedPage(React.createElement(ResumePrintPage), true),
   },
   {
     path: '/resume/interview',
-    element: protectedPage(React.createElement(Navigate, { to: '/interviews', replace: true })),
+    element: protectedPage(React.createElement(Navigate, { to: '/interviews', replace: true }), true),
   },
   {
     path: '/resume/interview/:resumeId',
-    element: protectedPage(React.createElement(InterviewPage)),
+    element: protectedPage(React.createElement(InterviewPage), true),
   },
   {
     path: '/resume/interview/history',
-    element: protectedPage(React.createElement(Navigate, { to: '/interviews/history', replace: true })),
+    element: protectedPage(React.createElement(Navigate, { to: '/interviews/history', replace: true }), true),
   },
   {
     path: '/resume/interview/result/:id',
-    element: protectedPage(React.createElement(InterviewResultPage)),
+    element: protectedPage(React.createElement(InterviewResultPage), true),
   },
   {
     path: '/history',
-    element: protectedPage(React.createElement(Navigate, { to: '/interviews/history', replace: true })),
+    element: protectedPage(React.createElement(Navigate, { to: '/interviews/history', replace: true }), true),
   },
 
   // 404 页面

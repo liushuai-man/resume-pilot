@@ -32,6 +32,7 @@ export interface InterviewDimensionScore {
   score: number;
   weight: number;
   questionCount: number;
+  evidence?: Array<{ questionId: string; answerExcerpt: string; rationale: string }>;
 }
 
 export interface InterviewReportData {

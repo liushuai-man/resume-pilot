@@ -50,6 +50,7 @@ export function ClassicLayout({
   return (
     <Card
       className={cardClassName}
+      data-theme-exempt="true"
       style={{ fontFamily, fontSize: `${fontSize}px`, backgroundColor }}
     >
       <div style={{ padding: `${formatMargin}px` }}>

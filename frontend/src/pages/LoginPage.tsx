@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@mantine/core';
-import { ArrowLeft, Eye, FileCheck2 } from 'lucide-react';
+import { ArrowLeft, CloudOff, FileCheck2 } from 'lucide-react';
 import { FaGithub } from 'react-icons/fa';
 import { notification } from '@/components/common/Notification';
 import { useUserStore } from '@/store/useUserStore';
@@ -38,7 +38,7 @@ export default function LoginPage() {
 
   const handleSkipLogin = () => {
     enterGuestMode();
-    notification.info('已进入展示模式，登录后可使用完整功能');
+    notification.info('游客草稿仅保存在当前浏览器，请留意页面中的数据提醒');
     navigate(from, { replace: true });
   };
 
@@ -58,7 +58,7 @@ export default function LoginPage() {
           <FileCheck2 size={20} strokeWidth={1.9} />
         </span>
         <h1 className="mt-4 text-lg font-semibold">进入工作台</h1>
-        <p className="mt-1 text-xs leading-5 text-[#66736D]">登录后启用保存和 AI 功能</p>
+        <p className="mt-1 text-xs leading-5 text-[#66736D]">登录可云端保存；也可以先以游客身份完整编辑</p>
 
         <div className="mt-5">
           <Button
@@ -78,9 +78,10 @@ export default function LoginPage() {
             onClick={handleSkipLogin}
             className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-[#C5D1CC] bg-[#F4F7F6] text-sm font-semibold text-[#176B52] transition hover:border-[#176B52] hover:bg-white"
           >
-            <Eye size={16} />
-            跳过登录，仅浏览展示
+            <CloudOff size={16} />
+            不登录，先以游客身份使用
           </button>
+          <p className="mt-3 text-left text-[11px] leading-5 text-[#806138]">游客可创建、编辑和预览简历，草稿只留在当前浏览器；清理数据或更换设备后无法恢复。AI、岗位、面试和云端历史需要登录。</p>
         </div>
       </section>
     </main>

@@ -4,10 +4,11 @@ import { getCurrentUser } from '@/api/auth.api';
 import { useUserStore } from '@/store/useUserStore';
 
 interface ProtectedRouteProps {
-  children: ReactNode;
+  children?: ReactNode;
+  allowGuest?: boolean;
 }
 
-export default function ProtectedRoute({ children }: ProtectedRouteProps) {
+export default function ProtectedRoute({ children, allowGuest = false }: ProtectedRouteProps) {
   const location = useLocation();
   const { setUser, clearUser, isGuest, isLoggedIn } = useUserStore();
   const [isChecking, setIsChecking] = useState(true);
@@ -51,7 +52,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     return null;
   }
 
-  if (!isAuthenticated && !isGuest) {
+  if (!isAuthenticated && (!isGuest || !allowGuest)) {
     return (
       <Navigate
         to="/auth/login"

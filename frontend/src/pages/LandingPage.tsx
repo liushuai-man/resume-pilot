@@ -62,7 +62,7 @@ const workflow = [
 export default function LandingPage() {
   const navigate = useNavigate();
   const scrollContainerRef = useRef<HTMLElement>(null);
-  const { setUser, clearUser } = useUserStore();
+  const { setUser, clearUser, enterGuestMode } = useUserStore();
   const [isCheckingSession, setIsCheckingSession] = useState(true);
 
   useEffect(() => {
@@ -158,6 +158,11 @@ export default function LandingPage() {
     return <main className="h-[100svh] bg-[#F4F7F6]" aria-label="正在检查登录状态" />;
   }
 
+  const startAsGuest = () => {
+    enterGuestMode();
+    navigate('/resumes');
+  };
+
   return (
     <main
       ref={scrollContainerRef}
@@ -199,15 +204,15 @@ export default function LandingPage() {
                 onClick={() => navigate('/auth/login', { state: { from: '/resumes' } })}
                 className="flex h-11 items-center gap-2 rounded-lg bg-[#176B52] px-5 text-sm font-semibold text-white transition hover:bg-[#10563F] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#176B52]"
               >
-                登录后进入
+                登录并进入
                 <ArrowRight size={16} />
               </button>
               <button
                 type="button"
-                onClick={() => navigate('/auth/login', { state: { from: '/resumes', mode: 'preview' } })}
+                onClick={startAsGuest}
                 className="h-11 rounded-lg border border-[#C5D1CC] bg-white px-5 text-sm font-semibold text-[#176B52] transition hover:border-[#176B52]"
               >
-                跳过登录预览
+                不登录，直接使用
               </button>
             </div>
           </div>

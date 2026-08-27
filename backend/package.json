@@ -1,6 +1,6 @@
 {
   "name": "resume-pilot-backend",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "packageManager": "pnpm@10.33.2",
   "type": "module",
   "scripts": {
@@ -27,6 +27,7 @@
     "test:ats-optimization": "tsx --test src/services/ats-optimization.service.test.ts",
     "test:optimization-action": "tsx --test src/services/optimization-action.service.test.ts",
     "test:suggestion-token": "tsx --test src/services/suggestion-token.service.test.ts",
+    "test:guest-migration": "tsx --test src/services/guest-migration.service.test.ts",
     "test:stage4-e2e": "tsx src/evals/stage4-optimization-history.e2e.ts",
     "calibrate:content-quality": "tsx src/evals/content-quality.calibration.ts",
     "calibrate:job-match": "tsx src/evals/job-match.calibration.ts",

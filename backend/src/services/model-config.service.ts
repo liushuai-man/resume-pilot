@@ -1,6 +1,10 @@
 import { prisma } from '../database/prisma';
 import { ChatOpenAI, OpenAIEmbeddings } from '@langchain/openai';
-import { decryptSecret, encryptSecret, isEncryptedSecret } from '../utils/secret-crypto';
+import {
+  decryptSecret,
+  encryptSecret,
+  isEncryptedSecret,
+} from '../utils/secret-crypto';
 
 export interface CreateModelConfigRequest {
   provider: string;
@@ -87,7 +91,12 @@ export async function listModelConfigs(userId: string) {
 
 export async function getDefaultModelConfig(userId: string) {
   return await prisma.userModelConfig.findFirst({
-    where: { user_id: userId, is_deleted: false, is_default: true, purpose: 'chat' },
+    where: {
+      user_id: userId,
+      is_deleted: false,
+      is_default: true,
+      purpose: 'chat',
+    },
   });
 }
 
@@ -114,7 +123,8 @@ export async function createModelConfig(
   });
 
   const isFirstConfig = existingConfigs === 0;
-  const shouldBeDefault = purpose === 'chat' && (data.isDefault || isFirstConfig);
+  const shouldBeDefault =
+    purpose === 'chat' && (data.isDefault || isFirstConfig);
 
   if (shouldBeDefault) {
     await prisma.userModelConfig.updateMany({
@@ -164,7 +174,8 @@ export async function updateModelConfig(
   const updateData: any = {};
   if (data.provider !== undefined) updateData.provider = data.provider;
   if (data.modelName !== undefined) updateData.model_name = data.modelName;
-  if (data.apiKey !== undefined) updateData.api_key = encryptSecret(data.apiKey);
+  if (data.apiKey !== undefined)
+    updateData.api_key = encryptSecret(data.apiKey);
   if (data.baseUrl !== undefined) updateData.base_url = data.baseUrl || null;
   if (data.displayName !== undefined)
     updateData.display_name = data.displayName;
@@ -178,11 +189,17 @@ export async function updateModelConfig(
   });
 }
 
-export async function getDecryptedApiKey(config: { id: string; api_key: string }) {
+export async function getDecryptedApiKey(config: {
+  id: string;
+  api_key: string;
+}) {
   const apiKey = decryptSecret(config.api_key);
   // Transparent one-time migration for configurations created before encryption.
   if (!isEncryptedSecret(config.api_key)) {
-    await prisma.userModelConfig.update({ where: { id: config.id }, data: { api_key: encryptSecret(apiKey) } });
+    await prisma.userModelConfig.update({
+      where: { id: config.id },
+      data: { api_key: encryptSecret(apiKey) },
+    });
   }
   return apiKey;
 }

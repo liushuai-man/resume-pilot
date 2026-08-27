@@ -38,6 +38,11 @@ export interface Evaluation {
   knowledgeGap?: string[];
   followUpSuggestion?: string;
   profileUpdate?: ProfileUpdate | null;
+  dimensionEvaluations?: Array<{
+    key: 'technical_depth' | 'project_articulation' | 'communication' | 'problem_solving';
+    score: number;
+    rationale: string;
+  }>;
 }
 
 // ==================== 能力画像 ====================

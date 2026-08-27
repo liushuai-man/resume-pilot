@@ -36,8 +36,8 @@ export default function ResumePreview({
 
   const cardClassName =
     variant === 'card'
-      ? 'bg-white shadow-lg w-[794px]'
-      : 'bg-white shadow-lg min-h-[calc(80vh)]';
+      ? 'theme-paper bg-white shadow-lg w-[794px]'
+      : 'theme-paper bg-white shadow-lg min-h-[calc(80vh)]';
 
   const layoutProps = {
     content,
@@ -57,6 +57,7 @@ export default function ResumePreview({
     return (
       <Card
         className={cardClassName}
+        data-theme-exempt="true"
         style={{
           fontFamily: styles.fontFamily,
           fontSize: `${styles.fontSize}px`,

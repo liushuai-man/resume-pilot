@@ -1,7 +1,7 @@
 import { RunnableSequence } from '@langchain/core/runnables';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { createUserLLM } from '../../providers/llm.provider';
-import { EVALUATE_ANSWER_PROMPT, BATCH_EVALUATE_INTERVIEW_PROMPT } from '../../prompts/interview/evaluate.prompt';
+import { BATCH_EVALUATE_INTERVIEW_PROMPT } from '../../prompts/interview/evaluate.prompt';
 import { Question, Evaluation, Answer } from '../../types/interview.types';
 
 function cleanJson(str: string): string {
@@ -30,45 +30,6 @@ export class EvaluationAgent {
     const parsed = JSON.parse(cleanJson(result));
     return validateBatchEvaluations(parsed.evaluations, transcript.filter((item) => item.answer !== null).map((item) => item.questionId));
   }
-
-  async evaluate(
-    question: Question,
-    answer: string,
-    resumeText: string,
-    targetPosition: string,
-    userId?: string
-  ): Promise<Evaluation> {
-    const llm = await createUserLLM(userId, {
-      temperature: 0.5,
-      maxTokens: 320,
-    });
-
-    const chain = RunnableSequence.from([
-      EVALUATE_ANSWER_PROMPT,
-      llm,
-      new StringOutputParser(),
-    ]);
-
-    const result = await chain.invoke({
-        question: question.content,
-        answer,
-        resumeSectionContent: resumeText.slice(0, 1800),
-      });
-
-      const parsed = JSON.parse(cleanJson(result));
-
-    return {
-        questionId: question.id,
-        score: parsed.score,
-        feedback: parsed.feedback,
-        knowledgeLevel: parsed.knowledgeLevel,
-        strengths: parsed.strengths || [],
-        weaknesses: parsed.weaknesses || [],
-        knowledgeGap: parsed.knowledgeGap || [],
-        followUpSuggestion: parsed.followUpSuggestion || '',
-        profileUpdate: parsed.profileUpdate || null,
-    };
-  }
 }
 
 export function validateBatchEvaluations(input: unknown, expectedIds: string[]): Evaluation[] {
@@ -83,8 +44,24 @@ export function validateBatchEvaluations(input: unknown, expectedIds: string[]):
       knowledgeLevel: item.knowledgeLevel, strengths: Array.isArray(item.strengths) ? item.strengths.map(String) : [],
       weaknesses: Array.isArray(item.weaknesses) ? item.weaknesses.map(String) : [],
       knowledgeGap: Array.isArray(item.knowledgeGap) ? item.knowledgeGap.map(String) : [],
-      followUpSuggestion: String(item.followUpSuggestion || ''), profileUpdate: item.profileUpdate || null } as Evaluation;
+      followUpSuggestion: String(item.followUpSuggestion || ''), profileUpdate: item.profileUpdate || null,
+      dimensionEvaluations: validateDimensionEvaluations(item.dimensionEvaluations) } as Evaluation;
   });
   if (seen.size !== expectedIds.length || expectedIds.some((id) => !seen.has(id))) throw new Error('BATCH_EVALUATION_INCOMPLETE');
   return evaluations;
+}
+
+const DIMENSION_KEYS = new Set(['technical_depth', 'project_articulation', 'communication', 'problem_solving']);
+function validateDimensionEvaluations(input: unknown): NonNullable<Evaluation['dimensionEvaluations']> {
+  if (!Array.isArray(input)) return [];
+  const seen = new Set<string>();
+  return input.map((item: any) => {
+    const key = String(item?.key || '');
+    const score = Number(item?.score);
+    const rationale = String(item?.rationale || '').trim();
+    if (!DIMENSION_KEYS.has(key) || seen.has(key)) throw new Error('BATCH_EVALUATION_DIMENSION_INVALID');
+    if (!Number.isInteger(score) || score < 1 || score > 10 || !rationale) throw new Error('BATCH_EVALUATION_DIMENSION_INVALID');
+    seen.add(key);
+    return { key, score, rationale } as NonNullable<Evaluation['dimensionEvaluations']>[number];
+  });
 }

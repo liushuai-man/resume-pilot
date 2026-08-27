@@ -18,7 +18,7 @@ test('按冻结 Rubric 确定性聚合总分和维度分', () => {
   const report = buildInterviewReport(questions, [], evaluations, rubric, { skills: {}, overallLevel: 0 });
   assert.equal(report.overallScore, 72);
   assert.deepEqual(report.dimensionScores.map((item) => item.score), [80, 60]);
-  assert.equal(report.reportVersion, 'interview-report-v2-deterministic');
+  assert.equal(report.reportVersion, 'interview-report-v3-four-dimensions-evidence');
 });
 
 test('没有覆盖的维度不稀释已评价维度', () => {

@@ -58,7 +58,7 @@ export default function InterviewChat({
   }, [sessionStarted]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-[#F7F9F8]">
+    <div className="flex h-full min-h-0 flex-col bg-surface-muted text-ink">
       <div className="flex-1 overflow-y-auto px-4 pb-44 pt-8 sm:px-8">
         <div className="mx-auto max-w-[820px]">
           {showHint && (
@@ -96,7 +96,7 @@ export default function InterviewChat({
                     <Text size="xs" c="dimmed" mb={4}>
                       AI 面试官 · {getSectionName(question.sectionKey)}
                     </Text>
-                    <Paper p="md" radius="lg" bg="white" withBorder className="border-[#DDE5E1] shadow-[0_1px_2px_rgba(23,33,29,0.04)]">
+                    <Paper p="md" radius="lg" withBorder className="border-border bg-surface text-ink shadow-[0_1px_2px_rgba(23,33,29,0.04)]">
                       <MarkdownContent content={question.content} />
                     </Paper>
                   </div>
@@ -110,11 +110,10 @@ export default function InterviewChat({
                       <Paper
                         p="md"
                         radius="md"
-                        bg="#E4F0EB"
                         withBorder
-                        className="max-w-[80%]"
+                        className="max-w-[80%] border-border bg-brand-soft"
                       >
-                        <p className="whitespace-pre-wrap break-words text-sm leading-6 text-slate-800">
+                        <p className="whitespace-pre-wrap break-words text-sm leading-6 text-ink">
                           {answer.content}
                         </p>
                       </Paper>
@@ -138,7 +137,7 @@ export default function InterviewChat({
                   <Text size="xs" c="dimmed" mb={4}>
                     AI 面试官
                   </Text>
-                  <Paper p="md" radius="md" bg="gray.0" withBorder className="border-[#DDE5E1]">
+                  <Paper p="md" radius="md" withBorder className="border-border bg-surface text-ink">
                     <div>
                       <Text size="sm" c="dimmed">
                         {streamStage ? stageLabels[streamStage] || '正在处理...' : '正在思考...'}
@@ -164,9 +163,9 @@ export default function InterviewChat({
         </div>
       </div>
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-[#F7F9F8] via-[#F7F9F8] to-transparent px-4 pb-5 pt-10 sm:px-8">
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-surface-muted via-surface-muted to-transparent px-4 pb-5 pt-10 sm:px-8">
         <div className="pointer-events-auto mx-auto max-w-[820px]">
-          <div className="relative flex min-h-[148px] flex-col rounded-2xl border border-[#CCD7D2] bg-white p-4 shadow-[0_14px_40px_rgba(31,49,42,0.14)] transition focus-within:border-[#176B52] focus-within:shadow-[0_16px_44px_rgba(23,107,82,0.14)]">
+          <div className="relative flex min-h-[148px] flex-col rounded-2xl border border-border-strong bg-surface-raised p-4 shadow-surface transition focus-within:border-brand focus-within:shadow-[0_16px_44px_rgb(var(--color-brand)/0.14)]">
             <textarea
               placeholder={
                 sessionStarted ? '请输入你的回答...' : '请先选择简历并开始面试'
@@ -181,7 +180,7 @@ export default function InterviewChat({
                   onSubmitAnswer();
                 }
               }}
-              className="min-h-[68px] w-full flex-1 resize-none border-none bg-transparent text-sm leading-relaxed text-[#24312C] outline-none placeholder:text-[#98A49F] disabled:cursor-not-allowed"
+              className="min-h-[68px] w-full flex-1 resize-none border-none bg-transparent text-sm leading-relaxed text-ink outline-none placeholder:text-subtle disabled:cursor-not-allowed disabled:text-subtle"
             />
             {controls}
             <div className="absolute bottom-3 right-3 flex justify-end">

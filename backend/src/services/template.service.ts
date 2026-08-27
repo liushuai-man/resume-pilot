@@ -31,7 +31,16 @@ function getDefaultContent(schema: any): any {
   if (schema?.blocks) {
     return schema;
   }
-  return { basicInfo: {}, education: [], experience: [], projects: [], skills: [], certifications: [], campusExperiences: [], careerObjective: '' };
+  return {
+    basicInfo: {},
+    education: [],
+    experience: [],
+    projects: [],
+    skills: [],
+    certifications: [],
+    campusExperiences: [],
+    careerObjective: '',
+  };
 }
 
 function getLayout(styleConfig: any, schema: any): string {

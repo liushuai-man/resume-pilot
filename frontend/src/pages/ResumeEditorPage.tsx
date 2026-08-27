@@ -18,9 +18,14 @@ import { contentToDocument, documentToContent } from '@/utils/resume-migration';
 import { resumeApi } from '@/api/home.api';
 import { useAutoSave } from '@/hooks/useAutoSave';
 import type { Resume } from '@/types/resume';
+import { useUserStore } from '@/store/useUserStore';
+import { CloudOff, LogIn } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function ResumeEditorPage() {
   const { id: resumeId } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const isGuest = useUserStore((state) => state.isGuest);
   const [searchParams] = useSearchParams();
   const { resume, template, loadResume, initStore, loadTemplate } =
     useResumeStore();
@@ -50,6 +55,15 @@ export default function ResumeEditorPage() {
   useAutoSave(resumeId || '');
 
   useEffect(() => {
+    if (isGuest && resumeId?.startsWith('guest-')) {
+      initStore();
+      if (!useDocumentStore.getState().document) {
+        const guestDocument = useDocumentStore.getState().createEmptyDocument('我的简历');
+        guestDocument.id = resumeId;
+        loadDocument(guestDocument);
+      }
+      return;
+    }
     if (resumeId) {
       localStorage.removeItem('resume-storage');
       localStorage.removeItem('document-storage');
@@ -70,7 +84,20 @@ export default function ResumeEditorPage() {
           console.error('简历加载失败:', error);
         });
     }
-  }, [resumeId, loadResume, initStore, loadTemplate, reset]);
+  }, [resumeId, loadResume, initStore, loadTemplate, reset, isGuest, loadDocument]);
+
+  useEffect(() => {
+    if (!isGuest || !document) return;
+    const updatedAt = document.updatedAt ? new Date(document.updatedAt).getTime() : Date.now();
+    const savedAt = lastSaved ? new Date(lastSaved).getTime() : 0;
+    if (!isSaving && savedAt >= updatedAt) return;
+    const warnAboutLocalDraft = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warnAboutLocalDraft);
+    return () => window.removeEventListener('beforeunload', warnAboutLocalDraft);
+  }, [isGuest, document, isSaving, lastSaved]);
 
   useEffect(() => {
     if (resume && !document) {
@@ -109,6 +136,12 @@ export default function ResumeEditorPage() {
     if (!resumeId || !document) return;
     if (manualSaving || isSaving) return;
 
+    if (isGuest) {
+      setLastSaved(new Date());
+      notification.info('草稿已缓存到当前浏览器，登录后才能云端保存');
+      return;
+    }
+
     setManualSaving(true);
     setSaving(true);
     try {
@@ -134,6 +167,11 @@ export default function ResumeEditorPage() {
 
   const handleExport = async () => {
     if (!resumeId) return;
+    if (isGuest) {
+      notification.info('将打开浏览器打印，可选择“另存为 PDF”');
+      window.print();
+      return;
+    }
     try {
       notification.info('正在生成 PDF 简历…');
       const pdf = await resumeApi.exportResumePdf(resumeId);
@@ -249,6 +287,7 @@ export default function ResumeEditorPage() {
             lastModified={formatLastSaved(lastSaved)}
             isSaving={isSaving}
             onTitleChange={handleTitleChange}
+            isGuest={isGuest}
           />
         }
         leftPanel={leftPanelContent}
@@ -259,6 +298,8 @@ export default function ResumeEditorPage() {
             ? <JobMatchOptimizationPanel jobId={matchJobId} resumeId={resumeId} analysisId={matchAnalysisId} requirementIndex={matchRequirementIndex} onResumeChanged={handleOptimizedResume} />
             : showOptimization && resumeId && optimizationAnalysisId
             ? <ResumeOptimizationPanel resumeId={resumeId} analysisId={optimizationAnalysisId} issueIndex={optimizationIssueIndex} onResumeChanged={handleOptimizedResume} />
+            : isGuest
+            ? <div className="flex h-full flex-col items-center justify-center bg-[#F7F9F8] px-8 text-center"><span className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#FFF1D6] text-[#806138]"><CloudOff size={21} /></span><h3 className="mt-4 text-sm font-semibold text-[#17211D]">AI 优化需要登录</h3><p className="mt-2 max-w-xs text-xs leading-5 text-[#66736D]">登录后可安全保存简历，并使用内容优化、岗位匹配和历史版本。</p><button type="button" onClick={() => navigate('/auth/login', { state: { from: location.pathname } })} className="mt-5 flex items-center gap-2 rounded-lg bg-[#176B52] px-4 py-2 text-xs font-semibold text-white"><LogIn size={15} />登录并保存</button></div>
             : <AIConversation currentField="" />
         }
       >

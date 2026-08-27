@@ -1,5 +1,6 @@
 import request from '@/utils/request';
-export interface CapabilityMetric { key: string; label: string; score: number; interviewSamples: number; evidenceCount: number; confidence?: 'low'|'medium'|'high' }
+export interface CapabilityEvidence { interviewId: string; position: string; date: string; answerExcerpt: string; rationale: string }
+export interface CapabilityMetric { key: string; label: string; score: number; interviewSamples: number; evidenceCount: number; confidence?: 'low'|'medium'|'high'; evidence?: CapabilityEvidence[] }
 export interface ProfileOverview {
   user: { github_login: string; github_avatar?: string; created_at: string };
   interview: { count: number; averageScore: number | null; latestScore: number | null; trend: Array<{ id: string; position: string; score: number; date: string }> };

@@ -1,19 +1,22 @@
 import { useCallback, useEffect, useState } from 'react';
 import { notifications } from '@mantine/notifications';
 import { interviewApi, type InterviewResult } from '@/api/interview.api';
+import { useUserStore } from '@/store/useUserStore';
+import { guestWorkspace } from '@/services/guest-workspace';
 
 const POLL_INTERVAL = 4000;
 
 export function useInterviewHistory() {
+  const isGuest = useUserStore((state) => state.isGuest);
   const [results, setResults] = useState<InterviewResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [retryingId, setRetryingId] = useState<string | null>(null);
 
   const refresh = useCallback(async (silent = false) => {
-    try { setResults(await interviewApi.getInterviewResults()); }
+    try { setResults(isGuest ? await guestWorkspace.listInterviewResults() : await interviewApi.getInterviewResults()); }
     catch { if (!silent) notifications.show({ title: '加载失败', message: '暂时无法获取面试记录', color: 'red' }); }
     finally { if (!silent) setLoading(false); }
-  }, []);
+  }, [isGuest]);
 
   useEffect(() => { refresh(); }, [refresh]);
   useEffect(() => {
@@ -23,6 +26,7 @@ export function useInterviewHistory() {
   }, [refresh, results]);
 
   const retry = async (result: InterviewResult) => {
+    if (isGuest) return;
     setRetryingId(result.id);
     try {
       const updated = result.failed_node && result.evaluation_input_hash
@@ -39,7 +43,8 @@ export function useInterviewHistory() {
   const remove = async (id: string) => {
     if (!window.confirm('确定要删除这条面试记录吗？')) return;
     try {
-      await interviewApi.deleteInterviewResult(id);
+      if (isGuest) await guestWorkspace.deleteInterviewResult(id);
+      else await interviewApi.deleteInterviewResult(id);
       setResults((items) => items.filter((item) => item.id !== id));
       notifications.show({ title: '已删除', message: '面试记录已删除', color: 'green' });
     } catch { notifications.show({ title: '删除失败', message: '面试记录没有被删除', color: 'red' }); }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BarChart3, Check, FileText, Loader2, RefreshCw, Save, Sparkles, Target, Trash2 } from 'lucide-react';
+import { BarChart3, Check, FileText, Loader2, RefreshCw, Save, Sparkles, Trash2 } from 'lucide-react';
 import { jobApi } from '@/api/job.api';
 import { resumeApi } from '@/api/home.api';
 import { notification } from '@/components/common/Notification';
@@ -20,6 +20,8 @@ import AtsAnalysisPanel from '@/components/job-center/AtsAnalysisPanel';
 import ContentQualityPanel from '@/components/job-center/ContentQualityPanel';
 import JobMatchPanel from '@/components/job-center/JobMatchPanel';
 import { useUserStore } from '@/store/useUserStore';
+import { guestWorkspace } from '@/services/guest-workspace';
+import { createGuestAtsResult, createGuestMatchResult, createGuestQualityResult, guestSampleJob, guestSampleProfile, guestSampleResume } from '@/utils/guest-samples';
 const toEditable = (profile: JobProfile): EditableJobProfile => ({
   jobTitle: profile.jobTitle,
   seniority: profile.seniority || '',
@@ -129,7 +131,13 @@ export default function JobCenterPage() {
 
   useEffect(() => {
     if (isGuest) {
-      setLoading(false);
+      Promise.all([guestWorkspace.listJobs(), guestWorkspace.listResumes()]).then(([storedJobs, storedResumes]) => {
+        const nextJobs = storedJobs.length ? storedJobs : [guestSampleJob];
+        const nextResumes = storedResumes.length ? storedResumes : [guestSampleResume];
+        setJobs(nextJobs); setResumes(nextResumes); setSelectedResumeId(nextResumes[0].id);
+        setSelectedId(nextJobs[0].id); setProfileVersions(nextJobs[0].latestProfile ? [nextJobs[0].latestProfile] : []);
+        showProfile(nextJobs[0].latestProfile || null);
+      }).finally(() => setLoading(false));
       return;
     }
     void loadJobs();
@@ -143,8 +151,8 @@ export default function JobCenterPage() {
   }, [isGuest]);
 
   useEffect(() => {
-    if (selectedId && selectedResumeId) void loadLatestMatch(selectedId, selectedResumeId);
-  }, [selectedId, selectedResumeId]);
+    if (!isGuest && selectedId && selectedResumeId) void loadLatestMatch(selectedId, selectedResumeId);
+  }, [isGuest, selectedId, selectedResumeId]);
 
   const selectJob = async (job: JobDescription) => {
     if (busy) return;
@@ -154,6 +162,11 @@ export default function JobCenterPage() {
     setShowCreate(false);
     setWorkspaceTab('profile');
     setAtsResult(null);
+    if (isGuest) {
+      setProfileVersions(job.latestProfile ? [job.latestProfile] : []);
+      showProfile(job.latestProfile || null);
+      return;
+    }
     try {
       await loadProfiles(job.id);
     } catch (cause) {
@@ -189,6 +202,18 @@ export default function JobCenterPage() {
     setCreateError('');
     let createdJobId = savedJobId || undefined;
     try {
+      if (isGuest) {
+        setCreateProgress('analyzing');
+        const id = `guest-job-${crypto.randomUUID()}`;
+        const timestamp = new Date().toISOString();
+        const nextProfile: JobProfile = { ...guestSampleProfile, id: `${id}-profile`, jobDescriptionId: id, jobTitle: title.trim() || guestSampleProfile.jobTitle, responsibilities: [{ name: '完成岗位核心职责', evidence: rawText.trim().slice(0, 120), confidence: 0.82 }], createdAt: timestamp, updatedAt: timestamp };
+        const nextJob: JobDescription = { id, title: title.trim() || nextProfile.jobTitle, company: company.trim() || null, rawText: rawText.trim(), createdAt: timestamp, updatedAt: timestamp, latestProfile: nextProfile };
+        await guestWorkspace.saveJob(nextJob);
+        setJobs((items) => [nextJob, ...items]); setSelectedId(id); setProfileVersions([nextProfile]); showProfile(nextProfile);
+        setShowCreate(false); setCreateProgress('idle'); setRawText(''); setTitle(''); setCompany('');
+        notification.success('岗位画像已生成并存到本机');
+        return;
+      }
       if (!createdJobId) {
         setCreateProgress('saving');
         const created = await jobApi.create({ title, company, rawText });
@@ -229,6 +254,12 @@ export default function JobCenterPage() {
     if (!selected) return;
     setBusy(true);
     try {
+      if (isGuest) {
+        const nextProfile = selected.latestProfile || { ...guestSampleProfile, id: `${selected.id}-profile`, jobDescriptionId: selected.id, jobTitle: selected.title || guestSampleProfile.jobTitle };
+        const nextJob = { ...selected, latestProfile: nextProfile, updatedAt: new Date().toISOString() };
+        await guestWorkspace.saveJob(nextJob); setJobs((items) => items.map((item) => item.id === nextJob.id ? nextJob : item));
+        setProfileVersions([nextProfile]); showProfile(nextProfile); notification.success('岗位画像已更新并存到本机'); return;
+      }
       const response = await jobApi.analyze(selected.id);
       if (response.code !== 200) throw new Error(response.message);
       notification.success(`岗位画像 V${response.data.version} 已生成`);
@@ -244,6 +275,12 @@ export default function JobCenterPage() {
     if (!selected || !profile || !draft) return;
     setBusy(true);
     try {
+      if (isGuest) {
+        const nextProfile = { ...profile, ...draft, updatedAt: new Date().toISOString() };
+        const nextJob = { ...selected, latestProfile: nextProfile, updatedAt: nextProfile.updatedAt };
+        await guestWorkspace.saveJob(nextJob); setJobs((items) => items.map((item) => item.id === nextJob.id ? nextJob : item));
+        setProfileVersions([nextProfile]); showProfile(nextProfile); notification.success('岗位画像已存到本机'); return;
+      }
       const response = await jobApi.updateProfile(selected.id, profile.id, draft);
       if (response.code !== 200) throw new Error(response.message);
       notification.success('岗位画像已保存');
@@ -259,6 +296,13 @@ export default function JobCenterPage() {
     if (!selected || !profile) return;
     setBusy(true);
     try {
+      if (isGuest) {
+        const timestamp = new Date().toISOString();
+        const nextProfile = { ...profile, ...draft, status: 'confirmed' as const, confirmedAt: timestamp, updatedAt: timestamp };
+        const nextJob = { ...selected, latestProfile: nextProfile, updatedAt: timestamp };
+        await guestWorkspace.saveJob(nextJob); setJobs((items) => items.map((item) => item.id === nextJob.id ? nextJob : item));
+        setProfileVersions([nextProfile]); showProfile(nextProfile); notification.success('岗位画像已确认并存到本机'); return;
+      }
       if (draft) {
         const saved = await jobApi.updateProfile(selected.id, profile.id, draft);
         if (saved.code !== 200) throw new Error(saved.message);
@@ -276,11 +320,15 @@ export default function JobCenterPage() {
 
   const removeJob = async () => {
     if (!selected || !window.confirm('确定删除这个目标岗位吗？')) return;
-    await jobApi.remove(selected.id);
+    if (isGuest) await guestWorkspace.deleteJob(selected.id);
+    else await jobApi.remove(selected.id);
     setSelectedId(null);
     setProfileVersions([]);
     showProfile(null);
-    await loadJobs();
+    if (isGuest) {
+      const remaining = jobs.filter((item) => item.id !== selected.id);
+      setJobs(remaining); setSelectedId(remaining[0]?.id || null); showProfile(remaining[0]?.latestProfile || null);
+    } else await loadJobs();
   };
 
   const runAtsAnalysis = async () => {
@@ -290,6 +338,13 @@ export default function JobCenterPage() {
     }
     setAtsBusy(true);
     try {
+      if (isGuest) {
+        const selectedResume = resumes.find((item) => item.id === selectedResumeId) || guestSampleResume;
+        const result = createGuestAtsResult(selectedResume, selected.id);
+        await Promise.all([guestWorkspace.saveResume(selectedResume), guestWorkspace.saveJob(selected), guestWorkspace.saveAnalysis({ id: `ats:${selected.id}:${selectedResume.id}`, kind: 'ats', resumeId: selectedResume.id, jobId: selected.id, result })]);
+        setAtsResult(result); setAnalysisView('structure');
+        notification.success('ATS 本地分析完成'); return;
+      }
       const response = await jobApi.analyzeAts(selected.id, selectedResumeId);
       if (response.code !== 200) throw new Error(response.message);
       setAtsResult(response.data);
@@ -309,6 +364,13 @@ export default function JobCenterPage() {
     }
     setQualityBusy(true);
     try {
+      if (isGuest) {
+        const selectedResume = resumes.find((item) => item.id === selectedResumeId) || guestSampleResume;
+        const result = createGuestQualityResult(selectedResume);
+        await Promise.all([guestWorkspace.saveResume(selectedResume), guestWorkspace.saveAnalysis({ id: `quality:${selectedResume.id}`, kind: 'content-quality', resumeId: selectedResume.id, result })]);
+        setContentQuality(result); setAnalysisView('quality');
+        notification.success('内容质量体验分析完成'); return;
+      }
       const response = await resumeApi.analyzeContentQuality(selectedResumeId);
       if (response.code !== 200) throw new Error(response.message);
       setContentQuality(response.data);
@@ -326,6 +388,14 @@ export default function JobCenterPage() {
     if (!profileVersions.some((item) => item.status === 'confirmed')) return notification.error('请先确认当前岗位画像');
     setMatchBusy(true);
     try {
+      if (isGuest) {
+        const selectedResume = resumes.find((item) => item.id === selectedResumeId) || guestSampleResume;
+        const activeProfile = profile || selected.latestProfile || guestSampleProfile;
+        const result = createGuestMatchResult(selectedResume, selected, activeProfile);
+        await Promise.all([guestWorkspace.saveResume(selectedResume), guestWorkspace.saveJob({ ...selected, latestProfile: activeProfile }), guestWorkspace.saveAnalysis({ id: `match:${selected.id}:${selectedResume.id}`, kind: 'job-match', resumeId: selectedResume.id, jobId: selected.id, jobProfileId: activeProfile.id, result })]);
+        setMatchResult(result); setAnalysisView('match');
+        notification.success('岗位匹配体验分析完成'); return;
+      }
       const response = await jobApi.analyzeMatch(selected.id, selectedResumeId);
       if (response.code !== 200) throw new Error(response.message);
       setMatchResult(response.data); setAnalysisView('match'); notification.success('岗位匹配完成');
@@ -335,20 +405,6 @@ export default function JobCenterPage() {
 
   if (loading) {
     return <div className="flex min-h-[480px] items-center justify-center"><Loader2 className="animate-spin" /></div>;
-  }
-
-  if (isGuest) {
-    return (
-      <div className="mx-auto flex h-full max-w-[1440px] items-center justify-center px-6">
-        <div className="w-full max-w-[520px] rounded-[8px] border border-[#D8E1DD] bg-white p-6 text-center shadow-sm">
-          <Target className="mx-auto text-[#176B52]" size={24} />
-          <h1 className="mt-4 text-lg font-semibold text-[#17211D]">岗位匹配需要登录后使用</h1>
-          <p className="mt-2 text-sm leading-6 text-[#66736D]">
-            展示模式不会保存 JD、生成岗位画像或调用 AI 匹配。登录后可以创建岗位、分析简历并查看历史结果。
-          </p>
-        </div>
-      </div>
-    );
   }
 
   const confirmed = profile?.status === 'confirmed';

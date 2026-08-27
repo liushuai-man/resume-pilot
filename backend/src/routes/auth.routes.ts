@@ -12,6 +12,7 @@ router.get('/github/callback', authController.githubAuthCallback);
 
 // 获取当前用户（需要登录）
 router.get('/me', authMiddleware, authController.getCurrentUser);
+router.post('/guest-migration', authMiddleware, authController.migrateGuestWorkspace);
 
 // 退出登录
 router.post('/logout', authController.logout);
