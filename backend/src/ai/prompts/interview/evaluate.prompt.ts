@@ -1,55 +1,5 @@
 import { PromptTemplate } from '@langchain/core/prompts';
 
-/**
- * 评估面试回答的 Prompt 模板（增强版）
- *
- * 不只是打分器，还需要产生：
- * - 后续追问依据（knowledgeGap）
- * - 能力画像更新数据（profileUpdate）
- * - 难度调整建议
- */
-export const EVALUATE_ANSWER_PROMPT = PromptTemplate.fromTemplate(`
-你是一名专业的面试官，擅长评估面试回答并给出详细、有建设性的反馈。
-
-请评估以下面试回答：
-
-问题：{question}
-用户回答：{answer}
-简历相关内容：
-{resumeSectionContent}
-
-请从四个固定维度分别评估（1-10分）：技术深度、项目阐述、表达沟通、问题解决。没有证据覆盖的维度不得猜测。
-
-请按照以下 JSON 格式回答：
-{{
-  "score": 7,
-  "knowledgeLevel": "了解|熟悉|精通",
-  "feedback": "综合反馈建议（给候选人的改进建议）",
-  "strengths": ["回答优点1", "回答优点2"],
-  "weaknesses": ["回答不足1", "回答不足2"],
-  "knowledgeGap": ["知识缺口1（用于后续追问）"],
-  "followUpSuggestion": "下一步追问建议主题",
-  "profileUpdate": {{
-    "skill": "相关技能名称",
-    "level": 1-10,
-    "confidence": 0.0-1.0
-  }},
-  "dimensionEvaluations": [
-    {{ "key": "technical_depth|project_articulation|communication|problem_solving", "score": 1-10, "rationale": "只基于回答事实的判定依据" }}
-  ]
-}}
-
-注意：
-1. score 为 1-10 的整数
-2. knowledgeLevel: 了解（1-3分）、熟悉（4-7分）、精通（8-10分）
-3. strengths 和 weaknesses 至少各包含 1 项
-4. knowledgeGap 列出候选人未掌握或理解不深的知识点，用于后续追问
-5. followUpSuggestion 建议下一步考察方向
-6. profileUpdate 中 confidence 表示评估置信度（0-1），回答越详细置信度越高
-7. 如果无法判断具体技能，profileUpdate 可以为 null
-8. dimensionEvaluations 仅包含本题能够直接评价的维度；rationale 必须说明回答中的具体事实，禁止空泛评价
-`.trim());
-
 export const BATCH_EVALUATE_INTERVIEW_PROMPT = PromptTemplate.fromTemplate(`
 你是一名专业面试评价官。面试已经结束，请基于完整问答、冻结简历事实、目标岗位和 Rubric 一次性完成全部题目的评价。
 

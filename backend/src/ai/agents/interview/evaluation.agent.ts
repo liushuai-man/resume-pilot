@@ -1,7 +1,7 @@
 import { RunnableSequence } from '@langchain/core/runnables';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { createUserLLM } from '../../providers/llm.provider';
-import { EVALUATE_ANSWER_PROMPT, BATCH_EVALUATE_INTERVIEW_PROMPT } from '../../prompts/interview/evaluate.prompt';
+import { BATCH_EVALUATE_INTERVIEW_PROMPT } from '../../prompts/interview/evaluate.prompt';
 import { Question, Evaluation, Answer } from '../../types/interview.types';
 
 function cleanJson(str: string): string {
@@ -29,46 +29,6 @@ export class EvaluationAgent {
       resumeContent: resumeText.slice(0, 6000), transcript: JSON.stringify(transcript) });
     const parsed = JSON.parse(cleanJson(result));
     return validateBatchEvaluations(parsed.evaluations, transcript.filter((item) => item.answer !== null).map((item) => item.questionId));
-  }
-
-  async evaluate(
-    question: Question,
-    answer: string,
-    resumeText: string,
-    targetPosition: string,
-    userId?: string
-  ): Promise<Evaluation> {
-    const llm = await createUserLLM(userId, {
-      temperature: 0.5,
-      maxTokens: 320,
-    });
-
-    const chain = RunnableSequence.from([
-      EVALUATE_ANSWER_PROMPT,
-      llm,
-      new StringOutputParser(),
-    ]);
-
-    const result = await chain.invoke({
-        question: question.content,
-        answer,
-        resumeSectionContent: resumeText.slice(0, 1800),
-      });
-
-      const parsed = JSON.parse(cleanJson(result));
-
-    return {
-        questionId: question.id,
-        score: parsed.score,
-        feedback: parsed.feedback,
-        knowledgeLevel: parsed.knowledgeLevel,
-        strengths: parsed.strengths || [],
-        weaknesses: parsed.weaknesses || [],
-        knowledgeGap: parsed.knowledgeGap || [],
-        followUpSuggestion: parsed.followUpSuggestion || '',
-        profileUpdate: parsed.profileUpdate || null,
-        dimensionEvaluations: parsed.dimensionEvaluations || [],
-    };
   }
 }
 

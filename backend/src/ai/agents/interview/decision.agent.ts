@@ -1,14 +1,11 @@
 import { RunnableSequence } from '@langchain/core/runnables';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { createUserLLM } from '../../providers/llm.provider';
-import { STRATEGY_PLAN_PROMPT } from '../../prompts/interview/strategy.prompt';
 import { NEXT_QUESTION_PROMPT } from '../../prompts/interview/next-question.prompt';
 import {
   Question,
   LangGraphInterviewState,
-  InterviewPlanItem,
 } from '../../types/interview.types';
-import { getResumeText } from './utils';
 
 function cleanJson(str: string): string {
   let cleaned = str.trim();
@@ -20,43 +17,6 @@ function cleanJson(str: string): string {
 }
 
 export class InterviewDecisionAgent {
-  async generateInterviewPlan(
-    resumeContent: any,
-    targetPosition: string,
-    userId?: string
-  ): Promise<InterviewPlanItem[]> {
-    const llm = await createUserLLM(userId, {
-      temperature: 0.5,
-      maxTokens: 1500,
-    });
-
-    const chain = RunnableSequence.from([
-      STRATEGY_PLAN_PROMPT,
-      llm,
-      new StringOutputParser(),
-    ]);
-
-    try {
-      const result = await chain.invoke({
-        targetPosition,
-        resumeContent: getResumeText(resumeContent),
-      });
-
-      const parsed = JSON.parse(cleanJson(result));
-      return (parsed.interviewPlan || []).map((item: any) => ({
-        dimensionKey: item.dimensionKey || 'technical',
-        dimensionLabel: item.dimensionLabel || '技术能力',
-        topic: item.topic,
-        priority: item.priority,
-        count: item.count,
-        askedCount: 0,
-      }));
-    } catch (error) {
-      console.error('InterviewDecisionAgent 生成面试计划失败:', error);
-      return [];
-    }
-  }
-
   async generateNextQuestion(
     state: LangGraphInterviewState
   ): Promise<Question> {
